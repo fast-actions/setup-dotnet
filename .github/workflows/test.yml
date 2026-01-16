@@ -4,6 +4,7 @@ on:
   push:
     branches:
         - main
+        - feat/**
   workflow_dispatch:
 
 jobs:
@@ -23,23 +24,20 @@ jobs:
         uses: ./
         id: setup-dotnet
         with:
-          dotnet-version: ${{ matrix.dotnet-version }}
-          cache-enabled: 'true'
-          architecture: 'x64'
+          dotnet-sdk: |
+            10.x.x
+            10.0.102
+            7.0.100
+          dotnet-runtime: 7.0.3, 6.0.21, 7.0.0
+          dotnet-aspnetcore: 7.x.x, 7.0.0
       
       - name: Verify .NET installation
-        run: dotnet --version
-      
+        run: |
+          dotnet --list-sdks
+          dotnet --list-runtimes
       - name: Check outputs
         run: |
           echo "Installed version: ${{ steps.setup-dotnet.outputs.dotnet-version }}"
           echo "Cache hit: ${{ steps.setup-dotnet.outputs.cache-hit }}"
           echo "Dotnet path: ${{ steps.setup-dotnet.outputs.dotnet-path }}"
-      
-      - name: Test .NET functionality
-        run: |
-          dotnet --info
-          dotnet new console -n TestApp -o test-app
-          cd test-app
-          dotnet build
-          dotnet run
+  

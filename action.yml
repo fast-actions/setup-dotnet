@@ -1,42 +1,27 @@
 name: 'Setup .NET Fast'
-description: 'Download and automatically cache .NET SDK and Runtime with optimized performance'
-author: 'Justin'
+description: 'Download .NET SDK and Runtime with optimized performance'
+author: '@xC0dex'
 
 branding:
   icon: 'download'
   color: 'purple'
 
 inputs:
-  dotnet-version:
-    description: '.NET SDK version to install (e.g., 8.0.x, 9.0.x)'
-    required: true
-  
-  install-runtime-only:
-    description: 'Install only the .NET Runtime instead of the full SDK'
+  dotnet-sdk:
+    description: '.NET SDK version(s) to install. Supports single version, comma-separated (10.x.x, 9.0.0), or YAML array.'
     required: false
-    default: 'false'
   
-  cache-enabled:
-    description: 'Enable automatic caching of .NET installation'
+  dotnet-runtime:
+    description: '.NET Runtime version(s) to install. Supports single version, comma-separated (8.0.0, 7.x.x), or YAML array.'
     required: false
-    default: 'true'
   
-  architecture:
-    description: 'Target architecture (x64, arm64, arm)'
+  dotnet-aspnetcore:
+    description: 'ASP.NET Core Runtime version(s) to install. Supports single version, comma-separated (8.0.0, 7.x.x), or YAML array.'
     required: false
-    default: 'x64'
-  
-  quality:
-    description: 'Quality level of the .NET version (daily, preview, ga)'
-    required: false
-    default: 'ga'
 
 outputs:
   dotnet-version:
     description: 'The installed .NET version'
-  
-  cache-hit:
-    description: 'Whether the .NET installation was restored from cache'
   
   dotnet-path:
     description: 'Path to the installed .NET directory'

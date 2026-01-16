@@ -1,41 +1,111 @@
 import * as core from '@actions/core';
+import { installDotNet } from './installer';
+import { parseVersions } from './utils/input-parser';
+import { deduplicateVersions } from './utils/version-deduplicator';
+
+interface InstallationResult {
+	version: string;
+	type: 'sdk' | 'runtime' | 'aspnetcore';
+	path: string;
+}
 
 /**
  * Main entry point for the GitHub Action
  */
-async function run(): Promise<void> {
+export async function run(): Promise<void> {
 	try {
-		// Get inputs from action.yml
-		const dotnetVersion = core.getInput('dotnet-version', { required: true });
-		const installRuntimeOnly = core.getBooleanInput('install-runtime-only');
-		const cacheEnabled = core.getBooleanInput('cache-enabled');
-		const architecture = core.getInput('architecture') || 'x64';
-		const quality = core.getInput('quality') || 'ga';
+		const sdkInput = core.getInput('dotnet-sdk');
+		const runtimeInput = core.getInput('dotnet-runtime');
+		const aspnetcoreInput = core.getInput('dotnet-aspnetcore');
 
-		core.info(`Setting up .NET ${dotnetVersion} (${architecture})`);
-		core.info(`Runtime only: ${installRuntimeOnly}`);
-		core.info(`Cache enabled: ${cacheEnabled}`);
-		core.info(`Quality: ${quality}`);
+		const sdkVersions = parseVersions(sdkInput);
+		const runtimeVersions = parseVersions(runtimeInput);
+		const aspnetcoreVersions = parseVersions(aspnetcoreInput);
 
-		// TODO: Implement .NET installation logic
-		// const installedVersion = await installDotNet({
-		//   version: dotnetVersion,
-		//   runtimeOnly: installRuntimeOnly,
-		//   architecture,
-		//   quality
-		// });
+		if (
+			sdkVersions.length === 0 &&
+			runtimeVersions.length === 0 &&
+			aspnetcoreVersions.length === 0
+		) {
+			throw new Error(
+				'At least one of dotnet-sdk, dotnet-runtime, or dotnet-aspnetcore must be specified',
+			);
+		}
 
-		// TODO: Implement caching logic
-		// const cacheHit = cacheEnabled
-		//   ? await setupCache(installedVersion, architecture)
-		//   : false;
+		// Remove redundant versions
+		const deduplicated = await deduplicateVersions({
+			sdk: sdkVersions,
+			runtime: runtimeVersions,
+			aspnetcore: aspnetcoreVersions,
+		});
+
+		// Show installation plan
+		const installPlan: string[] = [];
+		if (deduplicated.sdk.length > 0) {
+			installPlan.push(`SDK ${deduplicated.sdk.join(', ')}`);
+		}
+		if (deduplicated.runtime.length > 0) {
+			installPlan.push(`Runtime ${deduplicated.runtime.join(', ')}`);
+		}
+		if (deduplicated.aspnetcore.length > 0) {
+			installPlan.push(`ASP.NET Core ${deduplicated.aspnetcore.join(', ')}`);
+		}
+		core.info(`📦 Installing .NET: ${installPlan.join(' | ')}`);
+
+		// Prepare installation tasks
+		const installTasks: Promise<InstallationResult>[] = [];
+
+		for (const version of deduplicated.sdk) {
+			installTasks.push(
+				installDotNet({
+					version,
+					type: 'sdk',
+				}),
+			);
+		}
+
+		for (const version of deduplicated.runtime) {
+			installTasks.push(
+				installDotNet({
+					version,
+					type: 'runtime',
+				}),
+			);
+		}
+
+		for (const version of deduplicated.aspnetcore) {
+			installTasks.push(
+				installDotNet({
+					version,
+					type: 'aspnetcore',
+				}),
+			);
+		}
+
+		// Install in parallel
+		const installations = await Promise.all(installTasks);
+
+		core.info('');
+
+		core.info('');
+
+		// Log results
+		core.info('✅ Installation complete:');
+		for (const result of installations) {
+			const typeLabel =
+				result.type === 'aspnetcore' ? 'ASP.NET' : result.type.toUpperCase();
+			core.info(`   ${typeLabel.padEnd(8)} ${result.version}`);
+		}
+		core.info(`   Path: ${installations[0].path}`);
 
 		// Set outputs
-		// core.setOutput('dotnet-version', installedVersion);
-		// core.setOutput('cache-hit', cacheHit);
-		// core.setOutput('dotnet-path', dotnetPath);
+		const versions = installations
+			.map((i) => `${i.type}:${i.version}`)
+			.join(', ');
+		const paths = installations.map((i) => i.path).join(':');
 
-		core.info('✓ .NET setup completed successfully');
+		core.setOutput('dotnet-version', versions);
+		core.setOutput('dotnet-path', paths);
 	} catch (error) {
 		if (error instanceof Error) {
 			core.setFailed(error.message);

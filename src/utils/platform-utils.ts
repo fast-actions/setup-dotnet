@@ -1,0 +1,35 @@
+import * as os from 'node:os';
+
+/**
+ * Get platform identifier for .NET downloads
+ */
+export function getPlatform(): string {
+	const platform = os.platform();
+	switch (platform) {
+		case 'darwin':
+			return 'osx';
+		case 'win32':
+			return 'win';
+		case 'linux':
+			return 'linux';
+		default:
+			throw new Error(`Unsupported platform: ${platform}`);
+	}
+}
+
+/**
+ * Get architecture identifier for .NET downloads
+ */
+export function getArchitecture(): string {
+	const arch = os.arch();
+	switch (arch) {
+		case 'x64':
+			return 'x64';
+		case 'arm64':
+			return 'arm64';
+		case 'arm':
+			return 'arm';
+		default:
+			throw new Error(`Unsupported architecture: ${arch}`);
+	}
+}
