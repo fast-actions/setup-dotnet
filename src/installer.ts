@@ -86,23 +86,7 @@ export async function installDotNet(
 	await io.cp(extractedPath, installDir, { recursive: true, force: false });
 	core.debug(`Copied to: ${installDir}`);
 
-	// Set DOTNET_ROOT so dotnet finds our installation
-	if (!process.env.DOTNET_ROOT) {
-		core.debug(`Setting DOTNET_ROOT: ${installDir}`);
-		core.exportVariable('DOTNET_ROOT', installDir);
-		core.info('Set DOTNET_ROOT');
-	} else {
-		core.debug('DOTNET_ROOT already set');
-	}
-
-	// Disable multi-level lookup to prevent finding system-wide .NET
-	if (!process.env.DOTNET_MULTILEVEL_LOOKUP) {
-		core.debug('Setting DOTNET_MULTILEVEL_LOOKUP=0');
-		core.exportVariable('DOTNET_MULTILEVEL_LOOKUP', '0');
-		core.info('Disabled multi-level lookup');
-	}
-
-	// Add to PATH at the BEGINNING to override system dotnet
+	// Add to PATH FIRST - this must be before other steps use it
 	if (!process.env.PATH?.includes(installDir)) {
 		core.debug(`Prepending to PATH: ${installDir}`);
 		core.addPath(installDir);
@@ -110,6 +94,16 @@ export async function installDotNet(
 	} else {
 		core.debug('Shared directory already in PATH');
 	}
+
+	// Set DOTNET_ROOT for all subsequent steps
+	core.debug(`Setting DOTNET_ROOT: ${installDir}`);
+	core.exportVariable('DOTNET_ROOT', installDir);
+	core.info('Set DOTNET_ROOT');
+
+	// Disable multi-level lookup for all subsequent steps
+	core.debug('Setting DOTNET_MULTILEVEL_LOOKUP=0');
+	core.exportVariable('DOTNET_MULTILEVEL_LOOKUP', '0');
+	core.info('Disabled multi-level lookup');
 
 	return {
 		version: resolvedVersion,
