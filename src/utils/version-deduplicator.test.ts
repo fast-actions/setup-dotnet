@@ -119,7 +119,7 @@ describe('deduplicateVersions', () => {
 		});
 
 		expect(result).toEqual({
-			sdk: ['10.x.x', '9.0.100'],
+			sdk: ['10.0.100', '9.0.100'],
 			runtime: ['7.0.0'], // 8.0.23 and 8.0.x removed (covered by aspnetcore)
 			aspnetcore: ['8.0.23'],
 		});
@@ -213,8 +213,8 @@ describe('deduplicateVersions', () => {
 
 		expect(result).toEqual({
 			sdk: [],
-			runtime: [], // 8.x removed (covered by aspnetcore 8.0.x)
-			aspnetcore: ['8.0.x'],
+			runtime: [], // 8.x removed (covered by aspnetcore 8.0.23)
+			aspnetcore: ['8.0.23'],
 		});
 	});
 

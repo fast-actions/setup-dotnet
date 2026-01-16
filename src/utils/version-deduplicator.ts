@@ -95,7 +95,7 @@ function removeDuplicatesWithinType(
 			continue;
 		}
 		seen.add(v.resolved);
-		result.push(v.original);
+		result.push(v.resolved);
 	}
 
 	return result;
