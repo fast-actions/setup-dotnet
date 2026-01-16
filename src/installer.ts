@@ -38,17 +38,15 @@ export async function installDotNet(
 	options: InstallOptions,
 ): Promise<InstallResult> {
 	const { version, type } = options;
+	const prefix = `[${type.toUpperCase()}]`;
 
 	const resolvedVersion = await resolveVersion(version, type);
-	core.info(`Resolved version: ${resolvedVersion}`);
+	core.info(`${prefix} Resolved: ${resolvedVersion}`);
 
-	core.info(`Downloading .NET ${type} ${resolvedVersion}...`);
-	const platform = getPlatform();
-	const arch = getArchitecture();
-	core.debug(`Platform: ${platform}, Architecture: ${arch}`);
 	const downloadUrl = getDotNetDownloadUrl(resolvedVersion, type);
-	core.debug(`Download URL: ${downloadUrl}`);
+	core.debug(`${prefix} Download URL: ${downloadUrl}`);
 
+	core.info(`${prefix} Downloading...`);
 	let downloadPath: string;
 	try {
 		downloadPath = await downloadWithRetry(downloadUrl, 3);
@@ -59,12 +57,13 @@ export async function installDotNet(
 		);
 	}
 
-	core.info('Extracting archive...');
+	core.info(`${prefix} Extracting...`);
+	const platform = getPlatform();
 	const ext = platform === 'win' ? 'zip' : 'tar.gz';
 	const extractedPath = await extractArchive(downloadPath, ext);
 
 	const installDir = getDotNetInstallDirectory();
-	core.info(`Installing to ${installDir}...`);
+	core.info(`${prefix} Installing...`);
 	await io.mkdirP(installDir);
 	await io.cp(extractedPath, installDir, {
 		recursive: true,

@@ -12,27 +12,25 @@ interface InstallationResult {
  */
 export async function run(): Promise<void> {
 	try {
-		core.info('Setting up .NET');
-
-		// Read inputs
 		const sdkVersion = core.getInput('dotnet-sdk');
 		const runtimeVersion = core.getInput('dotnet-runtime');
 
-		core.debug(`Input: dotnet-sdk='${sdkVersion}'`);
-		core.debug(`Input: dotnet-runtime='${runtimeVersion}'`);
-
-		// Validate inputs - at least one must be specified
 		if (!sdkVersion && !runtimeVersion) {
 			throw new Error(
 				'At least one of dotnet-sdk or dotnet-runtime must be specified',
 			);
 		}
 
+		// Show installation plan
+		const installPlan: string[] = [];
+		if (sdkVersion) installPlan.push(`SDK ${sdkVersion}`);
+		if (runtimeVersion) installPlan.push(`Runtime ${runtimeVersion}`);
+		core.info(`📦 Installing .NET: ${installPlan.join(', ')}`);
+
 		// Prepare installation tasks
 		const installTasks: Promise<InstallationResult>[] = [];
 
 		if (sdkVersion) {
-			core.info(`Installing .NET SDK ${sdkVersion}...`);
 			installTasks.push(
 				installDotNet({
 					version: sdkVersion,
@@ -42,7 +40,6 @@ export async function run(): Promise<void> {
 		}
 
 		if (runtimeVersion) {
-			core.info(`Installing .NET Runtime ${runtimeVersion}...`);
 			installTasks.push(
 				installDotNet({
 					version: runtimeVersion,
@@ -54,12 +51,17 @@ export async function run(): Promise<void> {
 		// Install in parallel
 		const installations = await Promise.all(installTasks);
 
+		core.info('');
+
+		core.info('');
+
 		// Log results
+		core.info('✅ Installation complete:');
 		for (const result of installations) {
-			core.info(
-				`✓ .NET ${result.type} ${result.version} installed at ${result.path}`,
-			);
+			const typeLabel = result.type.toUpperCase().padEnd(7);
+			core.info(`   ${typeLabel} ${result.version}`);
 		}
+		core.info(`   Path: ${installations[0].path}`);
 
 		// Set outputs
 		const versions = installations
@@ -69,8 +71,6 @@ export async function run(): Promise<void> {
 
 		core.setOutput('dotnet-version', versions);
 		core.setOutput('dotnet-path', paths);
-
-		core.info('✓ .NET setup completed successfully');
 	} catch (error) {
 		if (error instanceof Error) {
 			core.setFailed(error.message);
