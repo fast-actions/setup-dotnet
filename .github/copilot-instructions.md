@@ -19,7 +19,7 @@ pnpm build    # TypeScript → Vite SSR bundle
 pnpm format   # Biome auto-fix
 pnpm lint     # Biome linting
 pnpm test     # Run tests with Vitest
-pnpm validate # Runs all commands above
+pnpm validate # Runs all commands
 ```
 
 ## Testing
@@ -55,6 +55,6 @@ describe('functionName', () => {
 - Include context in debug messages (e.g., variable values, operation results)
 
 ## Validation Workflow
-**Always validate changes before completion** by running the following command: `pnpm validate`. This 
+**Always validate changes before completion** by running the following command: `pnpm validate`.
 
 This ensures code quality and prevents breaking changes.

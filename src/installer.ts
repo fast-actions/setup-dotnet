@@ -61,8 +61,18 @@ export async function installDotNet(
 	core.debug(`Download URL: ${downloadUrl}`);
 
 	core.debug('Starting download...');
-	const downloadPath = await toolCache.downloadTool(downloadUrl);
-	core.debug(`Downloaded to: ${downloadPath}`);
+	let downloadPath: string;
+	try {
+		downloadPath = await downloadWithRetry(downloadUrl, 3);
+		core.debug(`Downloaded to: ${downloadPath}`);
+	} catch (error) {
+		const errorMsg = error instanceof Error ? error.message : String(error);
+		core.error(`Download failed after retries: ${errorMsg}`);
+		core.debug(`Full error details: ${JSON.stringify(error)}`);
+		throw new Error(
+			`Failed to download .NET ${type} ${resolvedVersion} from ${downloadUrl}: ${errorMsg}`,
+		);
+	}
 
 	// Extract archive
 	core.info('Extracting archive...');
@@ -123,7 +133,39 @@ export function getDotNetDownloadUrl(
 	const typeCapitalized = type === 'sdk' ? 'Sdk' : 'Runtime';
 	const packageName = type === 'sdk' ? 'sdk' : 'runtime';
 
-	return `https://dotnetcli.azureedge.net/dotnet/${typeCapitalized}/${version}/dotnet-${packageName}-${version}-${platform}-${arch}.${ext}`;
+	return `https://builds.dotnet.microsoft.com/dotnet/${typeCapitalized}/${version}/dotnet-${packageName}-${version}-${platform}-${arch}.${ext}`;
+}
+
+/**
+ * Download with retry logic
+ */
+async function downloadWithRetry(
+	url: string,
+	maxRetries: number,
+): Promise<string> {
+	let lastError: Error | undefined;
+
+	for (let attempt = 1; attempt <= maxRetries; attempt++) {
+		try {
+			core.debug(`Download attempt ${attempt}/${maxRetries}`);
+			const downloadPath = await toolCache.downloadTool(url);
+			core.debug(`Download successful on attempt ${attempt}`);
+			return downloadPath;
+		} catch (error) {
+			lastError = error instanceof Error ? error : new Error(String(error));
+			core.warning(
+				`Download attempt ${attempt}/${maxRetries} failed: ${lastError.message}`,
+			);
+
+			if (attempt < maxRetries) {
+				const waitTime = attempt * 5;
+				core.info(`Waiting ${waitTime} seconds before retry...`);
+				await new Promise((resolve) => setTimeout(resolve, waitTime * 1000));
+			}
+		}
+	}
+
+	throw lastError || new Error('Download failed for unknown reason');
 }
 
 /**
