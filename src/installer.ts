@@ -86,15 +86,6 @@ export async function installDotNet(
 	await io.cp(extractedPath, installDir, { recursive: true, force: false });
 	core.debug(`Copied to: ${installDir}`);
 
-	// Add to PATH only once (for the shared directory)
-	if (!process.env.PATH?.includes(installDir)) {
-		core.debug(`Adding to PATH: ${installDir}`);
-		core.addPath(installDir);
-		core.info('Added to PATH');
-	} else {
-		core.debug('Shared directory already in PATH');
-	}
-
 	// Set DOTNET_ROOT so dotnet finds our installation
 	if (!process.env.DOTNET_ROOT) {
 		core.debug(`Setting DOTNET_ROOT: ${installDir}`);
@@ -109,6 +100,15 @@ export async function installDotNet(
 		core.debug('Setting DOTNET_MULTILEVEL_LOOKUP=0');
 		core.exportVariable('DOTNET_MULTILEVEL_LOOKUP', '0');
 		core.info('Disabled multi-level lookup');
+	}
+
+	// Add to PATH at the BEGINNING to override system dotnet
+	if (!process.env.PATH?.includes(installDir)) {
+		core.debug(`Prepending to PATH: ${installDir}`);
+		core.addPath(installDir);
+		core.info('Added to PATH');
+	} else {
+		core.debug('Shared directory already in PATH');
 	}
 
 	return {
