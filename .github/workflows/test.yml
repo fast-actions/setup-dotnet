@@ -29,35 +29,8 @@ jobs:
       
       - name: Verify .NET installation
         run: |
-          echo "========== Environment Variables =========="
-          echo "PATH: $PATH"
-          echo "DOTNET_ROOT: $DOTNET_ROOT"
-          echo "DOTNET_MULTILEVEL_LOOKUP: $DOTNET_MULTILEVEL_LOOKUP"
-          echo ""
-          echo "========== Which dotnet =========="
-          which dotnet
-          echo ""
-          echo "========== Dotnet version =========="
-          dotnet --version
-          echo ""
-          echo "========== Dotnet info =========="
-          dotnet --info
-          echo ""
-          echo "========== List SDKs =========="
           dotnet --list-sdks
-          echo ""
-          echo "========== List Runtimes =========="
           dotnet --list-runtimes
-          echo ""
-          echo "========== Check Installation Directory =========="
-          ls -la ${{ steps.setup-dotnet.outputs.dotnet-path }}
-          echo ""
-          echo "========== Check SDK Directory =========="
-          ls -la ${{ steps.setup-dotnet.outputs.dotnet-path }}/sdk || echo "No SDK directory"
-          echo ""
-          echo "========== Check Shared Directory =========="
-          ls -la ${{ steps.setup-dotnet.outputs.dotnet-path }}/shared || echo "No shared directory"
-      
       - name: Check outputs
         run: |
           echo "Installed version: ${{ steps.setup-dotnet.outputs.dotnet-version }}"
