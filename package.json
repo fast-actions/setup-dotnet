@@ -1,0 +1,25 @@
+{
+	"name": "dotnet-setup-fast",
+	"private": true,
+	"version": "0.0.0",
+	"type": "module",
+	"main": "dist/index.js",
+	"scripts": {
+		"build": "tsc && vite build",
+		"test": "echo \"No tests yet\"",
+		"format": "biome format --write",
+		"lint": "biome lint --write"
+	},
+	"dependencies": {
+		"@actions/core": "2.0.2",
+		"@actions/exec": "2.0.0",
+		"@actions/github": "7.0.0",
+		"@actions/tool-cache": "3.0.0"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.3.11",
+		"@types/node": "25.0.9",
+		"typescript": "5.9.3",
+		"vite": "7.3.1"
+	}
+}

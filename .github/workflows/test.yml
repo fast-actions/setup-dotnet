@@ -1,0 +1,63 @@
+name: Test Action
+
+on:
+  push:
+    branches:
+        - main
+  workflow_dispatch:
+
+jobs:
+  test-action:
+    name: Test .NET Setup
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        dotnet-version: ['10.0.x']
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      
+      - name: Setup .NET using this action
+        uses: ./
+        id: setup-dotnet
+        with:
+          dotnet-version: ${{ matrix.dotnet-version }}
+          cache-enabled: 'true'
+          architecture: 'x64'
+      
+      - name: Verify .NET installation
+        run: dotnet --version
+      
+      - name: Check outputs
+        run: |
+          echo "Installed version: ${{ steps.setup-dotnet.outputs.dotnet-version }}"
+          echo "Cache hit: ${{ steps.setup-dotnet.outputs.cache-hit }}"
+          echo "Dotnet path: ${{ steps.setup-dotnet.outputs.dotnet-path }}"
+      
+      - name: Test .NET functionality
+        run: |
+          dotnet --info
+          dotnet new console -n TestApp -o test-app
+          cd test-app
+          dotnet build
+          dotnet run
+
+  test-runtime-only:
+    name: Test Runtime Only Installation
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup .NET Runtime only
+        uses: ./
+        with:
+          dotnet-version: '8.0.x'
+          install-runtime-only: 'true'
+          cache-enabled: 'false'
+      
+      - name: Verify Runtime installation
+        run: dotnet --version
