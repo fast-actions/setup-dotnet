@@ -20,3 +20,5 @@ pnpm lint    # Biome linting
 ## Code Style
 - **Tabs** (not spaces), **single quotes**, LF line endings
 - Biome auto-organizes imports on save
+- Write clean, modular, maintainable code - self-documenting over comments
+- **Never use `any` or `unknown`** - always provide explicit types

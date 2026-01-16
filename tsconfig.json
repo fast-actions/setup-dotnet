@@ -16,6 +16,7 @@
 
 		/* Linting */
 		"strict": true,
+		"noImplicitAny": true,
 		"erasableSyntaxOnly": true,
 		"noFallthroughCasesInSwitch": true,
 		"noUncheckedSideEffectImports": true
