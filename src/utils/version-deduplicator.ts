@@ -63,13 +63,13 @@ export async function deduplicateVersions(
 		// Check SDK-included first (most specific)
 		if (sdkIncludedRuntimes.has(v.resolved)) {
 			core.info(
-				`ℹ️  Skipping redundant runtime ${v.original} (included in SDK)`,
+				`ℹ️  Skipping redundant Runtime ${v.original} (included in SDK)`,
 			);
 			return false;
 		}
 		if (aspnetcoreSet.has(v.resolved) || sdkSet.has(v.resolved)) {
 			core.info(
-				`ℹ️  Skipping redundant runtime ${v.original} (covered by ${aspnetcoreSet.has(v.resolved) ? 'aspnetcore' : 'sdk'})`,
+				`ℹ️  Skipping redundant Runtime ${v.original} (covered by ${aspnetcoreSet.has(v.resolved) ? 'ASP.NET Core' : 'SDK'})`,
 			);
 			return false;
 		}
@@ -81,13 +81,13 @@ export async function deduplicateVersions(
 		// Check SDK-included runtime first (ASP.NET Core uses same version as runtime)
 		if (sdkIncludedRuntimes.has(v.resolved)) {
 			core.info(
-				`ℹ️  Skipping redundant aspnetcore ${v.original} (included in SDK)`,
+				`ℹ️  Skipping redundant ASP.NET Core ${v.original} (included in SDK)`,
 			);
 			return false;
 		}
 		if (sdkSet.has(v.resolved)) {
 			core.info(
-				`ℹ️  Skipping redundant aspnetcore ${v.original} (covered by sdk)`,
+				`ℹ️  Skipping redundant ASP.NET Core ${v.original} (covered by SDK)`,
 			);
 			return false;
 		}
@@ -95,11 +95,11 @@ export async function deduplicateVersions(
 	});
 
 	// Remove duplicates within same type (e.g., 8.0.23 and 8.0.x both resolve to 8.0.23)
-	const uniqueSdk = removeDuplicatesWithinType(resolvedSdk, 'sdk');
-	const uniqueRuntime = removeDuplicatesWithinType(filteredRuntime, 'runtime');
+	const uniqueSdk = removeDuplicatesWithinType(resolvedSdk, 'SDK');
+	const uniqueRuntime = removeDuplicatesWithinType(filteredRuntime, 'Runtime');
 	const uniqueAspnetcore = removeDuplicatesWithinType(
 		filteredAspnetcore,
-		'aspnetcore',
+		'ASP.NET Core',
 	);
 
 	return {
