@@ -1,6 +1,7 @@
 import * as core from '@actions/core';
 import * as io from '@actions/io';
 import * as toolCache from '@actions/tool-cache';
+import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { extractArchive } from './utils/archive-utils';
 import { getArchitecture, getPlatform } from './utils/platform-utils';
@@ -50,6 +51,11 @@ export async function installDotNet(
 	let downloadPath: string;
 	try {
 		downloadPath = await downloadWithRetry(downloadUrl, 3);
+
+		// Show download size
+		const stats = fs.statSync(downloadPath);
+		const sizeInMB = (stats.size / 1024 / 1024).toFixed(2);
+		core.info(`${prefix} Downloaded ${sizeInMB} MB`);
 	} catch (error) {
 		const errorMsg = error instanceof Error ? error.message : String(error);
 		throw new Error(
