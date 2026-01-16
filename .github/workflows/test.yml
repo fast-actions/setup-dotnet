@@ -26,8 +26,10 @@ jobs:
         with:
           dotnet-sdk: |
             10.x.x
+            10.0.102
             7.0.100
           dotnet-runtime: 7.0.0
+          dotnet-aspnetcore: 7.x.x
       
       - name: Verify .NET installation
         run: |
