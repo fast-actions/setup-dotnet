@@ -183,4 +183,31 @@ describe('resolveVersion', () => {
 			'Failed to resolve version 10.x: Invalid API response: releases data is missing or malformed',
 		);
 	});
+
+	it('should handle releases-index format', async () => {
+		const mockResponse = {
+			'releases-index': [
+				{
+					'channel-version': '10.0',
+					'latest-sdk': '10.0.402',
+					'latest-runtime': '10.0.2',
+					'releases.json': 'https://example.com/releases.json',
+				},
+				{
+					'channel-version': '9.0',
+					'latest-sdk': '9.0.500',
+					'latest-runtime': '9.0.5',
+					'releases.json': 'https://example.com/releases.json',
+				},
+			],
+		};
+
+		global.fetch = vi.fn().mockResolvedValue({
+			ok: true,
+			json: async () => mockResponse,
+		});
+
+		const result = await resolveVersion('10.x.x', 'sdk');
+		expect(result).toBe('10.0.402');
+	});
 });

@@ -9,7 +9,8 @@
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"format": "biome format --write",
-		"lint": "biome lint --write"
+		"lint": "biome lint --write",
+		"validate": "pnpm format && pnpm lint && pnpm build && pnpm test"
 	},
 	"dependencies": {
 		"@actions/core": "2.0.2",

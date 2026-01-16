@@ -15,10 +15,11 @@ GitHub Action for .NET SDK/Runtime installation with caching. TypeScript + Vite 
 ## Build System
 **Critical**: Vite bundles all deps into single `dist/index.js` for GitHub Actions.
 ```bash
-pnpm build   # TypeScript → Vite SSR bundle
-pnpm format  # Biome auto-fix
-pnpm lint    # Biome linting
-pnpm test    # Run tests with Vitest
+pnpm build    # TypeScript → Vite SSR bundle
+pnpm format   # Biome auto-fix
+pnpm lint     # Biome linting
+pnpm test     # Run tests with Vitest
+pnpm validate # Runs all commands above
 ```
 
 ## Testing
@@ -54,10 +55,6 @@ describe('functionName', () => {
 - Include context in debug messages (e.g., variable values, operation results)
 
 ## Validation Workflow
-**Always validate changes before completion** by running in this order:
-1. `pnpm format` - Auto-fix formatting issues
-2. `pnpm lint` - Check and fix linting errors
-3. `pnpm build` - Ensure TypeScript compiles and Vite bundles successfully
-4. `pnpm test` - Verify all tests pass
+**Always validate changes before completion** by running the following command: `pnpm validate`. This 
 
 This ensures code quality and prevents breaking changes.

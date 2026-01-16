@@ -32,20 +32,33 @@ export async function resolveVersion(
 				'latest-sdk': string;
 				'latest-runtime': string;
 			}>;
+			'releases-index'?: Array<{
+				'channel-version': string;
+				'latest-sdk': string;
+				'latest-runtime': string;
+				'releases.json': string;
+			}>;
 		};
 
 		core.debug(`API response received, validating structure`);
-		// Validate API response
-		if (!data || !Array.isArray(data.releases)) {
+		core.debug(`API response keys: ${Object.keys(data).join(', ')}`);
+		core.debug(
+			`API response sample: ${JSON.stringify(data).substring(0, 500)}`,
+		);
+
+		// Validate API response - try both 'releases' and 'releases-index'
+		const releases = data.releases || data['releases-index'];
+
+		if (!data || !Array.isArray(releases)) {
 			core.debug(
-				`Invalid API response structure. data exists: ${!!data}, releases is array: ${Array.isArray(data?.releases)}`,
+				`Invalid API response structure. data exists: ${!!data}, releases is array: ${Array.isArray(data?.releases)}, releases-index is array: ${Array.isArray(data?.['releases-index'])}`,
 			);
 			throw new Error(
 				'Invalid API response: releases data is missing or malformed',
 			);
 		}
 
-		core.debug(`Found ${data.releases.length} releases in API response`);
+		core.debug(`Found ${releases.length} releases in API response`);
 
 		// Match version pattern
 		const versionPattern = version.replace(/\./g, '\\.').replace(/x/g, '\\d+');
@@ -53,7 +66,7 @@ export async function resolveVersion(
 		core.debug(`Version pattern: ${version} -> regex: ${versionPattern}`);
 
 		// Filter and sort matching versions
-		const allVersions = data.releases.map((r) =>
+		const allVersions = releases.map((r) =>
 			type === 'sdk' ? r['latest-sdk'] : r['latest-runtime'],
 		);
 		core.debug(`All available ${type} versions: ${allVersions.join(', ')}`);
