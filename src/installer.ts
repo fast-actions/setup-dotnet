@@ -37,7 +37,6 @@ export async function installDotNet(
 	core.info(`Resolved version: ${resolvedVersion}`);
 
 	// Try to restore from cache
-	const cacheHit = false;
 	if (enableCache) {
 		core.debug('Cache is enabled, checking for cached installation');
 		const cacheResult = await setupCache(resolvedVersion, type);
@@ -116,7 +115,7 @@ export async function installDotNet(
 		version: resolvedVersion,
 		type,
 		path: finalPath,
-		cacheHit,
+		cacheHit: false,
 	};
 }
 
