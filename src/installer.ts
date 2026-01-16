@@ -27,7 +27,7 @@ export interface InstallResult {
 function getDotNetInstallDirectory(): string {
 	if (!dotnetInstallDir) {
 		const toolCache = process.env.RUNNER_TOOL_CACHE || '/opt/hostedtoolcache';
-		dotnetInstallDir = path.join(toolCache, 'dotnet-custom');
+		dotnetInstallDir = path.join(toolCache, 'dotnet');
 	}
 	return dotnetInstallDir;
 }
@@ -82,7 +82,7 @@ export async function installDotNet(
 	}
 
 	core.exportVariable('DOTNET_ROOT', installDir);
-	core.exportVariable('DOTNET_MULTILEVEL_LOOKUP', '0');
+	// core.exportVariable('DOTNET_MULTILEVEL_LOOKUP', '0');
 
 	return {
 		version: resolvedVersion,
