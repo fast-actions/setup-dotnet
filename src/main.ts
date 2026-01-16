@@ -1,10 +1,11 @@
 import * as core from '@actions/core';
 import { installDotNet } from './installer';
 import { parseVersions } from './utils/input-parser';
+import { deduplicateVersions } from './utils/version-deduplicator';
 
 interface InstallationResult {
 	version: string;
-	type: 'sdk' | 'runtime';
+	type: 'sdk' | 'runtime' | 'aspnetcore';
 	path: string;
 }
 
@@ -15,30 +16,46 @@ export async function run(): Promise<void> {
 	try {
 		const sdkInput = core.getInput('dotnet-sdk');
 		const runtimeInput = core.getInput('dotnet-runtime');
+		const aspnetcoreInput = core.getInput('dotnet-aspnetcore');
 
 		const sdkVersions = parseVersions(sdkInput);
 		const runtimeVersions = parseVersions(runtimeInput);
+		const aspnetcoreVersions = parseVersions(aspnetcoreInput);
 
-		if (sdkVersions.length === 0 && runtimeVersions.length === 0) {
+		if (
+			sdkVersions.length === 0 &&
+			runtimeVersions.length === 0 &&
+			aspnetcoreVersions.length === 0
+		) {
 			throw new Error(
-				'At least one of dotnet-sdk or dotnet-runtime must be specified',
+				'At least one of dotnet-sdk, dotnet-runtime, or dotnet-aspnetcore must be specified',
 			);
 		}
 
+		// Remove redundant versions
+		const deduplicated = await deduplicateVersions({
+			sdk: sdkVersions,
+			runtime: runtimeVersions,
+			aspnetcore: aspnetcoreVersions,
+		});
+
 		// Show installation plan
 		const installPlan: string[] = [];
-		if (sdkVersions.length > 0) {
-			installPlan.push(`SDK ${sdkVersions.join(', ')}`);
+		if (deduplicated.sdk.length > 0) {
+			installPlan.push(`SDK ${deduplicated.sdk.join(', ')}`);
 		}
-		if (runtimeVersions.length > 0) {
-			installPlan.push(`Runtime ${runtimeVersions.join(', ')}`);
+		if (deduplicated.runtime.length > 0) {
+			installPlan.push(`Runtime ${deduplicated.runtime.join(', ')}`);
+		}
+		if (deduplicated.aspnetcore.length > 0) {
+			installPlan.push(`ASP.NET Core ${deduplicated.aspnetcore.join(', ')}`);
 		}
 		core.info(`📦 Installing .NET: ${installPlan.join(' | ')}`);
 
 		// Prepare installation tasks
 		const installTasks: Promise<InstallationResult>[] = [];
 
-		for (const version of sdkVersions) {
+		for (const version of deduplicated.sdk) {
 			installTasks.push(
 				installDotNet({
 					version,
@@ -47,11 +64,20 @@ export async function run(): Promise<void> {
 			);
 		}
 
-		for (const version of runtimeVersions) {
+		for (const version of deduplicated.runtime) {
 			installTasks.push(
 				installDotNet({
 					version,
 					type: 'runtime',
+				}),
+			);
+		}
+
+		for (const version of deduplicated.aspnetcore) {
+			installTasks.push(
+				installDotNet({
+					version,
+					type: 'aspnetcore',
 				}),
 			);
 		}
@@ -66,8 +92,9 @@ export async function run(): Promise<void> {
 		// Log results
 		core.info('✅ Installation complete:');
 		for (const result of installations) {
-			const typeLabel = result.type.toUpperCase().padEnd(7);
-			core.info(`   ${typeLabel} ${result.version}`);
+			const typeLabel =
+				result.type === 'aspnetcore' ? 'ASP.NET' : result.type.toUpperCase();
+			core.info(`   ${typeLabel.padEnd(8)} ${result.version}`);
 		}
 		core.info(`   Path: ${installations[0].path}`);
 

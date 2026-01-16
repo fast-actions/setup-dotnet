@@ -8,11 +8,15 @@ branding:
 
 inputs:
   dotnet-sdk:
-    description: '.NET SDK version(s) to install. Supports single version, comma-separated (10.x.x, 9.0.0), or YAML array. Can be specified alongside dotnet-runtime.'
+    description: '.NET SDK version(s) to install. Supports single version, comma-separated (10.x.x, 9.0.0), or YAML array.'
     required: false
   
   dotnet-runtime:
-    description: '.NET Runtime version(s) to install. Supports single version, comma-separated (8.0.0, 7.x.x), or YAML array. Can be specified alongside dotnet-sdk.'
+    description: '.NET Runtime version(s) to install. Supports single version, comma-separated (8.0.0, 7.x.x), or YAML array.'
+    required: false
+  
+  dotnet-aspnetcore:
+    description: 'ASP.NET Core Runtime version(s) to install. Supports single version, comma-separated (8.0.0, 7.x.x), or YAML array.'
     required: false
 
 outputs:

@@ -5,7 +5,7 @@ import * as core from '@actions/core';
  */
 export async function resolveVersion(
 	version: string,
-	type: 'sdk' | 'runtime',
+	type: 'sdk' | 'runtime' | 'aspnetcore',
 ): Promise<string> {
 	// If version has no wildcards, return as-is
 	if (!version.includes('x')) {
@@ -66,8 +66,10 @@ export async function resolveVersion(
 		core.debug(`Version pattern: ${version} -> regex: ${versionPattern}`);
 
 		// Filter and sort matching versions
+		// ASP.NET Core uses runtime versions
+		const versionType = type === 'sdk' ? 'sdk' : 'runtime';
 		const allVersions = releases.map((r) =>
-			type === 'sdk' ? r['latest-sdk'] : r['latest-runtime'],
+			versionType === 'sdk' ? r['latest-sdk'] : r['latest-runtime'],
 		);
 		core.debug(`All available ${type} versions: ${allVersions.join(', ')}`);
 

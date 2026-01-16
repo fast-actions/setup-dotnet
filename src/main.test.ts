@@ -97,7 +97,7 @@ describe('main', () => {
 		await run();
 
 		expect(core.setFailed).toHaveBeenCalledWith(
-			'At least one of dotnet-sdk or dotnet-runtime must be specified',
+			'At least one of dotnet-sdk, dotnet-runtime, or dotnet-aspnetcore must be specified',
 		);
 	});
 

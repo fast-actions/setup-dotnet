@@ -5,19 +5,18 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { extractArchive } from './utils/archive-utils';
 import { getArchitecture, getPlatform } from './utils/platform-utils';
-import { resolveVersion } from './utils/version-resolver';
 
 // Shared installation directory for all .NET installations
 let dotnetInstallDir: string | null = null;
 
 export interface InstallOptions {
 	version: string;
-	type: 'sdk' | 'runtime';
+	type: 'sdk' | 'runtime' | 'aspnetcore';
 }
 
 export interface InstallResult {
 	version: string;
-	type: 'sdk' | 'runtime';
+	type: 'sdk' | 'runtime' | 'aspnetcore';
 	path: string;
 }
 
@@ -41,10 +40,9 @@ export async function installDotNet(
 	const { version, type } = options;
 	const prefix = `[${type.toUpperCase()}]`;
 
-	const resolvedVersion = await resolveVersion(version, type);
-	core.info(`${prefix} Resolved: ${resolvedVersion}`);
+	core.info(`${prefix} Installing ${version}`);
 
-	const downloadUrl = getDotNetDownloadUrl(resolvedVersion, type);
+	const downloadUrl = getDotNetDownloadUrl(version, type);
 	core.debug(`${prefix} Download URL: ${downloadUrl}`);
 
 	core.info(`${prefix} Downloading...`);
@@ -65,7 +63,7 @@ export async function installDotNet(
 		const platform = getPlatform();
 		const arch = getArchitecture();
 		throw new Error(
-			`Failed to download .NET ${type} ${resolvedVersion} (${platform}-${arch}): ${errorMsg}`,
+			`Failed to download .NET ${type} ${version} (${platform}-${arch}): ${errorMsg}`,
 		);
 	}
 
@@ -110,7 +108,7 @@ export async function installDotNet(
 	core.exportVariable('DOTNET_ROOT', installDir);
 
 	return {
-		version: resolvedVersion,
+		version: version,
 		type,
 		path: installDir,
 	};
@@ -121,11 +119,15 @@ export async function installDotNet(
  */
 export function getDotNetDownloadUrl(
 	version: string,
-	type: 'sdk' | 'runtime',
+	type: 'sdk' | 'runtime' | 'aspnetcore',
 ): string {
 	const platform = getPlatform();
 	const arch = getArchitecture();
 	const ext = platform === 'win' ? 'zip' : 'tar.gz';
+
+	if (type === 'aspnetcore') {
+		return `https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/${version}/aspnetcore-runtime-${version}-${platform}-${arch}.${ext}`;
+	}
 
 	const typeCapitalized = type === 'sdk' ? 'Sdk' : 'Runtime';
 	const packageName = type === 'sdk' ? 'sdk' : 'runtime';
