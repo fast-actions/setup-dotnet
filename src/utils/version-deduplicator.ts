@@ -63,34 +63,36 @@ export async function deduplicateVersions(
 		}
 	}
 
-	// Filter runtime: remove if same version exists in aspnetcore/sdk OR is included in an SDK
+	// Filter runtime: remove if included in SDK, same version in aspnetcore, or same version in sdk
 	const filteredRuntime = resolvedRuntime.filter((v) => {
-		if (aspnetcoreSet.has(v.resolved) || sdkSet.has(v.resolved)) {
-			core.info(
-				`ℹ️  Skipping redundant runtime ${v.original} (covered by ${aspnetcoreSet.has(v.resolved) ? 'aspnetcore' : 'sdk'})`,
-			);
-			return false;
-		}
+		// Check SDK-included first (most specific)
 		if (sdkIncludedRuntimes.has(v.resolved)) {
 			core.info(
 				`ℹ️  Skipping redundant runtime ${v.original} (included in SDK)`,
 			);
 			return false;
 		}
-		return true;
-	});
-
-	// Filter aspnetcore: remove if same version exists in sdk OR is included in an SDK
-	const filteredAspnetcore = resolvedAspnetcore.filter((v) => {
-		if (sdkSet.has(v.resolved)) {
+		if (aspnetcoreSet.has(v.resolved) || sdkSet.has(v.resolved)) {
 			core.info(
-				`ℹ️  Skipping redundant aspnetcore ${v.original} (covered by sdk)`,
+				`ℹ️  Skipping redundant runtime ${v.original} (covered by ${aspnetcoreSet.has(v.resolved) ? 'aspnetcore' : 'sdk'})`,
 			);
 			return false;
 		}
+		return true;
+	});
+
+	// Filter aspnetcore: remove if included in SDK or same version in sdk
+	const filteredAspnetcore = resolvedAspnetcore.filter((v) => {
+		// Check SDK-included first (most specific)
 		if (sdkIncludedAspnetcore.has(v.resolved)) {
 			core.info(
 				`ℹ️  Skipping redundant aspnetcore ${v.original} (included in SDK)`,
+			);
+			return false;
+		}
+		if (sdkSet.has(v.resolved)) {
+			core.info(
+				`ℹ️  Skipping redundant aspnetcore ${v.original} (covered by sdk)`,
 			);
 			return false;
 		}
