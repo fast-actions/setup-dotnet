@@ -6,7 +6,8 @@
 	"main": "dist/index.js",
 	"scripts": {
 		"build": "tsc && vite build",
-		"test": "echo \"No tests yet\"",
+		"test": "vitest run",
+		"test:watch": "vitest",
 		"format": "biome format --write",
 		"lint": "biome lint --write"
 	},
@@ -20,6 +21,7 @@
 		"@biomejs/biome": "2.3.11",
 		"@types/node": "25.0.9",
 		"typescript": "5.9.3",
-		"vite": "7.3.1"
+		"vite": "7.3.1",
+		"vitest": "4.0.17"
 	}
 }

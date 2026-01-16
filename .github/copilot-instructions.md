@@ -7,7 +7,10 @@ GitHub Action for .NET SDK/Runtime installation with caching. TypeScript + Vite 
 - [src/main.ts](../src/main.ts) - Entry point, orchestrates installer and cache
 - [src/installer.ts](../src/installer.ts) - .NET download/installation via `@actions/tool-cache`
 - [src/cache.ts](../src/cache.ts) - Caching layer with `@actions/tool-cache`
-- [action.yml](../action.yml) - GitHub Action outputs: `dotnet-version`, `cache-hit`, `dotnet-path`
+- [src/utils/version-resolver.ts](../src/utils/version-resolver.ts) - Version wildcard resolution and semver comparison
+- [src/utils/platform-utils.ts](../src/utils/platform-utils.ts) - Platform and architecture detection
+- [src/utils/archive-utils.ts](../src/utils/archive-utils.ts) - Archive extraction utilities
+- [action.yml](../action.yml) - GitHub Action inputs: `dotnet-sdk`, `dotnet-runtime`, `enable-cache`; outputs: `dotnet-version`, `cache-hit`, `dotnet-path`
 
 ## Build System
 **Critical**: Vite bundles all deps into single `dist/index.js` for GitHub Actions.
@@ -15,6 +18,27 @@ GitHub Action for .NET SDK/Runtime installation with caching. TypeScript + Vite 
 pnpm build   # TypeScript → Vite SSR bundle
 pnpm format  # Biome auto-fix
 pnpm lint    # Biome linting
+pnpm test    # Run tests with Vitest
+```
+
+## Testing
+- **Framework**: Vitest for unit tests
+- **Required**: Write tests for every module and function
+- **Location**: Tests in `*.test.ts` files alongside source files (e.g., `version-resolver.test.ts` next to `version-resolver.ts`)
+- **Focus**: Keep tests simple and focused on essential behavior
+- **Coverage**: Test happy paths, edge cases, and error handling
+- **Mocking**: Mock external dependencies (@actions/*, fetch, etc.)
+
+Example test structure:
+```typescript
+import { describe, it, expect } from 'vitest';
+import { functionName } from './module';
+
+describe('functionName', () => {
+	it('should handle basic case', () => {
+		expect(functionName('input')).toBe('expected');
+	});
+});
 ```
 
 ## Code Style
@@ -22,3 +46,6 @@ pnpm lint    # Biome linting
 - Biome auto-organizes imports on save
 - Write clean, modular, maintainable code - self-documenting over comments
 - **Never use `any` or `unknown`** - always provide explicit types
+
+## Validation Workflow
+**Always validate changes before completion** by running the commands mentioned in Build System.

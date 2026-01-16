@@ -6,6 +6,20 @@ branding:
   icon: 'download'
   color: 'purple'
 
+inputs:
+  dotnet-sdk:
+    description: '.NET SDK version to install (e.g., 10.0.0, 10.x, 10.x.x). Can be specified alongside dotnet-runtime.'
+    required: false
+  
+  dotnet-runtime:
+    description: '.NET Runtime version to install (e.g., 8.0.0, 8.x, 9.x.x). Can be specified alongside dotnet-sdk.'
+    required: false
+  
+  enable-cache:
+    description: 'Enable caching of .NET installations to speed up subsequent runs'
+    required: false
+    default: 'true'
+
 outputs:
   dotnet-version:
     description: 'The installed .NET version'
