@@ -109,7 +109,7 @@ jobs:
         id: setup-dotnet
         with:
           dotnet-sdk: lts, sts
-          dotnet-runtime: lts
+          dotnet-runtime: latest
           dotnet-aspnetcore: sts, 8.0.0
 
       - name: Verify installation
