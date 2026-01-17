@@ -44,21 +44,21 @@ export async function readGlobalJson(filePath: string): Promise<string | null> {
 			);
 		}
 
-		// Check if this is a preview version
-		const isPreview = version.includes('-');
-		const allowPrerelease = parsed.sdk.allowPrerelease ?? false;
+		// Check if this is a preview version using semver prerelease pattern
+		// Pattern: major.minor.patch-prerelease (e.g., 9.0.100-preview.7.24407.12)
+		const semverPattern = /^(\d+\.\d+\.\d+)(-[\w.]+)?$/;
+		const match = version.match(semverPattern);
 
-		// Validate version format: major.minor.patch or major.minor.patch-prerelease
-		const baseVersion = isPreview ? version.split('-')[0] : version;
-		const versionParts = baseVersion.split('.');
-		if (
-			versionParts.length !== 3 ||
-			versionParts.some((p) => !/^\d+$/.test(p))
-		) {
+		if (!match) {
 			throw new Error(
 				`Invalid version format in global.json: '${version}'. Expected format: major.minor.patch (e.g., 10.0.100) or major.minor.patch-prerelease (e.g., 9.0.100-preview.7)`,
 			);
 		}
+
+		const baseVersion = match[1];
+		const prereleaseTag = match[2];
+		const isPreview = !!prereleaseTag;
+		const allowPrerelease = parsed.sdk.allowPrerelease ?? false;
 
 		// Enforce allowPrerelease requirement for preview versions
 		if (isPreview && !allowPrerelease) {

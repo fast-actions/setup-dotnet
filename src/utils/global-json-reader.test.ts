@@ -250,6 +250,34 @@ describe('readGlobalJson', () => {
 		);
 	});
 
+	it('should reject invalid semver format with double hyphen', async () => {
+		const content = JSON.stringify({
+			sdk: {
+				version: '8.0.100--preview',
+				allowPrerelease: true,
+			},
+		});
+		await fs.writeFile(testFile, content, 'utf-8');
+
+		await expect(readGlobalJson(testFile)).rejects.toThrow(
+			"Invalid version format in global.json: '8.0.100--preview'",
+		);
+	});
+
+	it('should reject version with spaces', async () => {
+		const content = JSON.stringify({
+			sdk: {
+				version: '8.0.100 preview',
+				allowPrerelease: true,
+			},
+		});
+		await fs.writeFile(testFile, content, 'utf-8');
+
+		await expect(readGlobalJson(testFile)).rejects.toThrow(
+			"Invalid version format in global.json: '8.0.100 preview'",
+		);
+	});
+
 	it('should handle allowPrerelease flag with stable version', async () => {
 		const content = JSON.stringify({
 			sdk: {
