@@ -1,7 +1,6 @@
 {
 	"name": "setup-dotnet",
 	"private": true,
-	"version": "0.0.0",
 	"type": "module",
 	"main": "dist/index.js",
 	"description": "High-performance GitHub Action for .NET SDK and Runtime installation with parallel downloads, caching, and intelligent version resolution",
