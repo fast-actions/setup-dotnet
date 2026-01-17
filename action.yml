@@ -23,6 +23,11 @@ inputs:
     description: 'Path to global.json file for SDK version resolution. Defaults to ./global.json in workspace root. Only affects SDK installations.'
     required: false
     default: ''
+  
+  cache:
+    description: 'Enable caching of .NET installations to speed up subsequent runs. Set to true to enable.'
+    required: false
+    default: 'true'
 
 outputs:
   dotnet-version:

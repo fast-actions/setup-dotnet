@@ -1,4 +1,5 @@
 import * as core from '@actions/core';
+import type { DotnetType } from '../types';
 
 interface ReleaseInfo {
 	'channel-version': string;
@@ -60,10 +61,7 @@ export async function fetchAndCacheReleases(): Promise<void> {
  * Resolve wildcard versions (10.x, 10.x.x), 'lts', or 'sts' to concrete versions
  * Cache must be initialized with initializeCache() before calling this function
  */
-export function resolveVersion(
-	version: string,
-	type: 'sdk' | 'runtime' | 'aspnetcore',
-): string {
+export function resolveVersion(version: string, type: DotnetType): string {
 	const versionLower = version.toLowerCase();
 
 	// Handle LTS and STS keywords
@@ -108,10 +106,7 @@ export function resolveVersion(
 /**
  * Resolve LTS or STS to the latest version of that support tier
  */
-function resolveSupportTier(
-	tier: 'lts' | 'sts',
-	type: 'sdk' | 'runtime' | 'aspnetcore',
-): string {
+function resolveSupportTier(tier: 'lts' | 'sts', type: DotnetType): string {
 	core.debug(`Resolving ${tier.toUpperCase()} version for ${type}`);
 
 	if (!cachedReleases) {

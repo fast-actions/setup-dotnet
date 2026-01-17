@@ -3,6 +3,7 @@ import * as io from '@actions/io';
 import * as toolCache from '@actions/tool-cache';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import type { DotnetType } from './types';
 import { extractArchive } from './utils/archive-utils';
 import { getArchitecture, getPlatform } from './utils/platform-utils';
 
@@ -11,12 +12,12 @@ let dotnetInstallDir: string | null = null;
 
 export interface InstallOptions {
 	version: string;
-	type: 'sdk' | 'runtime' | 'aspnetcore';
+	type: DotnetType;
 }
 
 export interface InstallResult {
 	version: string;
-	type: 'sdk' | 'runtime' | 'aspnetcore';
+	type: DotnetType;
 	path: string;
 }
 
@@ -99,7 +100,6 @@ export async function installDotNet(
 	try {
 		await io.cp(extractedPath, installDir, {
 			recursive: true,
-			force: true,
 			copySourceDirectory: false,
 		});
 	} catch (error) {
@@ -125,7 +125,7 @@ export async function installDotNet(
  */
 export function getDotNetDownloadUrl(
 	version: string,
-	type: 'sdk' | 'runtime' | 'aspnetcore',
+	type: DotnetType,
 ): string {
 	const platform = getPlatform();
 	const arch = getArchitecture();

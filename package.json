@@ -4,7 +4,7 @@
 	"version": "0.0.0",
 	"type": "module",
 	"main": "dist/index.js",
-	"description": "High-performance GitHub Action for .NET SDK and Runtime installation with parallel downloads and intelligent version resolution",
+	"description": "High-performance GitHub Action for .NET SDK and Runtime installation with parallel downloads, caching, and intelligent version resolution",
 	"keywords": [
 		"github-actions",
 		"dotnet",
@@ -30,6 +30,7 @@
 		"validate": "pnpm format && pnpm lint && pnpm build && pnpm test"
 	},
 	"dependencies": {
+		"@actions/cache": "5.0.3",
 		"@actions/core": "2.0.2",
 		"@actions/exec": "2.0.0",
 		"@actions/github": "7.0.0",

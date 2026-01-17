@@ -1,5 +1,7 @@
 import * as core from '@actions/core';
-import { installDotNet } from './installer';
+import { getDotNetInstallDirectory, installDotNet } from './installer';
+import type { DotnetType, VersionSet } from './types';
+import { generateCacheKey, restoreCache, saveCache } from './utils/cache-utils';
 import {
 	getDefaultGlobalJsonPath,
 	readGlobalJson,
@@ -10,8 +12,48 @@ import { fetchAndCacheReleases } from './utils/version-resolver';
 
 interface InstallationResult {
 	version: string;
-	type: 'sdk' | 'runtime' | 'aspnetcore';
+	type: DotnetType;
 	path: string;
+}
+
+/**
+ * Try to restore .NET installations from cache
+ * @returns true if cache was restored successfully, false otherwise
+ */
+async function tryRestoreFromCache(deduplicated: VersionSet): Promise<boolean> {
+	const cacheKey = generateCacheKey(deduplicated);
+	const cacheRestored = await restoreCache(cacheKey);
+
+	if (cacheRestored) {
+		const installDir = getDotNetInstallDirectory();
+
+		if (!process.env.PATH?.includes(installDir)) {
+			core.addPath(installDir);
+		}
+
+		core.exportVariable('DOTNET_ROOT', installDir);
+
+		const versions = [
+			...deduplicated.sdk.map((v) => `sdk:${v}`),
+			...deduplicated.runtime.map((v) => `runtime:${v}`),
+			...deduplicated.aspnetcore.map((v) => `aspnetcore:${v}`),
+		].join(', ');
+
+		core.setOutput('dotnet-version', versions);
+		core.setOutput('dotnet-path', installDir);
+		core.info('✅ Installation complete (from cache)');
+		return true;
+	}
+
+	return false;
+}
+
+/**
+ * Save .NET installations to cache
+ */
+async function trySaveToCache(deduplicated: VersionSet): Promise<void> {
+	const cacheKey = generateCacheKey(deduplicated);
+	await saveCache(cacheKey);
 }
 
 /**
@@ -23,6 +65,7 @@ export async function run(): Promise<void> {
 		const runtimeInput = core.getInput('dotnet-runtime');
 		const aspnetcoreInput = core.getInput('dotnet-aspnetcore');
 		const globalJsonInput = core.getInput('global-json');
+		const cacheEnabled = core.getBooleanInput('cache');
 
 		let sdkVersions: string[] = [];
 
@@ -64,6 +107,11 @@ export async function run(): Promise<void> {
 			aspnetcore: aspnetcoreVersions,
 		});
 
+		// Try to restore from cache if enabled
+		if (cacheEnabled && (await tryRestoreFromCache(deduplicated))) {
+			return;
+		}
+
 		// Show installation plan
 		const installPlan: string[] = [];
 		if (deduplicated.sdk.length > 0) {
@@ -75,7 +123,7 @@ export async function run(): Promise<void> {
 		if (deduplicated.aspnetcore.length > 0) {
 			installPlan.push(`ASP.NET Core ${deduplicated.aspnetcore.join(', ')}`);
 		}
-		core.info(`📦 Installing .NET: ${installPlan.join(' | ')}`);
+		core.info(`Installing .NET: ${installPlan.join(' | ')}`);
 
 		// Prepare installation tasks
 		const installTasks: Promise<InstallationResult>[] = [];
@@ -108,9 +156,16 @@ export async function run(): Promise<void> {
 		}
 
 		// Install in parallel
+		const installStartTime = Date.now();
 		const installations = await Promise.all(installTasks);
+		const installDuration = ((Date.now() - installStartTime) / 1000).toFixed(2);
 
-		core.info('✅ Installation complete');
+		core.info(`✅ Installation complete in ${installDuration}s`);
+
+		// Save to cache if enabled
+		if (cacheEnabled) {
+			await trySaveToCache(deduplicated);
+		}
 
 		// Set outputs
 		const versions = installations
