@@ -58,6 +58,12 @@ jobs:
           - name: "Latest Minor"
             file: "global.json.minor"
             expected-major: "8"
+          - name: "Preview Exact Version"
+            file: "global.json.preview"
+            expected-major: "9"
+          - name: "Preview with Latest Major"
+            file: "global.json.preview-latestmajor"
+            expected-major: "10"
 
     steps:
       - name: Checkout

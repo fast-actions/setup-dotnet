@@ -355,6 +355,20 @@ describe('readGlobalJson', () => {
 		const version = await readGlobalJson(testFile);
 		expect(version).toBe('9.0.100-alpha.1');
 	});
+
+	it('should apply rollForward: latestMajor with allowPrerelease flag', async () => {
+		const content = JSON.stringify({
+			sdk: {
+				version: '9.0.0',
+				rollForward: 'latestMajor',
+				allowPrerelease: true,
+			},
+		});
+		await fs.writeFile(testFile, content, 'utf-8');
+
+		const version = await readGlobalJson(testFile);
+		expect(version).toBe('x.x.x');
+	});
 });
 
 describe('getDefaultGlobalJsonPath', () => {
