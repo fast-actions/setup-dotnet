@@ -43,14 +43,10 @@ export function generateCacheKey(versions: CacheVersions): string {
 export async function restoreCache(cacheKey: string): Promise<boolean> {
 	const installDir = getDotNetInstallDirectory();
 
-	core.info(`Looking for cache: ${cacheKey}`);
-	core.debug(`Cache restore path: ${installDir}`);
-
 	try {
 		const restoredKey = await cache.restoreCache([installDir], cacheKey);
 
 		if (restoredKey) {
-			core.info(`Cache restored: ${restoredKey}`);
 			return true;
 		}
 
