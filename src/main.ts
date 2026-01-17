@@ -73,7 +73,15 @@ export async function run(): Promise<void> {
 		const cacheRestored = await restoreCache(cacheKey);
 
 		if (cacheRestored) {
-			// Cache hit - set outputs and exit early
+			// Cache hit - set environment variables and exit early
+			const installDir = getDotNetInstallDirectory();
+
+			if (!process.env.PATH?.includes(installDir)) {
+				core.addPath(installDir);
+			}
+
+			core.exportVariable('DOTNET_ROOT', installDir);
+
 			const versions = [
 				...deduplicated.sdk.map((v) => `sdk:${v}`),
 				...deduplicated.runtime.map((v) => `runtime:${v}`),
@@ -81,7 +89,7 @@ export async function run(): Promise<void> {
 			].join(', ');
 
 			core.setOutput('dotnet-version', versions);
-			core.setOutput('dotnet-path', getDotNetInstallDirectory());
+			core.setOutput('dotnet-path', installDir);
 			core.info('✅ Installation complete (from cache)');
 			return;
 		}
