@@ -1,12 +1,7 @@
 import * as core from '@actions/core';
+import type { VersionSet } from '../types';
 import { getSdkIncludedVersions } from './sdk-runtime-mapper';
 import { resolveVersion } from './version-resolver';
-
-export interface VersionSet {
-	sdk: string[];
-	runtime: string[];
-	aspnetcore: string[];
-}
 
 /**
  * Remove redundant versions based on .NET hierarchy:

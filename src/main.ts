@@ -1,6 +1,6 @@
 import * as core from '@actions/core';
 import { getDotNetInstallDirectory, installDotNet } from './installer';
-import type { DotnetType } from './types';
+import type { DotnetType, VersionSet } from './types';
 import { generateCacheKey, restoreCache, saveCache } from './utils/cache-utils';
 import {
 	getDefaultGlobalJsonPath,
@@ -14,6 +14,46 @@ interface InstallationResult {
 	version: string;
 	type: DotnetType;
 	path: string;
+}
+
+/**
+ * Try to restore .NET installations from cache
+ * @returns true if cache was restored successfully, false otherwise
+ */
+async function tryRestoreFromCache(deduplicated: VersionSet): Promise<boolean> {
+	const cacheKey = generateCacheKey(deduplicated);
+	const cacheRestored = await restoreCache(cacheKey);
+
+	if (cacheRestored) {
+		const installDir = getDotNetInstallDirectory();
+
+		if (!process.env.PATH?.includes(installDir)) {
+			core.addPath(installDir);
+		}
+
+		core.exportVariable('DOTNET_ROOT', installDir);
+
+		const versions = [
+			...deduplicated.sdk.map((v) => `sdk:${v}`),
+			...deduplicated.runtime.map((v) => `runtime:${v}`),
+			...deduplicated.aspnetcore.map((v) => `aspnetcore:${v}`),
+		].join(', ');
+
+		core.setOutput('dotnet-version', versions);
+		core.setOutput('dotnet-path', installDir);
+		core.info('✅ Installation complete (from cache)');
+		return true;
+	}
+
+	return false;
+}
+
+/**
+ * Save .NET installations to cache
+ */
+async function trySaveToCache(deduplicated: VersionSet): Promise<void> {
+	const cacheKey = generateCacheKey(deduplicated);
+	await saveCache(cacheKey);
 }
 
 /**
@@ -68,31 +108,8 @@ export async function run(): Promise<void> {
 		});
 
 		// Try to restore from cache if enabled
-		if (cacheEnabled) {
-			const cacheKey = generateCacheKey(deduplicated);
-			const cacheRestored = await restoreCache(cacheKey);
-
-			if (cacheRestored) {
-				// Cache hit - set environment variables and exit early
-				const installDir = getDotNetInstallDirectory();
-
-				if (!process.env.PATH?.includes(installDir)) {
-					core.addPath(installDir);
-				}
-
-				core.exportVariable('DOTNET_ROOT', installDir);
-
-				const versions = [
-					...deduplicated.sdk.map((v) => `sdk:${v}`),
-					...deduplicated.runtime.map((v) => `runtime:${v}`),
-					...deduplicated.aspnetcore.map((v) => `aspnetcore:${v}`),
-				].join(', ');
-
-				core.setOutput('dotnet-version', versions);
-				core.setOutput('dotnet-path', installDir);
-				core.info('✅ Installation complete (from cache)');
-				return;
-			}
+		if (cacheEnabled && (await tryRestoreFromCache(deduplicated))) {
+			return;
 		}
 
 		// Show installation plan
@@ -147,8 +164,7 @@ export async function run(): Promise<void> {
 
 		// Save to cache if enabled
 		if (cacheEnabled) {
-			const cacheKey = generateCacheKey(deduplicated);
-			await saveCache(cacheKey);
+			await trySaveToCache(deduplicated);
 		}
 
 		// Set outputs
