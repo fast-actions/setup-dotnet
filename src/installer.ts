@@ -23,9 +23,15 @@ export interface InstallResult {
 /**
  * Get or create the shared .NET installation directory
  */
-function getDotNetInstallDirectory(): string {
+export function getDotNetInstallDirectory(): string {
 	if (!dotnetInstallDir) {
-		const toolCache = process.env.RUNNER_TOOL_CACHE || '/opt/hostedtoolcache';
+		const toolCache =
+			process.env.AGENT_TOOLSDIRECTORY || process.env.RUNNER_TOOL_CACHE;
+		if (!toolCache) {
+			throw new Error(
+				'Neither AGENT_TOOLSDIRECTORY nor RUNNER_TOOL_CACHE environment variable is set. ',
+			);
+		}
 		dotnetInstallDir = path.join(toolCache, 'dotnet');
 	}
 	return dotnetInstallDir;
