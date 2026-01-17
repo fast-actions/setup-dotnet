@@ -1,6 +1,7 @@
 import * as core from '@actions/core';
-import { installDotNet } from './installer';
+import { getDotNetInstallDirectory, installDotNet } from './installer';
 import type { DotnetType } from './types';
+import { generateCacheKey, restoreCache, saveCache } from './utils/cache-utils';
 import {
 	getDefaultGlobalJsonPath,
 	readGlobalJson,
@@ -65,6 +66,26 @@ export async function run(): Promise<void> {
 			aspnetcore: aspnetcoreVersions,
 		});
 
+		// Generate cache key from resolved versions
+		const cacheKey = generateCacheKey(deduplicated);
+
+		// Try to restore from cache
+		const cacheRestored = await restoreCache(cacheKey);
+
+		if (cacheRestored) {
+			// Cache hit - set outputs and exit early
+			const versions = [
+				...deduplicated.sdk.map((v) => `sdk:${v}`),
+				...deduplicated.runtime.map((v) => `runtime:${v}`),
+				...deduplicated.aspnetcore.map((v) => `aspnetcore:${v}`),
+			].join(', ');
+
+			core.setOutput('dotnet-version', versions);
+			core.setOutput('dotnet-path', getDotNetInstallDirectory());
+			core.info('✅ Installation complete (from cache)');
+			return;
+		}
+
 		// Show installation plan
 		const installPlan: string[] = [];
 		if (deduplicated.sdk.length > 0) {
@@ -114,6 +135,9 @@ export async function run(): Promise<void> {
 		const installDuration = ((Date.now() - installStartTime) / 1000).toFixed(2);
 
 		core.info(`✅ Installation complete in ${installDuration}s`);
+
+		// Save to cache
+		await saveCache(cacheKey);
 
 		// Set outputs
 		const versions = installations

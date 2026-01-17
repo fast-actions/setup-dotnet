@@ -5,9 +5,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { InstallResult } from './installer';
 import { installDotNet } from './installer';
 import { run } from './main';
+import * as cacheUtils from './utils/cache-utils';
 
 vi.mock('@actions/core');
 vi.mock('./installer');
+vi.mock('./utils/cache-utils');
 
 describe('main', () => {
 	const testDir = path.join(__dirname, '__test_main__');
@@ -16,6 +18,13 @@ describe('main', () => {
 	beforeEach(async () => {
 		vi.clearAllMocks();
 		await fs.mkdir(testDir, { recursive: true });
+
+		// Mock cache utilities - default to cache miss
+		vi.mocked(cacheUtils.generateCacheKey).mockReturnValue(
+			'dotnet-test-cache-key',
+		);
+		vi.mocked(cacheUtils.restoreCache).mockResolvedValue(false);
+		vi.mocked(cacheUtils.saveCache).mockResolvedValue(undefined);
 	});
 
 	afterEach(async () => {
