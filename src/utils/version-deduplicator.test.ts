@@ -19,7 +19,7 @@ describe('deduplicateVersions', () => {
 
 	it('should keep all versions when no redundancies exist', async () => {
 		vi.mocked(versionResolver.resolveVersion).mockImplementation(
-			async (version) => version,
+			(version) => version,
 		);
 
 		const result = await deduplicateVersions({
@@ -37,7 +37,7 @@ describe('deduplicateVersions', () => {
 
 	it('should remove runtime when same version exists in aspnetcore', async () => {
 		vi.mocked(versionResolver.resolveVersion).mockImplementation(
-			async (version) => version,
+			(version) => version,
 		);
 
 		const result = await deduplicateVersions({
@@ -55,7 +55,7 @@ describe('deduplicateVersions', () => {
 
 	it('should remove runtime when same version exists in sdk', async () => {
 		vi.mocked(versionResolver.resolveVersion).mockImplementation(
-			async (version) => version,
+			(version) => version,
 		);
 
 		const result = await deduplicateVersions({
@@ -73,7 +73,7 @@ describe('deduplicateVersions', () => {
 
 	it('should remove aspnetcore when same version exists in sdk', async () => {
 		vi.mocked(versionResolver.resolveVersion).mockImplementation(
-			async (version) => version,
+			(version) => version,
 		);
 
 		const result = await deduplicateVersions({
@@ -90,12 +90,10 @@ describe('deduplicateVersions', () => {
 	});
 
 	it('should resolve wildcards and remove duplicates', async () => {
-		vi.mocked(versionResolver.resolveVersion).mockImplementation(
-			async (version) => {
-				if (version === '8.0.x') return '8.0.23';
-				return version;
-			},
-		);
+		vi.mocked(versionResolver.resolveVersion).mockImplementation((version) => {
+			if (version === '8.0.x') return '8.0.23';
+			return version;
+		});
 
 		const result = await deduplicateVersions({
 			sdk: [],
@@ -112,7 +110,7 @@ describe('deduplicateVersions', () => {
 
 	it('should handle complex scenario with multiple types and wildcards', async () => {
 		vi.mocked(versionResolver.resolveVersion).mockImplementation(
-			async (version, _type) => {
+			(version, _type) => {
 				if (version === '8.0.x') return '8.0.23';
 				if (version === '10.x.x') return '10.0.100';
 				return version;
@@ -134,7 +132,7 @@ describe('deduplicateVersions', () => {
 
 	it('should remove runtime and aspnetcore when sdk covers both', async () => {
 		vi.mocked(versionResolver.resolveVersion).mockImplementation(
-			async (version) => version,
+			(version) => version,
 		);
 
 		const result = await deduplicateVersions({
@@ -152,7 +150,7 @@ describe('deduplicateVersions', () => {
 
 	it('should handle multiple versions with mixed redundancies', async () => {
 		vi.mocked(versionResolver.resolveVersion).mockImplementation(
-			async (version) => version,
+			(version) => version,
 		);
 
 		const result = await deduplicateVersions({
@@ -183,13 +181,11 @@ describe('deduplicateVersions', () => {
 	});
 
 	it('should remove duplicates within same type', async () => {
-		vi.mocked(versionResolver.resolveVersion).mockImplementation(
-			async (version) => {
-				if (version === '10.x') return '10.0.100';
-				if (version === '10.0.x') return '10.0.100';
-				return version;
-			},
-		);
+		vi.mocked(versionResolver.resolveVersion).mockImplementation((version) => {
+			if (version === '10.x') return '10.0.100';
+			if (version === '10.0.x') return '10.0.100';
+			return version;
+		});
 
 		const result = await deduplicateVersions({
 			sdk: ['10.0.100', '10.x', '10.0.x'],
@@ -206,7 +202,7 @@ describe('deduplicateVersions', () => {
 
 	it('should handle wildcards resolving to same version across types', async () => {
 		vi.mocked(versionResolver.resolveVersion).mockImplementation(
-			async (version, _type) => {
+			(version, _type) => {
 				if (version === '8.x' || version === '8.0.x') return '8.0.23';
 				return version;
 			},
@@ -227,7 +223,7 @@ describe('deduplicateVersions', () => {
 
 	it('should preserve order of non-redundant versions', async () => {
 		vi.mocked(versionResolver.resolveVersion).mockImplementation(
-			async (version) => version,
+			(version) => version,
 		);
 
 		const result = await deduplicateVersions({
@@ -245,7 +241,7 @@ describe('deduplicateVersions', () => {
 
 	it('should handle scenario where aspnetcore and runtime have same version but not in sdk', async () => {
 		vi.mocked(versionResolver.resolveVersion).mockImplementation(
-			async (version) => version,
+			(version) => version,
 		);
 
 		const result = await deduplicateVersions({
@@ -263,7 +259,7 @@ describe('deduplicateVersions', () => {
 
 	it('should handle all three types with different versions', async () => {
 		vi.mocked(versionResolver.resolveVersion).mockImplementation(
-			async (version) => version,
+			(version) => version,
 		);
 
 		const result = await deduplicateVersions({
@@ -281,7 +277,7 @@ describe('deduplicateVersions', () => {
 
 	it('should remove runtime and aspnetcore included in SDK', async () => {
 		vi.mocked(versionResolver.resolveVersion).mockImplementation(
-			async (version) => version,
+			(version) => version,
 		);
 
 		// Mock SDK 7.0.100 includes runtime 7.0.0 and aspnetcore 7.0.0
@@ -309,7 +305,7 @@ describe('deduplicateVersions', () => {
 
 	it('should handle multiple SDKs with different included versions', async () => {
 		vi.mocked(versionResolver.resolveVersion).mockImplementation(
-			async (version) => version,
+			(version) => version,
 		);
 
 		vi.mocked(sdkRuntimeMapper.getSdkIncludedVersions).mockImplementation(

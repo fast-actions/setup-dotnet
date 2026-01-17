@@ -49,14 +49,19 @@ describe('functionName', () => {
 ## Code Style
 - **Tabs** (not spaces), **single quotes**, LF line endings
 - Biome auto-organizes imports on save
-- Write clean, modular, maintainable code - self-documenting over comments
+- Write clean, modular, maintainable code
 - **Never use `any` or `unknown`** - always provide explicit types
+- **Avoid over-commenting** - code should be self-explanatory; use comments only when explaining "why", not "what"
+- Keep functions focused and single-purpose
+- Prefer early returns over nested conditions
 
 ## Logging & Debugging
 - Use `core.info()` for user-visible messages
-- Use `core.debug()` extensively for troubleshooting - includes inputs, intermediate values, API responses, paths
+- Use `core.debug()` for troubleshooting, but keep it **focused and actionable**
 - Log at key points: function entry, before/after async operations, API calls, cache operations
-- Include context in debug messages (e.g., variable values, operation results)
+- **Avoid excessive debug logging** - too many debug statements make logs hard to read
+- Focus on values that help diagnose issues (inputs, outputs, decisions)
+- Prefer concise debug messages: `Resolved x.x.x -> 10.0.100` instead of multiple separate logs
 
 ## Validation Workflow
 **Always validate changes before completion** by running the following command: `pnpm validate`.

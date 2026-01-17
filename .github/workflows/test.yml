@@ -19,12 +19,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
       
+      - name: Debug - Print environment variables
+        run: env | sort
+      
       - name: Setup .NET using this action
         uses: ./
         id: setup-dotnet
         with:
-          dotnet-sdk: 10.x.x
-          dotnet-aspnetcore: 8.x.x, 9.x.x
+          dotnet-sdk: lts, 10.0.x
+          dotnet-aspnetcore: sts, 8.x.x
       
       - name: Verify .NET installation
         run: |
@@ -93,3 +96,31 @@ jobs:
         run: |
           dotnet --list-sdks
           dotnet --list-runtimes
+
+  test-lts-sts-keywords:
+    name: Test LTS/STS Keywords
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
+      
+      - name: Setup .NET with LTS/STS
+        uses: ./
+        id: setup-dotnet
+        with:
+          dotnet-sdk: lts, sts
+          dotnet-runtime: lts
+          dotnet-aspnetcore: sts, 8.0.0
+      
+      - name: Verify installation
+        run: |
+          echo "=== SDKs ==="
+          dotnet --list-sdks
+          echo ""
+          echo "=== Runtimes ==="
+          dotnet --list-runtimes
+      
+      - name: Check outputs
+        run: |
+          echo "Installed: ${{ steps.setup-dotnet.outputs.dotnet-version }}"
+          echo "Path: ${{ steps.setup-dotnet.outputs.dotnet-path }}"

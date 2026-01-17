@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { compareVersions, resolveVersion } from './version-resolver';
+import {
+	compareVersions,
+	fetchAndCacheReleases,
+	resetCache,
+	resolveVersion,
+	setCachedReleases,
+} from './version-resolver';
 
 describe('compareVersions', () => {
 	it('should return 0 for identical versions', () => {
@@ -35,152 +41,98 @@ describe('compareVersions', () => {
 describe('resolveVersion', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		resetCache();
 	});
 
-	it('should return version as-is when no wildcards', async () => {
-		const result = await resolveVersion('10.0.0', 'sdk');
+	it('should return version as-is when no wildcards', () => {
+		const result = resolveVersion('10.0.0', 'sdk');
 		expect(result).toBe('10.0.0');
 	});
 
-	it('should resolve wildcard SDK versions', async () => {
-		const mockResponse = {
-			releases: [
-				{
-					'channel-version': '10.0',
-					'latest-sdk': '10.0.402',
-					'latest-runtime': '10.0.2',
-				},
-				{
-					'channel-version': '10.1',
-					'latest-sdk': '10.1.100',
-					'latest-runtime': '10.1.0',
-				},
-				{
-					'channel-version': '9.0',
-					'latest-sdk': '9.0.500',
-					'latest-runtime': '9.0.5',
-				},
-			],
-		};
+	it('should resolve wildcard SDK versions', () => {
+		setCachedReleases([
+			{
+				'channel-version': '10.0',
+				'latest-sdk': '10.0.402',
+				'latest-runtime': '10.0.2',
+				'release-type': 'sts',
+			},
+			{
+				'channel-version': '10.1',
+				'latest-sdk': '10.1.100',
+				'latest-runtime': '10.1.0',
+				'release-type': 'sts',
+			},
+			{
+				'channel-version': '9.0',
+				'latest-sdk': '9.0.500',
+				'latest-runtime': '9.0.5',
+				'release-type': 'lts',
+			},
+		]);
 
-		global.fetch = vi.fn().mockResolvedValue({
-			ok: true,
-			json: async () => mockResponse,
-		});
-
-		const result = await resolveVersion('10.x.x', 'sdk');
+		const result = resolveVersion('10.x.x', 'sdk');
 		expect(result).toBe('10.1.100');
 	});
 
-	it('should resolve wildcard Runtime versions', async () => {
-		const mockResponse = {
-			releases: [
-				{
-					'channel-version': '8.0',
-					'latest-sdk': '8.0.400',
-					'latest-runtime': '8.0.10',
-				},
-				{
-					'channel-version': '8.1',
-					'latest-sdk': '8.1.100',
-					'latest-runtime': '8.1.0',
-				},
-			],
-		};
+	it('should resolve wildcard Runtime versions', () => {
+		setCachedReleases([
+			{
+				'channel-version': '8.0',
+				'latest-sdk': '8.0.400',
+				'latest-runtime': '8.0.10',
+				'release-type': 'lts',
+			},
+			{
+				'channel-version': '8.1',
+				'latest-sdk': '8.1.100',
+				'latest-runtime': '8.1.0',
+				'release-type': 'sts',
+			},
+		]);
 
-		global.fetch = vi.fn().mockResolvedValue({
-			ok: true,
-			json: async () => mockResponse,
-		});
-
-		const result = await resolveVersion('8.x.x', 'runtime');
+		const result = resolveVersion('8.x.x', 'runtime');
 		expect(result).toBe('8.1.0');
 	});
 
-	it('should resolve x.x.x pattern', async () => {
-		const mockResponse = {
-			releases: [
-				{
-					'channel-version': '10.0',
-					'latest-sdk': '10.0.402',
-					'latest-runtime': '10.0.2',
-				},
-				{
-					'channel-version': '9.0',
-					'latest-sdk': '9.0.500',
-					'latest-runtime': '9.0.5',
-				},
-			],
-		};
+	it('should resolve x.x.x pattern', () => {
+		setCachedReleases([
+			{
+				'channel-version': '10.0',
+				'latest-sdk': '10.0.402',
+				'latest-runtime': '10.0.2',
+				'release-type': 'sts',
+			},
+			{
+				'channel-version': '9.0',
+				'latest-sdk': '9.0.500',
+				'latest-runtime': '9.0.5',
+				'release-type': 'lts',
+			},
+		]);
 
-		global.fetch = vi.fn().mockResolvedValue({
-			ok: true,
-			json: async () => mockResponse,
-		});
-
-		const result = await resolveVersion('10.0.x', 'sdk');
+		const result = resolveVersion('10.0.x', 'sdk');
 		expect(result).toBe('10.0.402');
 	});
 
-	it('should throw error when no matching version found', async () => {
-		const mockResponse = {
-			releases: [
-				{
-					'channel-version': '10.0',
-					'latest-sdk': '10.0.402',
-					'latest-runtime': '10.0.2',
-				},
-			],
-		};
+	it('should throw error when no matching version found', () => {
+		setCachedReleases([
+			{
+				'channel-version': '10.0',
+				'latest-sdk': '10.0.402',
+				'latest-runtime': '10.0.2',
+				'release-type': 'sts',
+			},
+		]);
 
-		global.fetch = vi.fn().mockResolvedValue({
-			ok: true,
-			json: async () => mockResponse,
-		});
-
-		await expect(resolveVersion('99.x', 'sdk')).rejects.toThrow(
+		expect(() => resolveVersion('99.x', 'sdk')).toThrow(
 			'No matching version found for pattern: 99.x',
 		);
 	});
 
-	it('should throw error when fetch fails', async () => {
-		global.fetch = vi.fn().mockResolvedValue({
-			ok: false,
-			statusText: 'Not Found',
-		});
-
-		await expect(resolveVersion('10.x', 'sdk')).rejects.toThrow(
-			'Failed to resolve version 10.x: Failed to fetch releases: Not Found',
-		);
-	});
-
-	it('should throw error when network error occurs', async () => {
-		global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
-
-		await expect(resolveVersion('10.x', 'sdk')).rejects.toThrow(
-			'Failed to resolve version 10.x: Network error',
-		);
-	});
-
-	it('should throw error when API response is malformed', async () => {
-		global.fetch = vi.fn().mockResolvedValue({
-			ok: true,
-			json: async () => ({}),
-		});
-
-		await expect(resolveVersion('10.x', 'sdk')).rejects.toThrow(
-			'Failed to resolve version 10.x: Invalid API response: releases data is missing or malformed',
-		);
-	});
-
-	it('should throw error when API response has null releases', async () => {
-		global.fetch = vi.fn().mockResolvedValue({
-			ok: true,
-			json: async () => ({ releases: null }),
-		});
-
-		await expect(resolveVersion('10.x', 'sdk')).rejects.toThrow(
-			'Failed to resolve version 10.x: Invalid API response: releases data is missing or malformed',
+	it('should throw error when cache not initialized', () => {
+		expect(() => resolveVersion('10.x', 'sdk')).toThrow(
+			'Cache not initialized',
 		);
 	});
 
@@ -191,13 +143,13 @@ describe('resolveVersion', () => {
 					'channel-version': '10.0',
 					'latest-sdk': '10.0.402',
 					'latest-runtime': '10.0.2',
-					'releases.json': 'https://example.com/releases.json',
+					'release-type': 'sts',
 				},
 				{
 					'channel-version': '9.0',
 					'latest-sdk': '9.0.500',
 					'latest-runtime': '9.0.5',
-					'releases.json': 'https://example.com/releases.json',
+					'release-type': 'lts',
 				},
 			],
 		};
@@ -207,7 +159,162 @@ describe('resolveVersion', () => {
 			json: async () => mockResponse,
 		});
 
-		const result = await resolveVersion('10.x.x', 'sdk');
+		await fetchAndCacheReleases();
+
+		const result = resolveVersion('10.x.x', 'sdk');
 		expect(result).toBe('10.0.402');
+	});
+
+	it('should throw error when fetch fails', async () => {
+		global.fetch = vi.fn().mockResolvedValue({
+			ok: false,
+			statusText: 'Not Found',
+		});
+
+		await expect(fetchAndCacheReleases()).rejects.toThrow(
+			'Failed to fetch releases: Not Found',
+		);
+	});
+
+	it('should throw error when network error occurs', async () => {
+		global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+
+		await expect(fetchAndCacheReleases()).rejects.toThrow('Network error');
+	});
+
+	it('should throw error when API response is malformed', async () => {
+		global.fetch = vi.fn().mockResolvedValue({
+			ok: true,
+			json: async () => ({}),
+		});
+
+		await expect(fetchAndCacheReleases()).rejects.toThrow(
+			'Invalid API response: releases data is missing or malformed',
+		);
+	});
+
+	it('should throw error when API response has null releases', async () => {
+		global.fetch = vi.fn().mockResolvedValue({
+			ok: true,
+			json: async () => ({ releases: null }),
+		});
+
+		await expect(fetchAndCacheReleases()).rejects.toThrow(
+			'Invalid API response: releases data is missing or malformed',
+		);
+	});
+
+	it('should resolve "lts" to latest LTS SDK version', () => {
+		setCachedReleases([
+			{
+				'channel-version': '10.0',
+				'latest-sdk': '10.0.402',
+				'latest-runtime': '10.0.2',
+				'release-type': 'sts',
+			},
+			{
+				'channel-version': '9.0',
+				'latest-sdk': '9.0.500',
+				'latest-runtime': '9.0.5',
+				'release-type': 'lts',
+			},
+			{
+				'channel-version': '8.0',
+				'latest-sdk': '8.0.404',
+				'latest-runtime': '8.0.11',
+				'release-type': 'lts',
+			},
+		]);
+
+		const result = resolveVersion('lts', 'sdk');
+		expect(result).toBe('9.0.500');
+	});
+
+	it('should resolve "LTS" (uppercase) to latest LTS SDK version', () => {
+		setCachedReleases([
+			{
+				'channel-version': '9.0',
+				'latest-sdk': '9.0.500',
+				'latest-runtime': '9.0.5',
+				'release-type': 'lts',
+			},
+		]);
+
+		const result = resolveVersion('LTS', 'sdk');
+		expect(result).toBe('9.0.500');
+	});
+
+	it('should resolve "sts" to latest STS SDK version', () => {
+		setCachedReleases([
+			{
+				'channel-version': '10.0',
+				'latest-sdk': '10.0.402',
+				'latest-runtime': '10.0.2',
+				'release-type': 'sts',
+			},
+			{
+				'channel-version': '9.0',
+				'latest-sdk': '9.0.500',
+				'latest-runtime': '9.0.5',
+				'release-type': 'lts',
+			},
+		]);
+
+		const result = resolveVersion('sts', 'sdk');
+		expect(result).toBe('10.0.402');
+	});
+
+	it('should resolve "lts" for runtime', () => {
+		setCachedReleases([
+			{
+				'channel-version': '9.0',
+				'latest-sdk': '9.0.500',
+				'latest-runtime': '9.0.5',
+				'release-type': 'lts',
+			},
+		]);
+
+		const result = resolveVersion('lts', 'runtime');
+		expect(result).toBe('9.0.5');
+	});
+
+	it('should resolve "sts" for aspnetcore', () => {
+		setCachedReleases([
+			{
+				'channel-version': '10.0',
+				'latest-sdk': '10.0.402',
+				'latest-runtime': '10.0.2',
+				'release-type': 'sts',
+			},
+		]);
+
+		const result = resolveVersion('sts', 'aspnetcore');
+		expect(result).toBe('10.0.2');
+	});
+
+	it('should throw error when no LTS releases found', () => {
+		setCachedReleases([
+			{
+				'channel-version': '10.0',
+				'latest-sdk': '10.0.402',
+				'latest-runtime': '10.0.2',
+				'release-type': 'sts',
+			},
+		]);
+
+		expect(() => resolveVersion('lts', 'sdk')).toThrow('No LTS releases found');
+	});
+
+	it('should throw error when no STS releases found', () => {
+		setCachedReleases([
+			{
+				'channel-version': '8.0',
+				'latest-sdk': '8.0.404',
+				'latest-runtime': '8.0.11',
+				'release-type': 'lts',
+			},
+		]);
+
+		expect(() => resolveVersion('sts', 'sdk')).toThrow('No STS releases found');
 	});
 });

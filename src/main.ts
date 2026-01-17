@@ -6,6 +6,7 @@ import {
 } from './utils/global-json-reader';
 import { parseVersions } from './utils/input-parser';
 import { deduplicateVersions } from './utils/version-deduplicator';
+import { fetchAndCacheReleases } from './utils/version-resolver';
 
 interface InstallationResult {
 	version: string;
@@ -53,6 +54,8 @@ export async function run(): Promise<void> {
 				'At least one of dotnet-sdk, dotnet-runtime, or dotnet-aspnetcore must be specified',
 			);
 		}
+
+		await fetchAndCacheReleases();
 
 		// Remove redundant versions
 		const deduplicated = await deduplicateVersions({
@@ -107,18 +110,7 @@ export async function run(): Promise<void> {
 		// Install in parallel
 		const installations = await Promise.all(installTasks);
 
-		core.info('');
-
-		core.info('');
-
-		// Log results
-		core.info('✅ Installation complete:');
-		for (const result of installations) {
-			const typeLabel =
-				result.type === 'aspnetcore' ? 'ASP.NET' : result.type.toUpperCase();
-			core.info(`   ${typeLabel.padEnd(8)} ${result.version}`);
-		}
-		core.info(`   Path: ${installations[0].path}`);
+		core.info('✅ Installation complete');
 
 		// Set outputs
 		const versions = installations

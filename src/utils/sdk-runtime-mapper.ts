@@ -30,7 +30,7 @@ export async function getSdkIncludedVersions(sdkVersion: string): Promise<{
 	}
 	const channel = `${versionParts[0]}.${versionParts[1]}`;
 
-	const releasesUrl = `https://dotnetcli.blob.core.windows.net/dotnet/release-metadata/${channel}/releases.json`;
+	const releasesUrl = `https://builds.dotnet.microsoft.com/dotnet/release-metadata/${channel}/releases.json`;
 
 	try {
 		core.debug(

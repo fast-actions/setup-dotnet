@@ -16,26 +16,20 @@ export async function deduplicateVersions(
 	versions: VersionSet,
 ): Promise<VersionSet> {
 	// Resolve all wildcards to concrete versions
-	const resolvedSdk = await Promise.all(
-		versions.sdk.map(async (v) => ({
-			original: v,
-			resolved: await resolveVersion(v, 'sdk'),
-		})),
-	);
+	const resolvedSdk = versions.sdk.map((v) => ({
+		original: v,
+		resolved: resolveVersion(v, 'sdk'),
+	}));
 
-	const resolvedRuntime = await Promise.all(
-		versions.runtime.map(async (v) => ({
-			original: v,
-			resolved: await resolveVersion(v, 'runtime'),
-		})),
-	);
+	const resolvedRuntime = versions.runtime.map((v) => ({
+		original: v,
+		resolved: resolveVersion(v, 'runtime'),
+	}));
 
-	const resolvedAspnetcore = await Promise.all(
-		versions.aspnetcore.map(async (v) => ({
-			original: v,
-			resolved: await resolveVersion(v, 'aspnetcore'),
-		})),
-	);
+	const resolvedAspnetcore = versions.aspnetcore.map((v) => ({
+		original: v,
+		resolved: resolveVersion(v, 'aspnetcore'),
+	}));
 
 	// Extract resolved versions as sets for fast lookup
 	const sdkSet = new Set(resolvedSdk.map((v) => v.resolved));

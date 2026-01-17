@@ -94,7 +94,7 @@ describe('getSdkIncludedVersions', () => {
 		});
 
 		expect(global.fetch).toHaveBeenCalledWith(
-			'https://dotnetcli.blob.core.windows.net/dotnet/release-metadata/8.0/releases.json',
+			'https://builds.dotnet.microsoft.com/dotnet/release-metadata/8.0/releases.json',
 		);
 	});
 
