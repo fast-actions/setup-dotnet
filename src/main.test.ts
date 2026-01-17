@@ -1,5 +1,7 @@
 import * as core from '@actions/core';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { InstallResult } from './installer';
 import { installDotNet } from './installer';
 import { run } from './main';
@@ -8,8 +10,20 @@ vi.mock('@actions/core');
 vi.mock('./installer');
 
 describe('main', () => {
-	beforeEach(() => {
+	const testDir = path.join(__dirname, '__test_main__');
+	const testGlobalJson = path.join(testDir, 'global.json');
+
+	beforeEach(async () => {
 		vi.clearAllMocks();
+		await fs.mkdir(testDir, { recursive: true });
+	});
+
+	afterEach(async () => {
+		try {
+			await fs.rm(testDir, { recursive: true, force: true });
+		} catch {
+			// Ignore cleanup errors
+		}
 	});
 
 	it('should install SDK when dotnet-sdk input is provided', async () => {
@@ -123,5 +137,164 @@ describe('main', () => {
 		await run();
 
 		expect(core.setFailed).toHaveBeenCalledWith('An unknown error occurred');
+	});
+
+	it('should use SDK version from global.json when no dotnet-sdk input', async () => {
+		const globalJson = {
+			sdk: {
+				version: '9.0.100',
+			},
+		};
+		await fs.writeFile(testGlobalJson, JSON.stringify(globalJson), 'utf-8');
+
+		vi.mocked(core.getInput).mockImplementation((name: string) => {
+			if (name === 'dotnet-runtime') return '8.0.0';
+			if (name === 'global-json') return testGlobalJson;
+			return '';
+		});
+		vi.mocked(installDotNet)
+			.mockResolvedValueOnce({
+				version: '9.0.100',
+				type: 'sdk',
+				path: '/path/to/sdk',
+			} as InstallResult)
+			.mockResolvedValueOnce({
+				version: '8.0.0',
+				type: 'runtime',
+				path: '/path/to/runtime',
+			} as InstallResult);
+
+		await run();
+
+		expect(installDotNet).toHaveBeenCalledWith({
+			version: '9.0.100',
+			type: 'sdk',
+		});
+		expect(installDotNet).toHaveBeenCalledWith({
+			version: '8.0.0',
+			type: 'runtime',
+		});
+	});
+
+	it('should prioritize dotnet-sdk input over global.json', async () => {
+		const globalJson = {
+			sdk: {
+				version: '9.0.100',
+			},
+		};
+		await fs.writeFile(testGlobalJson, JSON.stringify(globalJson), 'utf-8');
+
+		vi.mocked(core.getInput).mockImplementation((name: string) => {
+			if (name === 'dotnet-sdk') return '10.0.0';
+			if (name === 'global-json') return testGlobalJson;
+			return '';
+		});
+		vi.mocked(installDotNet).mockResolvedValue({
+			version: '10.0.0',
+			type: 'sdk',
+			path: '/path/to/sdk',
+		} as InstallResult);
+
+		await run();
+
+		expect(installDotNet).toHaveBeenCalledWith({
+			version: '10.0.0',
+			type: 'sdk',
+		});
+	});
+
+	it('should use custom global.json path when provided', async () => {
+		const customGlobalJson = path.join(testDir, 'custom', 'global.json');
+		await fs.mkdir(path.dirname(customGlobalJson), { recursive: true });
+		const globalJson = {
+			sdk: {
+				version: '7.0.100',
+			},
+		};
+		await fs.writeFile(customGlobalJson, JSON.stringify(globalJson), 'utf-8');
+
+		vi.mocked(core.getInput).mockImplementation((name: string) => {
+			if (name === 'global-json') return customGlobalJson;
+			return '';
+		});
+		vi.mocked(installDotNet).mockResolvedValue({
+			version: '7.0.100',
+			type: 'sdk',
+			path: '/path/to/sdk',
+		} as InstallResult);
+
+		await run();
+
+		expect(installDotNet).toHaveBeenCalledWith({
+			version: '7.0.100',
+			type: 'sdk',
+		});
+	});
+
+	it('should apply rollForward policy from global.json', async () => {
+		const globalJson = {
+			sdk: {
+				version: '8.0.100',
+				rollForward: 'latestMinor',
+			},
+		};
+		await fs.writeFile(testGlobalJson, JSON.stringify(globalJson), 'utf-8');
+
+		vi.mocked(core.getInput).mockImplementation((name: string) => {
+			if (name === 'global-json') return testGlobalJson;
+			return '';
+		});
+		vi.mocked(installDotNet).mockResolvedValue({
+			version: '8.0.417',
+			type: 'sdk',
+			path: '/path/to/sdk',
+		} as InstallResult);
+
+		await run();
+
+		// Should have resolved 8.x.x wildcard to a concrete version
+		expect(installDotNet).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: 'sdk',
+				version: expect.stringMatching(/^8\.\d+\.\d+$/),
+			}),
+		);
+	});
+
+	it('should install runtime independently of global.json', async () => {
+		const globalJson = {
+			sdk: {
+				version: '9.0.100',
+			},
+		};
+		await fs.writeFile(testGlobalJson, JSON.stringify(globalJson), 'utf-8');
+
+		vi.mocked(core.getInput).mockImplementation((name: string) => {
+			if (name === 'dotnet-runtime') return '7.0.0';
+			if (name === 'global-json') return testGlobalJson;
+			return '';
+		});
+		vi.mocked(installDotNet)
+			.mockResolvedValueOnce({
+				version: '9.0.100',
+				type: 'sdk',
+				path: '/path/to/sdk',
+			} as InstallResult)
+			.mockResolvedValueOnce({
+				version: '7.0.0',
+				type: 'runtime',
+				path: '/path/to/runtime',
+			} as InstallResult);
+
+		await run();
+
+		expect(installDotNet).toHaveBeenCalledWith({
+			version: '9.0.100',
+			type: 'sdk',
+		});
+		expect(installDotNet).toHaveBeenCalledWith({
+			version: '7.0.0',
+			type: 'runtime',
+		});
 	});
 });

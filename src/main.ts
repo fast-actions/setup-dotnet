@@ -1,5 +1,9 @@
 import * as core from '@actions/core';
 import { installDotNet } from './installer';
+import {
+	getDefaultGlobalJsonPath,
+	readGlobalJson,
+} from './utils/global-json-reader';
 import { parseVersions } from './utils/input-parser';
 import { deduplicateVersions } from './utils/version-deduplicator';
 
@@ -17,8 +21,26 @@ export async function run(): Promise<void> {
 		const sdkInput = core.getInput('dotnet-sdk');
 		const runtimeInput = core.getInput('dotnet-runtime');
 		const aspnetcoreInput = core.getInput('dotnet-aspnetcore');
+		const globalJsonInput = core.getInput('global-json');
 
-		const sdkVersions = parseVersions(sdkInput);
+		let sdkVersions: string[] = [];
+
+		// Priority 1: Explicit SDK input
+		if (sdkInput) {
+			sdkVersions = parseVersions(sdkInput);
+			core.info('Using SDK versions from action input');
+		} else {
+			// Priority 2: global.json
+			const globalJsonPath = globalJsonInput || getDefaultGlobalJsonPath();
+			core.debug(`Looking for global.json at: ${globalJsonPath}`);
+
+			const globalJsonVersion = await readGlobalJson(globalJsonPath);
+			if (globalJsonVersion) {
+				sdkVersions = [globalJsonVersion];
+				core.info(`Using SDK version from global.json: ${globalJsonVersion}`);
+			}
+		}
+
 		const runtimeVersions = parseVersions(runtimeInput);
 		const aspnetcoreVersions = parseVersions(aspnetcoreInput);
 

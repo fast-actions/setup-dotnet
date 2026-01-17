@@ -42,9 +42,108 @@ jobs:
         run: |
           dotnet --list-sdks
           dotnet --list-runtimes
+      
       - name: Check outputs
         run: |
           echo "Installed version: ${{ steps.setup-dotnet.outputs.dotnet-version }}"
-          echo "Cache hit: ${{ steps.setup-dotnet.outputs.cache-hit }}"
           echo "Dotnet path: ${{ steps.setup-dotnet.outputs.dotnet-path }}"
+
+  test-global-json:
+    name: Test global.json Support
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        sample:
+          - name: 'Exact Version'
+            file: 'global.json.exact'
+            expected-major: '10'
+          - name: 'Latest Patch'
+            file: 'global.json.patch'
+            expected-major: '9'
+          - name: 'Latest Feature'
+            file: 'global.json.feature'
+            expected-major: '8'
+          - name: 'Latest Minor'
+            file: 'global.json.minor'
+            expected-major: '8'
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
+      
+      - name: Setup test environment with global.json
+        run: |
+          cp samples/${{ matrix.sample.file }} global.json
+          cat global.json
+      
+      - name: Setup .NET from global.json
+        uses: ./
+        id: setup-dotnet
+      
+      - name: Verify SDK installation
+        run: |
+          echo "Checking SDK installation for: ${{ matrix.sample.name }}"
+          dotnet --list-sdks
+          dotnet --version
+          
+          # Verify major version matches expected
+          INSTALLED_VERSION=$(dotnet --version)
+          if [[ ! "$INSTALLED_VERSION" =~ ^${{ matrix.sample.expected-major }}\. ]]; then
+            echo "Error: Expected SDK version ${{ matrix.sample.expected-major }}.x.x, got $INSTALLED_VERSION"
+            exit 1
+          fi
+          echo "✅ SDK version matches expected major version"
+      
+      - name: Test runtime independence
+        uses: ./
+        id: setup-with-runtime
+        with:
+          dotnet-runtime: 7.0.0
+      
+      - name: Verify runtime installation
+        run: |
+          dotnet --list-runtimes
+          if ! dotnet --list-runtimes | grep -q "Microsoft.NETCore.App 7.0.0"; then
+            echo "Error: Runtime 7.0.0 not found"
+            exit 1
+          fi
+          echo "✅ Runtime installed independently of global.json"
+      
+      - name: Check outputs
+        run: |
+          echo "Installed version: ${{ steps.setup-dotnet.outputs.dotnet-version }}"
+          echo "Dotnet path: ${{ steps.setup-dotnet.outputs.dotnet-path }}"
+
+  test-global-json-precedence:
+    name: Test Explicit Input Precedence
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
+      
+      - name: Setup test environment with global.json
+        run: |
+          cp samples/global.json.exact global.json
+          cat global.json
+      
+      - name: Setup .NET with explicit version (should override global.json)
+        uses: ./
+        id: setup-dotnet
+        with:
+          dotnet-sdk: 9.x.x
+      
+      - name: Verify explicit version takes precedence
+        run: |
+          echo "Verifying that explicit input overrides global.json"
+          dotnet --list-sdks
+          INSTALLED_VERSION=$(dotnet --version)
+          
+          # Should be 9.x.x (explicit), not 10.x.x (from global.json)
+          if [[ ! "$INSTALLED_VERSION" =~ ^9\. ]]; then
+            echo "Error: Expected SDK 9.x.x (explicit input), got $INSTALLED_VERSION"
+            echo "global.json should be ignored when explicit input is provided"
+            exit 1
+          fi
+          echo "✅ Explicit input correctly overrides global.json"
   

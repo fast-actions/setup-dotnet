@@ -4,3 +4,6 @@ node_modules/
 !.vscode/extensions.json
 
 .DS_Store
+
+# Test directories
+__test_*/
