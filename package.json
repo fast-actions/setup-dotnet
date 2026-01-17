@@ -18,12 +18,15 @@
 		"type": "git",
 		"url": "https://github.com/xC0dex/dotnet-setup-fast"
 	},
+	"packageManager": "pnpm@10.28.0",
 	"scripts": {
 		"build": "tsc && vite build",
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"format": "biome format --write",
 		"lint": "biome lint --write",
+		"format:ci": "biome format",
+		"lint:ci": "biome lint",
 		"validate": "pnpm format && pnpm lint && pnpm build && pnpm test"
 	},
 	"dependencies": {

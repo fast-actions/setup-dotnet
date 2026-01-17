@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build-test-format:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6
+        with:
+          node-version: 24
+          cache: "pnpm"
+      
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Check format
+        run: pnpm format:ci
+
+      - name: Check Lint
+        run: pnpm lint:ci
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+      - name: Check for uncommitted changes
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "❌ Build artifacts don't match committed files!"
+            echo "Please run 'pnpm build' and commit the changes."
+            exit 1
+          fi
+          echo "✅ Build artifacts match committed files"

@@ -3,9 +3,8 @@ name: Test Action
 on:
   push:
     branches:
-        - main
-        - feat/**
-  workflow_dispatch:
+      - main
+  pull_request:
 
 jobs:
   test-action:
@@ -14,26 +13,26 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
-      
+
       - name: Debug - Print environment variables
         run: env | sort
-      
+
       - name: Setup .NET using this action
         uses: ./
         id: setup-dotnet
         with:
           dotnet-sdk: lts, 10.0.x
           dotnet-aspnetcore: sts, 8.x.x
-      
+
       - name: Verify .NET installation
         run: |
           dotnet --list-sdks
           dotnet --list-runtimes
-      
+
       - name: Check outputs
         run: |
           echo "Installed version: ${{ steps.setup-dotnet.outputs.dotnet-version }}"
@@ -45,32 +44,32 @@ jobs:
     strategy:
       matrix:
         sample:
-          - name: 'Exact Version'
-            file: 'global.json.exact'
-            expected-major: '10'
-          - name: 'Latest Patch'
-            file: 'global.json.patch'
-            expected-major: '9'
-          - name: 'Latest Feature'
-            file: 'global.json.feature'
-            expected-major: '8'
-          - name: 'Latest Minor'
-            file: 'global.json.minor'
-            expected-major: '8'
-    
+          - name: "Exact Version"
+            file: "global.json.exact"
+            expected-major: "10"
+          - name: "Latest Patch"
+            file: "global.json.patch"
+            expected-major: "9"
+          - name: "Latest Feature"
+            file: "global.json.feature"
+            expected-major: "8"
+          - name: "Latest Minor"
+            file: "global.json.minor"
+            expected-major: "8"
+
     steps:
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
-      
+
       - name: Setup test environment with global.json
         run: |
           cp samples/${{ matrix.sample.file }} global.json
           cat global.json
-      
+
       - name: Setup .NET from global.json
         uses: ./
         id: setup-dotnet
-      
+
       - name: Verify SDK installation
         run: dotnet --list-sdks
 
@@ -80,18 +79,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
-      
+
       - name: Setup test environment with global.json
         run: |
           cp samples/global.json.feature global.json
           cat global.json
-      
+
       - name: Setup .NET from global.json
         uses: ./
         id: setup-dotnet
         with:
           dotnet-aspnetcore: 10.x.x
-      
+
       - name: Verify SDK & Runtime installation
         run: |
           dotnet --list-sdks
@@ -103,7 +102,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
-      
+
       - name: Setup .NET with LTS/STS
         uses: ./
         id: setup-dotnet
@@ -111,7 +110,7 @@ jobs:
           dotnet-sdk: lts, sts
           dotnet-runtime: lts
           dotnet-aspnetcore: sts, 8.0.0
-      
+
       - name: Verify installation
         run: |
           echo "=== SDKs ==="
@@ -119,7 +118,7 @@ jobs:
           echo ""
           echo "=== Runtimes ==="
           dotnet --list-runtimes
-      
+
       - name: Check outputs
         run: |
           echo "Installed: ${{ steps.setup-dotnet.outputs.dotnet-version }}"
