@@ -19,8 +19,6 @@ interface InstallationResult {
  * Main entry point for the GitHub Action
  */
 export async function run(): Promise<void> {
-	const startTime = Date.now();
-
 	try {
 		const sdkInput = core.getInput('dotnet-sdk');
 		const runtimeInput = core.getInput('dotnet-runtime');
@@ -125,9 +123,6 @@ export async function run(): Promise<void> {
 
 		core.setOutput('dotnet-version', versions);
 		core.setOutput('dotnet-path', paths);
-
-		const totalDuration = ((Date.now() - startTime) / 1000).toFixed(2);
-		core.info(`⏱️  Total runtime: ${totalDuration}s`);
 	} catch (error) {
 		if (error instanceof Error) {
 			core.setFailed(error.message);
