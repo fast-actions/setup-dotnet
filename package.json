@@ -4,6 +4,20 @@
 	"version": "0.0.0",
 	"type": "module",
 	"main": "dist/index.js",
+	"description": "High-performance GitHub Action for .NET SDK and Runtime installation with parallel downloads and intelligent version resolution",
+	"keywords": [
+		"github-actions",
+		"dotnet",
+		"sdk",
+		"runtime",
+		"aspnetcore"
+	],
+	"author": "xC0dex",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/xC0dex/dotnet-setup-fast"
+	},
 	"scripts": {
 		"build": "tsc && vite build",
 		"test": "vitest run",
