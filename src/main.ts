@@ -107,10 +107,6 @@ export async function run(): Promise<void> {
 		// Install in parallel
 		const installations = await Promise.all(installTasks);
 
-		core.info('');
-
-		core.info('');
-
 		// Log results
 		core.info('✅ Installation complete:');
 		for (const result of installations) {
