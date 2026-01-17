@@ -1,5 +1,6 @@
 import * as core from '@actions/core';
 import { installDotNet } from './installer';
+import type { DotnetType } from './types';
 import {
 	getDefaultGlobalJsonPath,
 	readGlobalJson,
@@ -10,7 +11,7 @@ import { fetchAndCacheReleases } from './utils/version-resolver';
 
 interface InstallationResult {
 	version: string;
-	type: 'sdk' | 'runtime' | 'aspnetcore';
+	type: DotnetType;
 	path: string;
 }
 
