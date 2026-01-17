@@ -110,14 +110,7 @@ export async function run(): Promise<void> {
 		// Install in parallel
 		const installations = await Promise.all(installTasks);
 
-		// Log results
-		core.info('✅ Installation complete:');
-		for (const result of installations) {
-			const typeLabel =
-				result.type === 'aspnetcore' ? 'ASP.NET' : result.type.toUpperCase();
-			core.info(`   ${typeLabel.padEnd(8)} ${result.version}`);
-		}
-		core.info(`   Path: ${installations[0].path}`);
+		core.info('✅ Installation complete');
 
 		// Set outputs
 		const versions = installations
