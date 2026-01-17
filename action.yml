@@ -35,6 +35,9 @@ outputs:
   
   dotnet-path:
     description: 'Path to the installed .NET directory'
+  
+  cache-hit:
+    description: 'Whether the .NET installation was restored from cache (true/false)'
 
 runs:
   using: 'node24'

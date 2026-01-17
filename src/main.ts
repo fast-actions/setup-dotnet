@@ -41,6 +41,7 @@ async function tryRestoreFromCache(deduplicated: VersionSet): Promise<boolean> {
 
 		core.setOutput('dotnet-version', versions);
 		core.setOutput('dotnet-path', installDir);
+		core.setOutput('cache-hit', 'true');
 		core.info('✅ Installation complete (from cache)');
 		return true;
 	}
@@ -175,6 +176,7 @@ export async function run(): Promise<void> {
 
 		core.setOutput('dotnet-version', versions);
 		core.setOutput('dotnet-path', paths);
+		core.setOutput('cache-hit', 'false');
 	} catch (error) {
 		if (error instanceof Error) {
 			core.setFailed(error.message);
