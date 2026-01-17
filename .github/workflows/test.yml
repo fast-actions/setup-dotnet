@@ -27,6 +27,7 @@ jobs:
         with:
           dotnet-sdk: lts, 10.0.x
           dotnet-aspnetcore: sts, 8.x.x
+          cache: false
 
       - name: Verify .NET installation
         run: |
