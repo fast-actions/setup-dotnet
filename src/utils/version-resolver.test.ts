@@ -115,6 +115,46 @@ describe('resolveVersion', () => {
 		expect(result).toBe('10.0.402');
 	});
 
+	it('should resolve two-part wildcard pattern (10.x)', () => {
+		setCachedReleases([
+			{
+				'channel-version': '10.0',
+				'latest-sdk': '10.0.402',
+				'latest-runtime': '10.0.2',
+				'release-type': 'sts',
+			},
+			{
+				'channel-version': '10.1',
+				'latest-sdk': '10.1.100',
+				'latest-runtime': '10.1.0',
+				'release-type': 'sts',
+			},
+		]);
+
+		const result = resolveVersion('10.x', 'sdk');
+		expect(result).toBe('10.1.100');
+	});
+
+	it('should resolve single-part wildcard pattern (10.x) for runtime', () => {
+		setCachedReleases([
+			{
+				'channel-version': '9.0',
+				'latest-sdk': '9.0.500',
+				'latest-runtime': '9.0.5',
+				'release-type': 'lts',
+			},
+			{
+				'channel-version': '9.1',
+				'latest-sdk': '9.1.200',
+				'latest-runtime': '9.1.0',
+				'release-type': 'sts',
+			},
+		]);
+
+		const result = resolveVersion('9.x', 'runtime');
+		expect(result).toBe('9.1.0');
+	});
+
 	it('should resolve wildcards with uppercase X', () => {
 		setCachedReleases([
 			{
@@ -133,6 +173,7 @@ describe('resolveVersion', () => {
 
 		expect(resolveVersion('10.X.X', 'sdk')).toBe('10.1.100');
 		expect(resolveVersion('10.0.X', 'sdk')).toBe('10.0.402');
+		expect(resolveVersion('10.X', 'sdk')).toBe('10.1.100');
 	});
 
 	it('should throw error when no matching version found', () => {
