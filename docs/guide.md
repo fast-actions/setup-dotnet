@@ -1,6 +1,6 @@
-# Complete Guide to dotnet-setup-fast
+# Complete Guide to setup-dotnet
 
-This guide covers all features, use cases, and advanced scenarios for `dotnet-setup-fast`.
+This guide covers all features, use cases, and advanced scenarios for `setup-dotnet`.
 
 ## Table of Contents
 
