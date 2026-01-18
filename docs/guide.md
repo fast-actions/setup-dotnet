@@ -315,7 +315,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - uses: fast-actions/setup-dotnet@v1
         with:
@@ -354,7 +354,7 @@ jobs:
   build-all:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - uses: fast-actions/setup-dotnet@v1
         with:
@@ -398,7 +398,7 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - uses: fast-actions/setup-dotnet@v1
         with:
