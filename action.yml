@@ -7,15 +7,15 @@ branding:
   color: 'purple'
 
 inputs:
-  dotnet-sdk:
+  sdk-version:
     description: '.NET SDK version(s) to install. Supports single version, comma-separated (10.x.x, 9.0.0), or YAML array. Use keywords: "latest" (newest), "lts" (Long-Term Support), "sts" (Standard Term Support). Preview versions are supported (e.g., 9.0.100-preview.7). Takes precedence over global.json.'
     required: false
   
-  dotnet-runtime:
+  runtime-version:
     description: '.NET Runtime version(s) to install. Supports single version, comma-separated (8.0.0, 7.x.x), or YAML array. Use keywords: "latest", "lts", "sts". Preview versions are supported (e.g., 9.0.0-preview.7).'
     required: false
   
-  dotnet-aspnetcore:
+  aspnetcore-version:
     description: 'ASP.NET Core Runtime version(s) to install. Supports single version, comma-separated (8.0.0, 7.x.x), or YAML array. Use keywords: "latest", "lts", "sts". Preview versions are supported (e.g., 9.0.0-preview.7).'
     required: false
   

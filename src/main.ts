@@ -81,9 +81,9 @@ async function trySaveToCache(deduplicated: VersionSet): Promise<void> {
  */
 export async function run(): Promise<void> {
 	try {
-		const sdkInput = core.getInput('dotnet-sdk');
-		const runtimeInput = core.getInput('dotnet-runtime');
-		const aspnetcoreInput = core.getInput('dotnet-aspnetcore');
+		const sdkInput = core.getInput('sdk-version');
+		const runtimeInput = core.getInput('runtime-version');
+		const aspnetcoreInput = core.getInput('aspnetcore-version');
 		const globalJsonInput = core.getInput('global-json');
 		const cacheEnabled = core.getBooleanInput('cache');
 
@@ -114,7 +114,7 @@ export async function run(): Promise<void> {
 			aspnetcoreVersions.length === 0
 		) {
 			throw new Error(
-				'At least one of dotnet-sdk, dotnet-runtime, or dotnet-aspnetcore must be specified',
+				'At least one of sdk-version, runtime-version, or aspnetcore-version must be specified',
 			);
 		}
 

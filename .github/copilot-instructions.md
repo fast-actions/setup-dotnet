@@ -14,7 +14,7 @@ GitHub Action for .NET SDK/Runtime installation with caching. TypeScript + Vite 
 - [src/utils/platform-utils.ts](../src/utils/platform-utils.ts) - Platform and architecture detection
 - [src/utils/archive-utils.ts](../src/utils/archive-utils.ts) - Archive extraction utilities
 - [src/utils/cache-utils.ts](../src/utils/cache-utils.ts) - Cache key generation and cache restore/save operations
-- [action.yml](../action.yml) - GitHub Action inputs: `dotnet-sdk`, `dotnet-runtime`, `dotnet-aspnetcore`, `global-json`, `cache`; outputs: `dotnet-version`, `dotnet-path`
+- [action.yml](../action.yml) - GitHub Action inputs: `sdk-version`, `runtime-version`, `aspnetcore-version`, `global-json`, `cache`; outputs: `dotnet-version`, `dotnet-path`
 
 ## Build System
 **Critical**: Vite bundles all deps into single `dist/index.js` for GitHub Actions.

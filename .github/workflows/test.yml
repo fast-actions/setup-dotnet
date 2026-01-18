@@ -25,9 +25,9 @@ jobs:
         uses: ./
         id: setup-dotnet
         with:
-          #dotnet-sdk: lts, 10.0.x
-          dotnet-aspnetcore: sts, 8.x.x
-          dotnet-runtime: latest
+          #sdk-version: lts, 10.0.x
+          aspnetcore-version: sts, 8.x.x
+          runtime-version: latest
           cache: false
 
       - name: Verify .NET installation

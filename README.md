@@ -7,7 +7,7 @@ High-performance GitHub Action for .NET SDK/Runtime installation with parallel d
 ```yaml
 - uses: fast-actions/setup-dotnet@v1
   with:
-    dotnet-sdk: '10.x.x'
+    sdk-version: '10.x.x'
 ```
 
 That's it! The action automatically:
@@ -29,13 +29,13 @@ That's it! The action automatically:
 # Use latest LTS SDK
 - uses: fast-actions/setup-dotnet@v1
   with:
-    dotnet-sdk: 'lts'
+    sdk-version: 'lts'
 
 # Multi-target testing (latest SDK + multiple runtimes)
 - uses: fast-actions/setup-dotnet@v1
   with:
-    dotnet-sdk: 'latest'
-    dotnet-runtime: |
+    sdk-version: 'latest'
+    runtime-version: |
       9.0.0
       8.0.0
       7.0.0
@@ -52,9 +52,9 @@ For detailed documentation, advanced features, and more examples, see [guide.md]
 
 | Input | Description | Required | Default |
 |-------|-------------|----------|---------|
-| `dotnet-sdk` | SDK version(s). Supports wildcards, keywords (`latest`, `lts`, `sts`), comma-separated, or YAML array. | No | – |
-| `dotnet-runtime` | Runtime version(s). Same format as `dotnet-sdk`. | No | – |
-| `dotnet-aspnetcore` | ASP.NET Core Runtime version(s). Same format as `dotnet-sdk`. | No | – |
+| `sdk-version` | SDK version(s). Supports wildcards, keywords (`latest`, `lts`, `sts`), comma-separated, or YAML array. | No | – |
+| `runtime-version` | Runtime version(s). Same format as `sdk-version`. | No | – |
+| `aspnetcore-version` | ASP.NET Core Runtime version(s). Same format as `sdk-version`. | No | – |
 | `global-json` | Path to `global.json` for SDK resolution. | No | `./global.json` |
 | `cache` | Enable caching of .NET installations. | No | `true` |
 

@@ -35,9 +35,9 @@ describe('main', () => {
 		}
 	});
 
-	it('should install SDK when dotnet-sdk input is provided', async () => {
+	it('should install SDK when sdk-version input is provided', async () => {
 		vi.mocked(core.getInput).mockImplementation((name: string) => {
-			if (name === 'dotnet-sdk') return '10.0.0';
+			if (name === 'sdk-version') return '10.0.0';
 			return '';
 		});
 		vi.mocked(installDotNet).mockResolvedValue({
@@ -56,9 +56,9 @@ describe('main', () => {
 		expect(core.setOutput).toHaveBeenCalledWith('dotnet-path', '/path/to/sdk');
 	});
 
-	it('should install Runtime when dotnet-runtime input is provided', async () => {
+	it('should install Runtime when runtime-version input is provided', async () => {
 		vi.mocked(core.getInput).mockImplementation((name: string) => {
-			if (name === 'dotnet-runtime') return '8.0.0';
+			if (name === 'runtime-version') return '8.0.0';
 			return '';
 		});
 		vi.mocked(installDotNet).mockResolvedValue({
@@ -85,8 +85,8 @@ describe('main', () => {
 
 	it('should install both SDK and Runtime when both inputs provided', async () => {
 		vi.mocked(core.getInput).mockImplementation((name: string) => {
-			if (name === 'dotnet-sdk') return '10.0.0';
-			if (name === 'dotnet-runtime') return '8.0.0';
+			if (name === 'sdk-version') return '10.0.0';
+			if (name === 'runtime-version') return '8.0.0';
 			return '';
 		});
 		vi.mocked(installDotNet)
@@ -120,13 +120,13 @@ describe('main', () => {
 		await run();
 
 		expect(core.setFailed).toHaveBeenCalledWith(
-			'At least one of dotnet-sdk, dotnet-runtime, or dotnet-aspnetcore must be specified',
+			'At least one of sdk-version, runtime-version, or aspnetcore-version must be specified',
 		);
 	});
 
 	it('should handle installation errors', async () => {
 		vi.mocked(core.getInput).mockImplementation((name: string) => {
-			if (name === 'dotnet-sdk') return '10.0.0';
+			if (name === 'sdk-version') return '10.0.0';
 			return '';
 		});
 		vi.mocked(installDotNet).mockRejectedValue(new Error('Download failed'));
@@ -138,7 +138,7 @@ describe('main', () => {
 
 	it('should handle unknown errors', async () => {
 		vi.mocked(core.getInput).mockImplementation((name: string) => {
-			if (name === 'dotnet-sdk') return '10.0.0';
+			if (name === 'sdk-version') return '10.0.0';
 			return '';
 		});
 		vi.mocked(installDotNet).mockRejectedValue('Unknown error');
@@ -148,7 +148,7 @@ describe('main', () => {
 		expect(core.setFailed).toHaveBeenCalledWith('An unknown error occurred');
 	});
 
-	it('should use SDK version from global.json when no dotnet-sdk input', async () => {
+	it('should use SDK version from global.json when no sdk-version input', async () => {
 		const globalJson = {
 			sdk: {
 				version: '9.0.100',
@@ -157,7 +157,7 @@ describe('main', () => {
 		await fs.writeFile(testGlobalJson, JSON.stringify(globalJson), 'utf-8');
 
 		vi.mocked(core.getInput).mockImplementation((name: string) => {
-			if (name === 'dotnet-runtime') return '8.0.0';
+			if (name === 'runtime-version') return '8.0.0';
 			if (name === 'global-json') return testGlobalJson;
 			return '';
 		});
@@ -185,7 +185,7 @@ describe('main', () => {
 		});
 	});
 
-	it('should prioritize dotnet-sdk input over global.json', async () => {
+	it('should prioritize sdk-version input over global.json', async () => {
 		const globalJson = {
 			sdk: {
 				version: '9.0.100',
@@ -194,7 +194,7 @@ describe('main', () => {
 		await fs.writeFile(testGlobalJson, JSON.stringify(globalJson), 'utf-8');
 
 		vi.mocked(core.getInput).mockImplementation((name: string) => {
-			if (name === 'dotnet-sdk') return '10.0.0';
+			if (name === 'sdk-version') return '10.0.0';
 			if (name === 'global-json') return testGlobalJson;
 			return '';
 		});
@@ -279,7 +279,7 @@ describe('main', () => {
 		await fs.writeFile(testGlobalJson, JSON.stringify(globalJson), 'utf-8');
 
 		vi.mocked(core.getInput).mockImplementation((name: string) => {
-			if (name === 'dotnet-runtime') return '7.0.0';
+			if (name === 'runtime-version') return '7.0.0';
 			if (name === 'global-json') return testGlobalJson;
 			return '';
 		});

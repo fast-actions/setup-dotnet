@@ -25,7 +25,7 @@ You can install SDK, Runtime, and ASP.NET Core separately or in combination. The
 ```yaml
 - uses: fast-actions/setup-dotnet@v1
   with:
-    dotnet-sdk: '9.0.100'
+    sdk-version: '9.0.100'
 ```
 
 The SDK includes the .NET Runtime and ASP.NET Core Runtime, so no additional installations are needed for most scenarios.
@@ -35,7 +35,7 @@ The SDK includes the .NET Runtime and ASP.NET Core Runtime, so no additional ins
 ```yaml
 - uses: fast-actions/setup-dotnet@v1
   with:
-    dotnet-runtime: '8.0.0'
+    runtime-version: '8.0.0'
 ```
 
 Use this for runtime-only scenarios where you don't need to build code (e.g., running pre-compiled applications).
@@ -45,7 +45,7 @@ Use this for runtime-only scenarios where you don't need to build code (e.g., ru
 ```yaml
 - uses: fast-actions/setup-dotnet@v1
   with:
-    dotnet-aspnetcore: '8.0.0'
+    aspnetcore-version: '8.0.0'
 ```
 
 ASP.NET Core Runtime includes the .NET Runtime, so both are available.
@@ -55,9 +55,9 @@ ASP.NET Core Runtime includes the .NET Runtime, so both are available.
 ```yaml
 - uses: fast-actions/setup-dotnet@v1
   with:
-    dotnet-sdk: '9.0.100'
-    dotnet-runtime: '7.0.0'
-    dotnet-aspnetcore: '6.0.0'
+    sdk-version: '9.0.100'
+    runtime-version: '7.0.0'
+    aspnetcore-version: '6.0.0'
 ```
 
 The action automatically skips redundant installations. If the SDK already includes a runtime version, it won't be downloaded separately.
@@ -74,12 +74,12 @@ Use wildcards to automatically get the latest version matching a pattern:
 # Latest patch in 9.0.x
 - uses: fast-actions/setup-dotnet@v1
   with:
-    dotnet-sdk: '9.0.x'
+    sdk-version: '9.0.x'
 
 # Latest minor in 9.x
 - uses: fast-actions/setup-dotnet@v1
   with:
-    dotnet-sdk: '9.x.x'
+    sdk-version: '9.x.x'
 ```
 
 **How it works:** The action queries the .NET releases API and selects the highest version matching your pattern.
@@ -92,17 +92,17 @@ Use semantic keywords for common scenarios:
 # Latest Long-Term Support version
 - uses: fast-actions/setup-dotnet@v1
   with:
-    dotnet-sdk: 'lts'
+    sdk-version: 'lts'
 
 # Latest Standard Term Support version
 - uses: fast-actions/setup-dotnet@v1
   with:
-    dotnet-sdk: 'sts'
+    sdk-version: 'sts'
 
 # Latest available version (any support tier)
 - uses: fast-actions/setup-dotnet@v1
   with:
-    dotnet-sdk: 'latest'
+    sdk-version: 'latest'
 ```
 
 ### Multiple Versions
@@ -113,12 +113,12 @@ Install multiple versions using comma-separated or YAML array syntax:
 # Comma-separated
 - uses: fast-actions/setup-dotnet@v1
   with:
-    dotnet-sdk: '9.0.100, 8.0.400'
+    sdk-version: '9.0.100, 8.0.400'
 
 # YAML array
 - uses: fast-actions/setup-dotnet@v1
   with:
-    dotnet-sdk: |
+    sdk-version: |
       9.0.100
       8.0.400
       7.0.200
@@ -133,7 +133,7 @@ Preview/RC versions are fully supported:
 ```yaml
 - uses: fast-actions/setup-dotnet@v1
   with:
-    dotnet-sdk: '10.0.100-preview.1.24607.1'
+    sdk-version: '10.0.100-preview.1.24607.1'
 ```
 
 ---
@@ -162,7 +162,7 @@ This ensures you always get the latest matching version without stale caches.
 ```yaml
 - uses: fast-actions/setup-dotnet@v1
   with:
-    dotnet-sdk: '9.0.100'
+    sdk-version: '9.0.100'
     cache: true  # Default, can be omitted
 ```
 
@@ -173,7 +173,7 @@ For scenarios where you always want fresh downloads:
 ```yaml
 - uses: fast-actions/setup-dotnet@v1
   with:
-    dotnet-sdk: '9.0.100'
+    sdk-version: '9.0.100'
     cache: false
 ```
 
@@ -183,7 +183,7 @@ For scenarios where you always want fresh downloads:
 - uses: fast-actions/setup-dotnet@v1
   id: dotnet
   with:
-    dotnet-sdk: '9.0.100'
+    sdk-version: '9.0.100'
 
 - name: Cache status
   run: |
@@ -213,7 +213,7 @@ The action respects `global.json` for SDK version resolution, including `rollFor
 - uses: fast-actions/setup-dotnet@v1
 ```
 
-If `dotnet-sdk` input is provided, it takes precedence over `global.json`.
+If `sdk-version` input is provided, it takes precedence over `global.json`.
 
 ### rollForward Policies
 
@@ -319,8 +319,8 @@ jobs:
       
       - uses: fast-actions/setup-dotnet@v1
         with:
-          dotnet-sdk: 'latest'
-          dotnet-runtime: |
+          sdk-version: 'latest'
+          runtime-version: |
             9.0.0
             8.0.0
             7.0.0
@@ -358,7 +358,7 @@ jobs:
       
       - uses: fast-actions/setup-dotnet@v1
         with:
-          dotnet-sdk: |
+          sdk-version: |
             9.0.100
             8.0.400
             7.0.200
@@ -402,7 +402,7 @@ jobs:
       
       - uses: fast-actions/setup-dotnet@v1
         with:
-          dotnet-sdk: 'lts'
+          sdk-version: 'lts'
       
       - run: dotnet test
 ```
