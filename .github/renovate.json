@@ -1,6 +1,14 @@
 {
 	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
 	"extends": ["config:recommended"],
+	"prConcurrentLimit": 0,
+	"prHourlyLimit": 0,
+	"labels": ["dependencies"],
+	"semanticCommits": "enabled",
+	"rangeStrategy": "bump",
+	"vulnerabilityAlerts": {
+		"rangeStrategy": "bump"
+	},
 	"github-actions": {
 		"managerFilePatterns": ["/\\.md$/"]
 	}
