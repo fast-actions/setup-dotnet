@@ -46,7 +46,7 @@ That's it! The action automatically:
 
 ## Documentation
 
-For detailed documentation, advanced features, and more examples, see [docs/guide.md](docs/guide.md).
+For detailed documentation, advanced features, and more examples, see [guide.md](https://github.com/fast-actions/setup-dotnet/blob/main/docs/guide.md).
 
 ## Inputs
 
