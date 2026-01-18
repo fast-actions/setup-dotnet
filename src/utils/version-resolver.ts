@@ -58,6 +58,18 @@ export async function fetchAndCacheReleases(): Promise<void> {
 }
 
 /**
+ * Normalize version pattern to 3-part format
+ * Examples: 10.x -> 10.x.x, 10.0 -> 10.0.x
+ */
+function normalizeVersionPattern(version: string): string {
+	const parts = version.split('.');
+	while (parts.length < 3) {
+		parts.push('x');
+	}
+	return parts.join('.');
+}
+
+/**
  * Resolve wildcard versions (10.x, 10.x.x), 'lts', or 'sts' to concrete versions
  * Cache must be initialized with initializeCache() before calling this function
  */
@@ -84,7 +96,11 @@ export function resolveVersion(version: string, type: DotnetType): string {
 		);
 	}
 
-	const versionPattern = version.replace(/\./g, '\\.').replace(/[xX]/g, '\\d+');
+	// Normalize pattern to 3 parts (10.x -> 10.x.x)
+	const normalizedVersion = normalizeVersionPattern(version);
+	const versionPattern = normalizedVersion
+		.replace(/\./g, '\\.')
+		.replace(/[xX]/g, '\\d+');
 	const regex = new RegExp(`^${versionPattern}$`);
 
 	const versionType = type === 'sdk' ? 'sdk' : 'runtime';
