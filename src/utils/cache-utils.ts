@@ -70,7 +70,6 @@ export async function saveCache(cacheKey: string): Promise<void> {
 	core.debug(`Cache save path: ${installDir}`);
 
 	try {
-		await new Promise((resolve) => setTimeout(resolve, 4000));
 		await cache.saveCache([installDir], cacheKey);
 		core.info('Cache saved successfully');
 	} catch (error) {
