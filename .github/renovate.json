@@ -3,7 +3,7 @@
 	"extends": ["config:recommended"],
 	"customManagers": [
 		{
-			"fileMatch": ["\\.md$"],
+			"managerFilePatterns": ["/\\.md$/"],
 			"customType": "regex",
 			"matchStrings": [
 				"uses: (?<depName>[^@]+)@(?<currentValue>v?\\d+\\.\\d+\\.\\d+|v?\\d+)"
