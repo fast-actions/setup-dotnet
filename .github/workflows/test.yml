@@ -115,9 +115,9 @@ jobs:
         uses: ./
         id: setup-dotnet
         with:
-          dotnet-sdk: lts, sts
-          dotnet-runtime: latest
-          dotnet-aspnetcore: sts, 8.0.0
+          sdk-version: lts, sts
+          runtime-version: latest
+          aspnetcore-version: sts, 8.0.0
 
       - name: Verify installation
         run: |
