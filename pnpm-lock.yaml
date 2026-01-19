@@ -14,9 +14,6 @@ importers:
       '@actions/core':
         specifier: 2.0.2
         version: 2.0.2
-      '@actions/exec':
-        specifier: 2.0.0
-        version: 2.0.0
       '@actions/github':
         specifier: 7.0.0
         version: 7.0.0
