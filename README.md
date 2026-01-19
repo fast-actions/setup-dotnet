@@ -60,6 +60,7 @@ Check out the [Migration Guide](https://github.com/fast-actions/setup-dotnet/blo
 | `aspnetcore-version` | ASP.NET Core Runtime version(s). Same format as `sdk-version`. | No | – |
 | `global-json` | Path to `global.json` for SDK resolution. | No | `./global.json` |
 | `cache` | Enable caching of .NET installations. | No | `true` |
+| `allow-preview` | Allow preview releases when using keywords (`latest`, `lts`, `sts`). | No | `false` |
 
 ## Outputs
 
