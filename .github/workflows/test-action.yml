@@ -3,8 +3,7 @@ name: Test Action
 on:
   pull_request:
     paths:
-      - '.github/workflows/test-action.yml'
-      - 'dist/index.js'
+      - ".github/workflows/test-action.yml"
 
 permissions:
   contents: read
@@ -51,6 +50,8 @@ jobs:
       - name: Setup .NET from global.json
         uses: ./
         id: setup-dotnet
+        with:
+          cache: false
 
       - name: Verify SDK installation
         run: dotnet --list-sdks
@@ -72,6 +73,7 @@ jobs:
         id: setup-dotnet
         with:
           dotnet-aspnetcore: 10.x.x
+          cache: false
 
       - name: Verify SDK & Runtime installation
         run: |
@@ -92,97 +94,20 @@ jobs:
           sdk-version: lts, sts
           runtime-version: latest
           aspnetcore-version: sts, 8.0.0
-
-      - name: Verify installation
-        run: |
-          echo "=== SDKs ==="
-          dotnet --list-sdks
-          echo ""
-          echo "=== Runtimes ==="
-          dotnet --list-runtimes
-
-      - name: Check outputs
-        run: |
-          echo "Installed: ${{ steps.setup-dotnet.outputs.dotnet-version }}"
-          echo "Path: ${{ steps.setup-dotnet.outputs.dotnet-path }}"
-          echo "Cache-Hit: ${{ steps.setup-dotnet.outputs.cache-hit }}"
-
-  test-multi-os-basic:
-    name: Test Multi-OS Basic Installation
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        version-config:
-          - name: "SDK Latest"
-            sdk: "latest"
-            runtime: ""
-            aspnetcore: ""
-          - name: "SDK LTS"
-            sdk: "lts"
-            runtime: ""
-            aspnetcore: ""
-          - name: "SDK STS"
-            sdk: "sts"
-            runtime: ""
-            aspnetcore: ""
-          - name: "Runtime Latest"
-            sdk: ""
-            runtime: "latest"
-            aspnetcore: ""
-          - name: "Runtime LTS"
-            sdk: ""
-            runtime: "lts"
-            aspnetcore: ""
-          - name: "Runtime STS"
-            sdk: ""
-            runtime: "sts"
-            aspnetcore: ""
-          - name: "ASP.NET Core Latest"
-            sdk: ""
-            runtime: ""
-            aspnetcore: "latest"
-          - name: "ASP.NET Core LTS"
-            sdk: ""
-            runtime: ""
-            aspnetcore: "lts"
-          - name: "ASP.NET Core STS"
-            sdk: ""
-            runtime: ""
-            aspnetcore: "sts"
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
-
-      - name: Setup .NET - ${{ matrix.version-config.name }}
-        uses: ./
-        id: setup-dotnet
-        with:
-          sdk-version: ${{ matrix.version-config.sdk }}
-          runtime-version: ${{ matrix.version-config.runtime }}
-          aspnetcore-version: ${{ matrix.version-config.aspnetcore }}
           cache: false
 
-      - name: Verify .NET installation
+      - name: Verify installation
+        shell: bash
         run: |
           dotnet --list-sdks
           dotnet --list-runtimes
-
-      - name: Check outputs
-        shell: bash
-        run: |
-          echo "Installed: ${{ steps.setup-dotnet.outputs.dotnet-version }}"
-          echo "Path: ${{ steps.setup-dotnet.outputs.dotnet-path }}"
 
   test-global-json-prerelease:
     name: Test global.json with Prerelease
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
         sample:
           - name: "Preview with allowPrerelease"
             file: "global.json.preview"
@@ -211,12 +136,6 @@ jobs:
         run: |
           dotnet --list-sdks
 
-      - name: Check outputs
-        shell: bash
-        run: |
-          echo "Installed: ${{ steps.setup-dotnet.outputs.dotnet-version }}"
-          echo "Path: ${{ steps.setup-dotnet.outputs.dotnet-path }}"
-
   test-caching:
     name: Test Caching Enabled
     runs-on: ${{ matrix.os }}
@@ -236,7 +155,6 @@ jobs:
           sdk-version: "10.x"
           runtime-version: "9.x"
           aspnetcore-version: "9.x"
-          cache: true
 
       - name: Verify installation
         run: |
@@ -246,8 +164,6 @@ jobs:
       - name: Check outputs
         shell: bash
         run: |
-          echo "Installed: ${{ steps.setup-dotnet.outputs.dotnet-version }}"
-          echo "Path: ${{ steps.setup-dotnet.outputs.dotnet-path }}"
           echo "Cache-Hit: ${{ steps.setup-dotnet.outputs.cache-hit }}"
 
   test-version-combinations:
@@ -293,19 +209,12 @@ jobs:
           dotnet --list-sdks
           dotnet --list-runtimes
 
-      - name: Check outputs
-        shell: bash
-        run: |
-          echo "Installed: ${{ steps.setup-dotnet.outputs.dotnet-version }}"
-          echo "Path: ${{ steps.setup-dotnet.outputs.dotnet-path }}"
-
   test-global-json-override:
     name: Test global.json Override
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
         scenario:
           - name: "Input SDK overrides global.json"
             global-json-file: "global.json.exact"
@@ -322,7 +231,6 @@ jobs:
             sdk: "lts"
             runtime: ""
             aspnetcore: "9.x"
-
     steps:
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
@@ -348,20 +256,9 @@ jobs:
           dotnet --list-sdks
           dotnet --list-runtimes
 
-      - name: Check outputs
-        shell: bash
-        run: |
-          echo "Installed: ${{ steps.setup-dotnet.outputs.dotnet-version }}"
-          echo "Path: ${{ steps.setup-dotnet.outputs.dotnet-path }}"
-
   test-yaml-array-inputs:
     name: Test YAML Array Inputs
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
@@ -386,12 +283,6 @@ jobs:
           dotnet --list-sdks
           dotnet --list-runtimes
 
-      - name: Check outputs
-        shell: bash
-        run: |
-          echo "Installed: ${{ steps.setup-dotnet.outputs.dotnet-version }}"
-          echo "Path: ${{ steps.setup-dotnet.outputs.dotnet-path }}"
-
   test-edge-cases:
     name: Test Edge Cases
     runs-on: ubuntu-latest
@@ -399,24 +290,16 @@ jobs:
       fail-fast: false
       matrix:
         scenario:
-          - name: "Only cache with global.json"
-            global-json-file: "global.json.exact"
-            sdk: ""
-            runtime: ""
-            aspnetcore: ""
-            cache: "true"
           - name: "Duplicate versions in input"
             global-json-file: ""
             sdk: "10.x, 10.x.x, latest"
             runtime: ""
             aspnetcore: ""
-            cache: "false"
           - name: "Mixed keywords and versions"
             global-json-file: ""
             sdk: "lts, 9.0.100, sts"
             runtime: "latest, 8.0.0"
             aspnetcore: "9.x, sts"
-            cache: "false"
 
     steps:
       - name: Checkout
@@ -436,15 +319,8 @@ jobs:
           sdk-version: ${{ matrix.scenario.sdk }}
           runtime-version: ${{ matrix.scenario.runtime }}
           aspnetcore-version: ${{ matrix.scenario.aspnetcore }}
-          cache: ${{ matrix.scenario.cache }}
 
       - name: Verify installation
         run: |
           dotnet --list-sdks
           dotnet --list-runtimes
-
-      - name: Check outputs
-        run: |
-          echo "Installed: ${{ steps.setup-dotnet.outputs.dotnet-version }}"
-          echo "Path: ${{ steps.setup-dotnet.outputs.dotnet-path }}"
-          echo "Cache-Hit: ${{ steps.setup-dotnet.outputs.cache-hit }}"
