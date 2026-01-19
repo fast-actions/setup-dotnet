@@ -378,7 +378,6 @@ jobs:
 
       - name: Verify installation
         run: |
-          dotnet --version
           dotnet --list-sdks
           dotnet --list-runtimes
 
