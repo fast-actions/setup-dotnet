@@ -43,12 +43,3 @@ jobs:
 
       - name: Build
         run: pnpm build
-
-      - name: Check for uncommitted changes
-        run: |
-          if [ -n "$(git status --porcelain)" ]; then
-            echo "❌ Build artifacts don't match committed files!"
-            echo "Please run 'pnpm build' and commit the changes."
-            exit 1
-          fi
-          echo "✅ Build artifacts match committed files"
