@@ -1,9 +1,7 @@
 name: Rebuild Dist Files
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 concurrency:
   group: rebuild-dist-${{ github.ref }}
