@@ -2,6 +2,9 @@ name: Test Action
 
 on:
   pull_request:
+    paths:
+      - '.github/workflows/test-action.yml'
+      - 'dist/index.js'
 
 permissions:
   contents: read
@@ -320,10 +323,7 @@ jobs:
 
       - name: Verify installation
         run: |
-          echo "=== All SDKs ==="
           dotnet --list-sdks
-          echo ""
-          echo "=== All Runtimes ==="
           dotnet --list-runtimes
 
       - name: Check outputs
@@ -416,11 +416,7 @@ jobs:
 
       - name: Verify installation
         run: |
-
-          echo "=== All SDKs ==="
           dotnet --list-sdks
-          echo ""
-          echo "=== All Runtimes ==="
           dotnet --list-runtimes
 
       - name: Check outputs
