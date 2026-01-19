@@ -2,12 +2,6 @@
 
 This guide helps you migrate from the official `actions/setup-dotnet` to `fast-actions/setup-dotnet`.
 
-## Why Migrate?
-
-- **Faster**: Parallel downloads and automatic caching make subsequent runs significantly faster
-- **Compatible**: Same core functionality with enhanced features
-- **Easy**: Minimal changes required—mostly just parameter names
-
 ---
 
 ## Quick Migration
@@ -223,7 +217,7 @@ If you need to switch back to the official action:
 +      8.x
 ```
 
-Simply revert the action name and parameter changes. Your workflow will continue to work with the official action.
+Simply revert the action name and parameter changes.
 
 ---
 
