@@ -596,7 +596,7 @@ describe('resolveVersion', () => {
 		]);
 
 		expect(() => resolveVersion('latest', 'sdk')).toThrow(
-			'No stable releases found',
+			'No available releases found',
 		);
 	});
 
@@ -612,5 +612,79 @@ describe('resolveVersion', () => {
 		]);
 
 		expect(() => resolveVersion('lts', 'sdk')).toThrow('No LTS releases found');
+	});
+
+	it('should include preview releases when allow-preview is enabled for latest', () => {
+		setCachedReleases(
+			[
+				{
+					'channel-version': '11.0',
+					'latest-sdk': '11.0.100-preview.1',
+					'latest-runtime': '11.0.0-preview.1',
+					'support-phase': 'preview',
+				},
+				{
+					'channel-version': '10.0',
+					'latest-sdk': '10.0.402',
+					'latest-runtime': '10.0.2',
+					'release-type': 'sts',
+					'support-phase': 'active',
+				},
+			],
+			true,
+		);
+
+		const result = resolveVersion('latest', 'sdk');
+		expect(result).toBe('11.0.100-preview.1');
+	});
+
+	it('should include preview releases when allow-preview is enabled for lts', () => {
+		setCachedReleases(
+			[
+				{
+					'channel-version': '11.0',
+					'latest-sdk': '11.0.100-preview.1',
+					'latest-runtime': '11.0.0-preview.1',
+					'release-type': 'lts',
+					'support-phase': 'preview',
+				},
+				{
+					'channel-version': '9.0',
+					'latest-sdk': '9.0.500',
+					'latest-runtime': '9.0.5',
+					'release-type': 'lts',
+					'support-phase': 'active',
+				},
+			],
+			true,
+		);
+
+		const result = resolveVersion('lts', 'sdk');
+		expect(result).toBe('11.0.100-preview.1');
+	});
+
+	it('should include preview releases when allow-preview is enabled for sts', () => {
+		setCachedReleases(
+			[
+				{
+					'channel-version': '11.0',
+					'latest-sdk': '11.0.100-preview.1',
+					'latest-runtime': '11.0.0-preview.1',
+					'release-type': 'sts',
+					'support-phase': 'preview',
+				},
+				{
+					'channel-version': '10.0',
+					'latest-sdk': '10.0.402',
+					'latest-runtime': '10.0.2',
+					'release-type': 'sts',
+					'support-phase': 'active',
+				},
+			],
+			true,
+		);
+
+		const result = resolveVersion('sts', 'sdk');
+		expect(result).toBe('11.0.100-preview.1');
 	});
 });

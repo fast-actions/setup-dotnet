@@ -10,19 +10,25 @@ interface ReleaseInfo {
 }
 
 let cachedReleases: ReleaseInfo[] | null = null;
+let allowPreviewReleases = false;
 
 /**
  * Reset the cached releases (for testing purposes)
  */
 export function resetCache(): void {
 	cachedReleases = null;
+	allowPreviewReleases = false;
 }
 
 /**
  * Set cached releases directly (for testing purposes)
  */
-export function setCachedReleases(releases: ReleaseInfo[]): void {
+export function setCachedReleases(
+	releases: ReleaseInfo[],
+	allowPreview = false,
+): void {
 	cachedReleases = releases;
+	allowPreviewReleases = allowPreview;
 }
 
 function getCachedReleasesOrThrow(): ReleaseInfo[] {
@@ -38,10 +44,14 @@ function getCachedReleasesOrThrow(): ReleaseInfo[] {
  * Initialize the releases cache by fetching from .NET releases API
  * Should be called once at the start before any resolveVersion calls
  */
-export async function fetchAndCacheReleaseInfo(): Promise<void> {
+export async function fetchAndCacheReleaseInfo(
+	allowPreview = false,
+): Promise<void> {
 	if (cachedReleases) {
 		return;
 	}
+
+	allowPreviewReleases = allowPreview;
 
 	const releasesUrl =
 		'https://builds.dotnet.microsoft.com/dotnet/release-metadata/releases-index.json';
@@ -127,7 +137,7 @@ export function resolveVersion(version: string, type: DotnetType): string {
 
 /**
  * Resolve LATEST to the newest available version within provided releases
- * Excludes preview releases (support-phase: 'preview')
+ * Excludes preview releases (support-phase: 'preview') unless allowPreview is true
  */
 export function resolveLatestFromReleases(
 	releases: ReleaseInfo[],
@@ -136,17 +146,17 @@ export function resolveLatestFromReleases(
 	core.debug(`Resolving LATEST version for ${type}`);
 	const versionType = type === 'sdk' ? 'sdk' : 'runtime';
 
-	// Filter out preview releases
-	const stableReleases = releases.filter(
-		(r) => r['support-phase'] !== 'preview',
-	);
+	// Filter out preview releases unless explicitly allowed
+	const filteredReleases = allowPreviewReleases
+		? releases
+		: releases.filter((r) => r['support-phase'] !== 'preview');
 
-	if (stableReleases.length === 0) {
-		throw new Error('No stable releases found');
+	if (filteredReleases.length === 0) {
+		throw new Error('No available releases found');
 	}
 
 	// API returns releases sorted newest to oldest, so first entry is the latest
-	const latestRelease = stableReleases[0];
+	const latestRelease = filteredReleases[0];
 	const resolvedVersion = pickVersion(latestRelease, versionType);
 
 	return {
@@ -157,7 +167,7 @@ export function resolveLatestFromReleases(
 
 /**
  * Resolve LTS or STS to the latest version of that support tier within provided releases
- * Excludes preview releases (support-phase: 'preview')
+ * Excludes preview releases (support-phase: 'preview') unless allowPreview is true
  */
 export function resolveSupportTierFromReleases(
 	releases: ReleaseInfo[],
@@ -166,9 +176,12 @@ export function resolveSupportTierFromReleases(
 ): { value: string; channel: string } {
 	core.debug(`Resolving ${tier.toUpperCase()} version for ${type}`);
 
-	const supportedReleases = releases.filter(
-		(r) => r['release-type'] === tier && r['support-phase'] !== 'preview',
-	);
+	const supportedReleases = releases.filter((r) => {
+		const matchesTier = r['release-type'] === tier;
+		const isNotPreview =
+			allowPreviewReleases || r['support-phase'] !== 'preview';
+		return matchesTier && isNotPreview;
+	});
 
 	if (supportedReleases.length === 0) {
 		throw new Error(`No ${tier.toUpperCase()} releases found`);
