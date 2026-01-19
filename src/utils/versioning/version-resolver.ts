@@ -5,7 +5,8 @@ interface ReleaseInfo {
 	'channel-version': string;
 	'latest-sdk': string;
 	'latest-runtime': string;
-	'release-type': string;
+	'release-type'?: 'sts' | 'lts';
+	'support-phase': string;
 }
 
 let cachedReleases: ReleaseInfo[] | null = null;
@@ -126,6 +127,7 @@ export function resolveVersion(version: string, type: DotnetType): string {
 
 /**
  * Resolve LATEST to the newest available version within provided releases
+ * Excludes preview releases (support-phase: 'preview')
  */
 export function resolveLatestFromReleases(
 	releases: ReleaseInfo[],
@@ -134,16 +136,17 @@ export function resolveLatestFromReleases(
 	core.debug(`Resolving LATEST version for ${type}`);
 	const versionType = type === 'sdk' ? 'sdk' : 'runtime';
 
-	// Sort releases by channel version (descending) and pick the first
-	const sortedReleases = [...releases].sort((a, b) =>
-		compareVersions(b['channel-version'], a['channel-version']),
+	// Filter out preview releases
+	const stableReleases = releases.filter(
+		(r) => r['support-phase'] !== 'preview',
 	);
 
-	if (sortedReleases.length === 0) {
-		throw new Error('No releases found');
+	if (stableReleases.length === 0) {
+		throw new Error('No stable releases found');
 	}
 
-	const latestRelease = sortedReleases[0];
+	// API returns releases sorted newest to oldest, so first entry is the latest
+	const latestRelease = stableReleases[0];
 	const resolvedVersion = pickVersion(latestRelease, versionType);
 
 	return {
@@ -154,6 +157,7 @@ export function resolveLatestFromReleases(
 
 /**
  * Resolve LTS or STS to the latest version of that support tier within provided releases
+ * Excludes preview releases (support-phase: 'preview')
  */
 export function resolveSupportTierFromReleases(
 	releases: ReleaseInfo[],
@@ -163,17 +167,14 @@ export function resolveSupportTierFromReleases(
 	core.debug(`Resolving ${tier.toUpperCase()} version for ${type}`);
 
 	const supportedReleases = releases.filter(
-		(r) => r['release-type']?.toLowerCase() === tier,
+		(r) => r['release-type'] === tier && r['support-phase'] !== 'preview',
 	);
 
 	if (supportedReleases.length === 0) {
 		throw new Error(`No ${tier.toUpperCase()} releases found`);
 	}
 
-	supportedReleases.sort((a, b) =>
-		compareVersions(b['channel-version'], a['channel-version']),
-	);
-
+	// Filter maintains sort order from API (newest to oldest), so first entry is the latest
 	const latestRelease = supportedReleases[0];
 	const versionType = type === 'sdk' ? 'sdk' : 'runtime';
 	const resolvedVersion = pickVersion(latestRelease, versionType);
