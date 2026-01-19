@@ -109,24 +109,19 @@ export function resolveVersion(version: string, type: DotnetType): string {
 
 	const releases = getCachedReleasesOrThrow();
 
-	// Handle LTS, STS, and LATEST keywords
 	if (versionLower === 'lts' || versionLower === 'sts') {
 		const resolved = resolveSupportTierFromReleases(
 			releases,
 			versionLower,
 			type,
 		);
-		core.info(
-			`Resolved ${versionLower.toUpperCase()} -> ${resolved.value} (channel ${resolved.channel})`,
-		);
+		core.info(`Resolved ${versionLower.toUpperCase()} -> ${resolved.value}`);
 		return resolved.value;
 	}
 
 	if (versionLower === 'latest') {
 		const resolved = resolveLatestFromReleases(releases, type);
-		core.info(
-			`Resolved LATEST -> ${resolved.value} (channel ${resolved.channel})`,
-		);
+		core.info(`Resolved LATEST -> ${resolved.value}`);
 		return resolved.value;
 	}
 
@@ -155,7 +150,7 @@ export function resolveLatestFromReleases(
 		throw new Error('No available releases found');
 	}
 
-	// API returns releases sorted newest to oldest, so first entry is the latest
+	// First entry is the latest
 	const latestRelease = filteredReleases[0];
 	const resolvedVersion = pickVersion(latestRelease, versionType);
 
@@ -187,7 +182,7 @@ export function resolveSupportTierFromReleases(
 		throw new Error(`No ${tier.toUpperCase()} releases found`);
 	}
 
-	// Filter maintains sort order from API (newest to oldest), so first entry is the latest
+	// First entry is the latest
 	const latestRelease = supportedReleases[0];
 	const versionType = type === 'sdk' ? 'sdk' : 'runtime';
 	const resolvedVersion = pickVersion(latestRelease, versionType);
