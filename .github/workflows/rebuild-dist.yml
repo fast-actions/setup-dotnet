@@ -48,7 +48,6 @@ jobs:
         if: steps.check.outputs.has-changes == 'true'
         uses: peter-evans/create-pull-request@98357b18bf14b5342f975ff684046ec3b2a07725 # v8
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "chore: rebuild dist files"
           title: "chore: rebuild dist files"
           body: "Rebuild of dist files due to dependency or source code changes."
