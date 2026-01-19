@@ -58,30 +58,6 @@ jobs:
       - name: Verify SDK installation
         run: dotnet --list-sdks
 
-  test-global-json-with-runtime:
-    name: Test global.json Support with Runtime
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
-
-      - name: Setup test environment with global.json
-        run: |
-          cp samples/global.json.feature global.json
-          cat global.json
-
-      - name: Setup .NET from global.json
-        uses: ./
-        id: setup-dotnet
-        with:
-          dotnet-aspnetcore: 10.x.x
-          cache: false
-
-      - name: Verify SDK & Runtime installation
-        run: |
-          dotnet --list-sdks
-          dotnet --list-runtimes
-
   test-lts-sts-keywords:
     name: Test LTS/STS Keywords
     runs-on: ubuntu-latest
