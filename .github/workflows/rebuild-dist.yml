@@ -1,9 +1,5 @@
 name: Rebuild Dist Files
 
-permissions:
-  contents: write
-  pull-requests: write
-
 on:
   push:
     branches:
@@ -16,6 +12,9 @@ concurrency:
 jobs:
   rebuild-dist:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     timeout-minutes: 5
 
     steps:
@@ -49,8 +48,9 @@ jobs:
         if: steps.check.outputs.has-changes == 'true'
         uses: peter-evans/create-pull-request@98357b18bf14b5342f975ff684046ec3b2a07725 # v8
         with:
-          commit-message: 'chore: rebuild dist files'
-          title: 'chore: rebuild dist files'
-          body: 'Rebuild of dist files due to dependency or source code changes.'
-          branch: 'chore/rebuild-dist'
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: rebuild dist files"
+          title: "chore: rebuild dist files"
+          body: "Rebuild of dist files due to dependency or source code changes."
+          branch: "chore/rebuild-dist"
           delete-branch: true
