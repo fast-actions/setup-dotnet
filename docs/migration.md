@@ -2,6 +2,8 @@
 
 This guide helps you migrate from the official `actions/setup-dotnet` to `fast-actions/setup-dotnet`.
 
+**🤖 Automate with AI:** Use our [LLM Migration Prompt](llm-migration-prompt.md) to automatically migrate your workflows with any AI assistant.
+
 ---
 
 ## Quick Migration
