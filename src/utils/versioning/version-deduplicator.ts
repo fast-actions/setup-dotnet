@@ -1,5 +1,5 @@
 import * as core from '@actions/core';
-import type { VersionSet } from '../types';
+import type { VersionSet } from '../../types';
 import { getSdkIncludedVersions } from './sdk-runtime-mapper';
 import { resolveVersion } from './version-resolver';
 

@@ -22,6 +22,96 @@ export interface InstallResult {
 }
 
 /**
+ * Ensure the downloaded file exists and is non-empty
+ */
+function validateDownloadedFile(downloadPath: string, prefix: string): void {
+	const stats = fs.statSync(downloadPath);
+	if (stats.size === 0) {
+		throw new Error('Downloaded file is empty');
+	}
+
+	const sizeInMB = (stats.size / 1024 / 1024).toFixed(2);
+	core.info(`${prefix} Downloaded ${sizeInMB} MB`);
+}
+
+async function downloadDotnetArchive(
+	version: string,
+	type: DotnetType,
+	downloadUrl: string,
+	platform: string,
+	arch: string,
+	prefix: string,
+): Promise<string> {
+	core.debug(`${prefix} Download URL: ${downloadUrl}`);
+
+	try {
+		const downloadPath = await downloadWithRetry(downloadUrl, 3);
+		validateDownloadedFile(downloadPath, prefix);
+		return downloadPath;
+	} catch (error) {
+		const errorMsg = error instanceof Error ? error.message : String(error);
+		throw new Error(
+			`Failed to download .NET ${type} ${version} (${platform}-${arch}): ${errorMsg}`,
+		);
+	}
+}
+
+async function extractDotnetArchive(
+	downloadPath: string,
+	platform: string,
+	prefix: string,
+): Promise<string> {
+	core.info(`${prefix} Extracting...`);
+	const ext = platform === 'win' ? 'zip' : 'tar.gz';
+	try {
+		return await extractArchive(downloadPath, ext);
+	} catch (error) {
+		const errorMsg = error instanceof Error ? error.message : String(error);
+		throw new Error(`Failed to extract archive: ${errorMsg}`);
+	}
+}
+
+function validateExtractedBinary(
+	extractedPath: string,
+	platform: string,
+): string {
+	const dotnetBinary = platform === 'win' ? 'dotnet.exe' : 'dotnet';
+	const dotnetPath = path.join(extractedPath, dotnetBinary);
+	if (!fs.existsSync(dotnetPath)) {
+		throw new Error(
+			`Extracted archive is missing ${dotnetBinary}. Archive may be corrupted.`,
+		);
+	}
+	return dotnetPath;
+}
+
+async function copyToInstallDir(
+	extractedPath: string,
+	installDir: string,
+	prefix: string,
+): Promise<void> {
+	core.info(`${prefix} Installing...`);
+	await io.mkdirP(installDir);
+	try {
+		await io.cp(extractedPath, installDir, {
+			recursive: true,
+			copySourceDirectory: false,
+		});
+	} catch (error) {
+		const errorMsg = error instanceof Error ? error.message : String(error);
+		throw new Error(`Failed to copy files to ${installDir}: ${errorMsg}`);
+	}
+}
+
+function configureEnvironment(installDir: string): void {
+	if (!process.env.PATH?.includes(installDir)) {
+		core.addPath(installDir);
+	}
+
+	core.exportVariable('DOTNET_ROOT', installDir);
+}
+
+/**
  * Get or create the shared .NET installation directory
  */
 export function getDotNetInstallDirectory(): string {
@@ -46,71 +136,31 @@ export async function installDotNet(
 ): Promise<InstallResult> {
 	const { version, type } = options;
 	const prefix = `[${type.toUpperCase()}]`;
+	const platform = getPlatform();
+	const arch = getArchitecture();
 
 	core.info(`${prefix} Installing ${version}`);
 
 	const downloadUrl = getDotNetDownloadUrl(version, type);
-	core.debug(`${prefix} Download URL: ${downloadUrl}`);
+	const downloadPath = await downloadDotnetArchive(
+		version,
+		type,
+		downloadUrl,
+		platform,
+		arch,
+		prefix,
+	);
 
-	let downloadPath: string;
-	try {
-		downloadPath = await downloadWithRetry(downloadUrl, 3);
-
-		// Validate download
-		const stats = fs.statSync(downloadPath);
-		if (stats.size === 0) {
-			throw new Error('Downloaded file is empty');
-		}
-
-		const sizeInMB = (stats.size / 1024 / 1024).toFixed(2);
-		core.info(`${prefix} Downloaded ${sizeInMB} MB`);
-	} catch (error) {
-		const errorMsg = error instanceof Error ? error.message : String(error);
-		const platform = getPlatform();
-		const arch = getArchitecture();
-		throw new Error(
-			`Failed to download .NET ${type} ${version} (${platform}-${arch}): ${errorMsg}`,
-		);
-	}
-
-	core.info(`${prefix} Extracting...`);
-	const platform = getPlatform();
-	const ext = platform === 'win' ? 'zip' : 'tar.gz';
-	let extractedPath: string;
-	try {
-		extractedPath = await extractArchive(downloadPath, ext);
-	} catch (error) {
-		const errorMsg = error instanceof Error ? error.message : String(error);
-		throw new Error(`Failed to extract archive: ${errorMsg}`);
-	}
-
-	// Validate extracted dotnet binary exists
-	const dotnetBinary = platform === 'win' ? 'dotnet.exe' : 'dotnet';
-	const dotnetPath = path.join(extractedPath, dotnetBinary);
-	if (!fs.existsSync(dotnetPath)) {
-		throw new Error(
-			`Extracted archive is missing ${dotnetBinary}. Archive may be corrupted.`,
-		);
-	}
+	const extractedPath = await extractDotnetArchive(
+		downloadPath,
+		platform,
+		prefix,
+	);
+	validateExtractedBinary(extractedPath, platform);
 
 	const installDir = getDotNetInstallDirectory();
-	core.info(`${prefix} Installing...`);
-	await io.mkdirP(installDir);
-	try {
-		await io.cp(extractedPath, installDir, {
-			recursive: true,
-			copySourceDirectory: false,
-		});
-	} catch (error) {
-		const errorMsg = error instanceof Error ? error.message : String(error);
-		throw new Error(`Failed to copy files to ${installDir}: ${errorMsg}`);
-	}
-
-	if (!process.env.PATH?.includes(installDir)) {
-		core.addPath(installDir);
-	}
-
-	core.exportVariable('DOTNET_ROOT', installDir);
+	await copyToInstallDir(extractedPath, installDir, prefix);
+	configureEnvironment(installDir);
 
 	return {
 		version: version,

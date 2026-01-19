@@ -7,13 +7,26 @@ import {
 	readGlobalJson,
 } from './utils/global-json-reader';
 import { parseVersions } from './utils/input-parser';
-import { deduplicateVersions } from './utils/version-deduplicator';
-import { fetchAndCacheReleases } from './utils/version-resolver';
+import { deduplicateVersions } from './utils/versioning/version-deduplicator';
+import { fetchAndCacheReleases } from './utils/versioning/version-resolver';
 
 interface InstallationResult {
 	version: string;
 	type: DotnetType;
 	path: string;
+}
+
+interface ActionInputs {
+	sdkInput: string;
+	runtimeInput: string;
+	aspnetcoreInput: string;
+	globalJsonInput: string;
+	cacheEnabled: boolean;
+}
+
+interface InstallPlanItem {
+	version: string;
+	type: DotnetType;
 }
 
 /**
@@ -76,114 +89,158 @@ async function trySaveToCache(deduplicated: VersionSet): Promise<void> {
 	await saveCache(cacheKey);
 }
 
+function readInputs(): ActionInputs {
+	return {
+		sdkInput: core.getInput('sdk-version'),
+		runtimeInput: core.getInput('runtime-version'),
+		aspnetcoreInput: core.getInput('aspnetcore-version'),
+		globalJsonInput: core.getInput('global-json'),
+		cacheEnabled: core.getBooleanInput('cache'),
+	};
+}
+
+async function resolveSdkVersions(inputs: ActionInputs): Promise<string[]> {
+	if (inputs.sdkInput) {
+		core.info('Using SDK versions from action input');
+		return parseVersions(inputs.sdkInput);
+	}
+
+	const globalJsonPath = inputs.globalJsonInput || getDefaultGlobalJsonPath();
+	core.debug(`Looking for global.json at: ${globalJsonPath}`);
+
+	const globalJsonVersion = await readGlobalJson(globalJsonPath);
+	if (globalJsonVersion) {
+		core.info(`Using SDK version from global.json: ${globalJsonVersion}`);
+		return [globalJsonVersion];
+	}
+
+	return [];
+}
+
+async function resolveRequestedVersions(
+	inputs: ActionInputs,
+): Promise<VersionSet> {
+	const sdkVersions = await resolveSdkVersions(inputs);
+	const runtimeVersions = parseVersions(inputs.runtimeInput);
+	const aspnetcoreVersions = parseVersions(inputs.aspnetcoreInput);
+
+	return {
+		sdk: sdkVersions,
+		runtime: runtimeVersions,
+		aspnetcore: aspnetcoreVersions,
+	};
+}
+
+function ensureRequestedVersions(versionSet: VersionSet): void {
+	if (
+		versionSet.sdk.length === 0 &&
+		versionSet.runtime.length === 0 &&
+		versionSet.aspnetcore.length === 0
+	) {
+		throw new Error(
+			'At least one of sdk-version, runtime-version, or aspnetcore-version must be specified',
+		);
+	}
+}
+
+async function handleCacheRestore(
+	deduplicated: VersionSet,
+	cacheEnabled: boolean,
+): Promise<boolean> {
+	if (!cacheEnabled) {
+		return false;
+	}
+	return tryRestoreFromCache(deduplicated);
+}
+
+async function handleCacheSave(
+	deduplicated: VersionSet,
+	cacheEnabled: boolean,
+): Promise<void> {
+	if (!cacheEnabled) {
+		return;
+	}
+	await trySaveToCache(deduplicated);
+}
+
+function buildInstallPlan(deduplicated: VersionSet): InstallPlanItem[] {
+	const plan: InstallPlanItem[] = [];
+
+	for (const version of deduplicated.sdk) {
+		plan.push({ version, type: 'sdk' });
+	}
+
+	for (const version of deduplicated.runtime) {
+		plan.push({ version, type: 'runtime' });
+	}
+
+	for (const version of deduplicated.aspnetcore) {
+		plan.push({ version, type: 'aspnetcore' });
+	}
+
+	return plan;
+}
+
+async function executeInstallPlan(
+	plan: InstallPlanItem[],
+): Promise<InstallationResult[]> {
+	const installTasks = plan.map((item) =>
+		installDotNet({
+			version: item.version,
+			type: item.type,
+		}),
+	);
+
+	const installStartTime = Date.now();
+	const installations = await Promise.all(installTasks);
+	const installDuration = ((Date.now() - installStartTime) / 1000).toFixed(2);
+	core.info(`✅ Installation complete in ${installDuration}s`);
+
+	return installations;
+}
+
+function setOutputsFromInstallations(
+	installations: InstallationResult[],
+	cacheHit: boolean,
+): void {
+	const versions = installations
+		.map((i) => `${i.type}:${i.version}`)
+		.join(', ');
+	const paths = installations.map((i) => i.path).join(':');
+
+	core.setOutput('dotnet-version', versions);
+	core.setOutput('dotnet-path', paths);
+	core.setOutput('cache-hit', cacheHit ? 'true' : 'false');
+}
+
 /**
  * Main entry point for the GitHub Action
  */
 export async function run(): Promise<void> {
 	try {
-		const sdkInput = core.getInput('sdk-version');
-		const runtimeInput = core.getInput('runtime-version');
-		const aspnetcoreInput = core.getInput('aspnetcore-version');
-		const globalJsonInput = core.getInput('global-json');
-		const cacheEnabled = core.getBooleanInput('cache');
+		const inputs = readInputs();
+		const requestedVersions = await resolveRequestedVersions(inputs);
 
-		let sdkVersions: string[] = [];
-
-		// Priority 1: Explicit SDK input
-		if (sdkInput) {
-			sdkVersions = parseVersions(sdkInput);
-			core.info('Using SDK versions from action input');
-		} else {
-			// Priority 2: global.json
-			const globalJsonPath = globalJsonInput || getDefaultGlobalJsonPath();
-			core.debug(`Looking for global.json at: ${globalJsonPath}`);
-
-			const globalJsonVersion = await readGlobalJson(globalJsonPath);
-			if (globalJsonVersion) {
-				sdkVersions = [globalJsonVersion];
-				core.info(`Using SDK version from global.json: ${globalJsonVersion}`);
-			}
-		}
-
-		const runtimeVersions = parseVersions(runtimeInput);
-		const aspnetcoreVersions = parseVersions(aspnetcoreInput);
-
-		if (
-			sdkVersions.length === 0 &&
-			runtimeVersions.length === 0 &&
-			aspnetcoreVersions.length === 0
-		) {
-			throw new Error(
-				'At least one of sdk-version, runtime-version, or aspnetcore-version must be specified',
-			);
-		}
-
+		ensureRequestedVersions(requestedVersions);
 		await fetchAndCacheReleases();
 
 		// Remove redundant versions
-		const deduplicated = await deduplicateVersions({
-			sdk: sdkVersions,
-			runtime: runtimeVersions,
-			aspnetcore: aspnetcoreVersions,
-		});
+		const deduplicated = await deduplicateVersions(requestedVersions);
 
 		// Try to restore from cache if enabled
-		if (cacheEnabled && (await tryRestoreFromCache(deduplicated))) {
+		if (await handleCacheRestore(deduplicated, inputs.cacheEnabled)) {
 			return;
 		}
 
 		core.info(`Installing .NET: ${formatVersionPlan(deduplicated)}`);
 
-		const installTasks: Promise<InstallationResult>[] = [];
-
-		for (const version of deduplicated.sdk) {
-			installTasks.push(
-				installDotNet({
-					version,
-					type: 'sdk',
-				}),
-			);
-		}
-
-		for (const version of deduplicated.runtime) {
-			installTasks.push(
-				installDotNet({
-					version,
-					type: 'runtime',
-				}),
-			);
-		}
-
-		for (const version of deduplicated.aspnetcore) {
-			installTasks.push(
-				installDotNet({
-					version,
-					type: 'aspnetcore',
-				}),
-			);
-		}
-
-		// Install in parallel
-		const installStartTime = Date.now();
-		const installations = await Promise.all(installTasks);
-		const installDuration = ((Date.now() - installStartTime) / 1000).toFixed(2);
-
-		core.info(`✅ Installation complete in ${installDuration}s`);
+		const plan = buildInstallPlan(deduplicated);
+		const installations = await executeInstallPlan(plan);
 
 		// Save to cache if enabled
-		if (cacheEnabled) {
-			await trySaveToCache(deduplicated);
-		}
+		await handleCacheSave(deduplicated, inputs.cacheEnabled);
 
-		// Set outputs
-		const versions = installations
-			.map((i) => `${i.type}:${i.version}`)
-			.join(', ');
-		const paths = installations.map((i) => i.path).join(':');
-
-		core.setOutput('dotnet-version', versions);
-		core.setOutput('dotnet-path', paths);
-		core.setOutput('cache-hit', 'false');
+		setOutputsFromInstallations(installations, false);
 	} catch (error) {
 		if (error instanceof Error) {
 			core.setFailed(error.message);

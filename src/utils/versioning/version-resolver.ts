@@ -1,5 +1,5 @@
 import * as core from '@actions/core';
-import type { DotnetType } from '../types';
+import type { DotnetType } from '../../types';
 
 interface ReleaseInfo {
 	'channel-version': string;
@@ -84,6 +84,18 @@ function normalizeVersionPattern(version: string): string {
  */
 export function resolveVersion(version: string, type: DotnetType): string {
 	const versionLower = version.toLowerCase();
+
+	// If version has no wildcards or keywords, return as-is
+	if (
+		!version.includes('x') &&
+		!version.includes('X') &&
+		versionLower !== 'lts' &&
+		versionLower !== 'sts' &&
+		versionLower !== 'latest'
+	) {
+		return version;
+	}
+
 	const releases = getCachedReleasesOrThrow();
 
 	// Handle LTS, STS, and LATEST keywords
@@ -94,7 +106,7 @@ export function resolveVersion(version: string, type: DotnetType): string {
 			type,
 		);
 		core.info(
-			`Resolved ${versionLower.toUpperCase()} -> ${resolved} (channel ${resolved.channel})`,
+			`Resolved ${versionLower.toUpperCase()} -> ${resolved.value} (channel ${resolved.channel})`,
 		);
 		return resolved.value;
 	}
@@ -105,11 +117,6 @@ export function resolveVersion(version: string, type: DotnetType): string {
 			`Resolved LATEST -> ${resolved.value} (channel ${resolved.channel})`,
 		);
 		return resolved.value;
-	}
-
-	// If version has no wildcards, return as-is
-	if (!version.includes('x') && !version.includes('X')) {
-		return version;
 	}
 
 	const resolved = resolveVersionPatternFromReleases(releases, version, type);
