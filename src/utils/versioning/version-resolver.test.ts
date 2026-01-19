@@ -507,6 +507,7 @@ describe('resolveVersion', () => {
 				'channel-version': '11.0',
 				'latest-sdk': '11.0.100-preview.1',
 				'latest-runtime': '11.0.0-preview.1',
+				'release-type': 'lts',
 				'support-phase': 'preview',
 			},
 			{
@@ -535,6 +536,7 @@ describe('resolveVersion', () => {
 				'channel-version': '11.0',
 				'latest-sdk': '11.0.100-preview.1',
 				'latest-runtime': '11.0.0-preview.1',
+				'release-type': 'lts',
 				'support-phase': 'preview',
 			},
 			{
@@ -563,6 +565,7 @@ describe('resolveVersion', () => {
 				'channel-version': '11.0',
 				'latest-sdk': '11.0.100-preview.1',
 				'latest-runtime': '11.0.0-preview.1',
+				'release-type': 'lts',
 				'support-phase': 'preview',
 			},
 			{
@@ -591,6 +594,7 @@ describe('resolveVersion', () => {
 				'channel-version': '11.0',
 				'latest-sdk': '11.0.100-preview.1',
 				'latest-runtime': '11.0.0-preview.1',
+				'release-type': 'lts',
 				'support-phase': 'preview',
 			},
 		]);
@@ -621,6 +625,7 @@ describe('resolveVersion', () => {
 					'channel-version': '11.0',
 					'latest-sdk': '11.0.100-preview.1',
 					'latest-runtime': '11.0.0-preview.1',
+					'release-type': 'lts',
 					'support-phase': 'preview',
 				},
 				{

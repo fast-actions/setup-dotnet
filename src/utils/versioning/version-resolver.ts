@@ -5,7 +5,7 @@ interface ReleaseInfo {
 	'channel-version': string;
 	'latest-sdk': string;
 	'latest-runtime': string;
-	'release-type'?: 'sts' | 'lts';
+	'release-type': 'sts' | 'lts';
 	'support-phase': string;
 }
 
