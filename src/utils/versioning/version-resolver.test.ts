@@ -497,7 +497,7 @@ describe('resolveVersion', () => {
 		setCachedReleases([]);
 
 		expect(() => resolveVersion('latest', 'sdk')).toThrow(
-			'No stable releases found',
+			'No available releases found',
 		);
 	});
 

@@ -136,6 +136,22 @@ Preview/RC versions are fully supported:
     sdk-version: '10.0.100-preview.1.24607.1'
 ```
 
+You can also use the `allow-preview` parameter with keywords to automatically get the latest preview release:
+
+```yaml
+# Get the latest SDK, including preview releases
+- uses: fast-actions/setup-dotnet@v1
+  with:
+    sdk-version: 'latest'
+    allow-preview: true
+```
+
+**When to use `allow-preview`:**
+- Testing against upcoming .NET versions before GA
+- Validating compatibility with preview releases
+
+**Default behavior:** Without `allow-preview: true`, keywords (`latest`, `lts`, `sts`) only resolve to stable releases.
+
 ---
 
 ## Caching
