@@ -22,6 +22,7 @@ interface ActionInputs {
 	aspnetcoreInput: string;
 	globalJsonInput: string;
 	cacheEnabled: boolean;
+	allowPreview: boolean;
 }
 
 interface InstallPlanItem {
@@ -107,6 +108,7 @@ function readInputs(): ActionInputs {
 		aspnetcoreInput: core.getInput('aspnetcore-version'),
 		globalJsonInput: core.getInput('global-json'),
 		cacheEnabled: core.getBooleanInput('cache'),
+		allowPreview: core.getBooleanInput('allow-preview'),
 	};
 }
 
@@ -210,7 +212,7 @@ export async function run(): Promise<void> {
 		const requestedVersions = await resolveRequestedVersions(inputs);
 
 		ensureRequestedVersions(requestedVersions);
-		await fetchAndCacheReleaseInfo();
+		await fetchAndCacheReleaseInfo(inputs.allowPreview);
 
 		// Remove redundant versions
 		const deduplicated = await deduplicateVersions(requestedVersions);

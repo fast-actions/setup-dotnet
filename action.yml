@@ -28,6 +28,11 @@ inputs:
     description: 'Enable caching of .NET installations to speed up subsequent runs. Set to true to enable.'
     required: false
     default: 'true'
+  
+  allow-preview:
+    description: 'Allow preview releases when using keywords (latest, lts, sts). When true, preview releases (support-phase: preview) will be included. When false (default), only stable releases are considered.'
+    required: false
+    default: 'false'
 
 outputs:
   dotnet-version:

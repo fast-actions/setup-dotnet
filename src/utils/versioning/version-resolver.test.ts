@@ -56,18 +56,21 @@ describe('resolveVersion', () => {
 				'latest-sdk': '10.0.402',
 				'latest-runtime': '10.0.2',
 				'release-type': 'sts',
+				'support-phase': 'active',
 			},
 			{
 				'channel-version': '10.1',
 				'latest-sdk': '10.1.100',
 				'latest-runtime': '10.1.0',
 				'release-type': 'sts',
+				'support-phase': 'active',
 			},
 			{
 				'channel-version': '9.0',
 				'latest-sdk': '9.0.500',
 				'latest-runtime': '9.0.5',
 				'release-type': 'lts',
+				'support-phase': 'active',
 			},
 		]);
 
@@ -82,12 +85,14 @@ describe('resolveVersion', () => {
 				'latest-sdk': '8.0.400',
 				'latest-runtime': '8.0.10',
 				'release-type': 'lts',
+				'support-phase': 'active',
 			},
 			{
 				'channel-version': '8.1',
 				'latest-sdk': '8.1.100',
 				'latest-runtime': '8.1.0',
 				'release-type': 'sts',
+				'support-phase': 'active',
 			},
 		]);
 
@@ -102,12 +107,14 @@ describe('resolveVersion', () => {
 				'latest-sdk': '10.0.402',
 				'latest-runtime': '10.0.2',
 				'release-type': 'sts',
+				'support-phase': 'active',
 			},
 			{
 				'channel-version': '9.0',
 				'latest-sdk': '9.0.500',
 				'latest-runtime': '9.0.5',
 				'release-type': 'lts',
+				'support-phase': 'active',
 			},
 		]);
 
@@ -122,12 +129,14 @@ describe('resolveVersion', () => {
 				'latest-sdk': '10.0.402',
 				'latest-runtime': '10.0.2',
 				'release-type': 'sts',
+				'support-phase': 'active',
 			},
 			{
 				'channel-version': '10.1',
 				'latest-sdk': '10.1.100',
 				'latest-runtime': '10.1.0',
 				'release-type': 'sts',
+				'support-phase': 'active',
 			},
 		]);
 
@@ -142,12 +151,14 @@ describe('resolveVersion', () => {
 				'latest-sdk': '9.0.500',
 				'latest-runtime': '9.0.5',
 				'release-type': 'lts',
+				'support-phase': 'active',
 			},
 			{
 				'channel-version': '9.1',
 				'latest-sdk': '9.1.200',
 				'latest-runtime': '9.1.0',
 				'release-type': 'sts',
+				'support-phase': 'active',
 			},
 		]);
 
@@ -162,12 +173,14 @@ describe('resolveVersion', () => {
 				'latest-sdk': '10.0.402',
 				'latest-runtime': '10.0.2',
 				'release-type': 'sts',
+				'support-phase': 'active',
 			},
 			{
 				'channel-version': '10.1',
 				'latest-sdk': '10.1.100',
 				'latest-runtime': '10.1.0',
 				'release-type': 'sts',
+				'support-phase': 'active',
 			},
 		]);
 
@@ -183,6 +196,7 @@ describe('resolveVersion', () => {
 				'latest-sdk': '10.0.402',
 				'latest-runtime': '10.0.2',
 				'release-type': 'sts',
+				'support-phase': 'active',
 			},
 		]);
 
@@ -205,12 +219,14 @@ describe('resolveVersion', () => {
 					'latest-sdk': '10.0.402',
 					'latest-runtime': '10.0.2',
 					'release-type': 'sts',
+					'support-phase': 'active',
 				},
 				{
 					'channel-version': '9.0',
 					'latest-sdk': '9.0.500',
 					'latest-runtime': '9.0.5',
 					'release-type': 'lts',
+					'support-phase': 'active',
 				},
 			],
 		};
@@ -272,18 +288,21 @@ describe('resolveVersion', () => {
 				'latest-sdk': '10.0.402',
 				'latest-runtime': '10.0.2',
 				'release-type': 'sts',
+				'support-phase': 'active',
 			},
 			{
 				'channel-version': '9.0',
 				'latest-sdk': '9.0.500',
 				'latest-runtime': '9.0.5',
 				'release-type': 'lts',
+				'support-phase': 'active',
 			},
 			{
 				'channel-version': '8.0',
 				'latest-sdk': '8.0.404',
 				'latest-runtime': '8.0.11',
 				'release-type': 'lts',
+				'support-phase': 'active',
 			},
 		]);
 
@@ -298,6 +317,7 @@ describe('resolveVersion', () => {
 				'latest-sdk': '9.0.500',
 				'latest-runtime': '9.0.5',
 				'release-type': 'lts',
+				'support-phase': 'active',
 			},
 		]);
 
@@ -312,12 +332,14 @@ describe('resolveVersion', () => {
 				'latest-sdk': '10.0.402',
 				'latest-runtime': '10.0.2',
 				'release-type': 'sts',
+				'support-phase': 'active',
 			},
 			{
 				'channel-version': '9.0',
 				'latest-sdk': '9.0.500',
 				'latest-runtime': '9.0.5',
 				'release-type': 'lts',
+				'support-phase': 'active',
 			},
 		]);
 
@@ -332,6 +354,7 @@ describe('resolveVersion', () => {
 				'latest-sdk': '9.0.500',
 				'latest-runtime': '9.0.5',
 				'release-type': 'lts',
+				'support-phase': 'active',
 			},
 		]);
 
@@ -346,6 +369,7 @@ describe('resolveVersion', () => {
 				'latest-sdk': '10.0.402',
 				'latest-runtime': '10.0.2',
 				'release-type': 'sts',
+				'support-phase': 'active',
 			},
 		]);
 
@@ -360,6 +384,7 @@ describe('resolveVersion', () => {
 				'latest-sdk': '10.0.402',
 				'latest-runtime': '10.0.2',
 				'release-type': 'sts',
+				'support-phase': 'active',
 			},
 		]);
 
@@ -373,6 +398,7 @@ describe('resolveVersion', () => {
 				'latest-sdk': '8.0.404',
 				'latest-runtime': '8.0.11',
 				'release-type': 'lts',
+				'support-phase': 'active',
 			},
 		]);
 
@@ -386,18 +412,21 @@ describe('resolveVersion', () => {
 				'latest-sdk': '10.0.402',
 				'latest-runtime': '10.0.2',
 				'release-type': 'sts',
+				'support-phase': 'active',
 			},
 			{
 				'channel-version': '9.0',
 				'latest-sdk': '9.0.500',
 				'latest-runtime': '9.0.5',
 				'release-type': 'lts',
+				'support-phase': 'active',
 			},
 			{
 				'channel-version': '8.0',
 				'latest-sdk': '8.0.404',
 				'latest-runtime': '8.0.11',
 				'release-type': 'lts',
+				'support-phase': 'active',
 			},
 		]);
 
@@ -412,12 +441,14 @@ describe('resolveVersion', () => {
 				'latest-sdk': '10.0.402',
 				'latest-runtime': '10.0.2',
 				'release-type': 'sts',
+				'support-phase': 'active',
 			},
 			{
 				'channel-version': '9.0',
 				'latest-sdk': '9.0.500',
 				'latest-runtime': '9.0.5',
 				'release-type': 'lts',
+				'support-phase': 'active',
 			},
 		]);
 
@@ -432,12 +463,14 @@ describe('resolveVersion', () => {
 				'latest-sdk': '10.0.402',
 				'latest-runtime': '10.0.2',
 				'release-type': 'sts',
+				'support-phase': 'active',
 			},
 			{
 				'channel-version': '9.0',
 				'latest-sdk': '9.0.500',
 				'latest-runtime': '9.0.5',
 				'release-type': 'lts',
+				'support-phase': 'active',
 			},
 		]);
 
@@ -452,6 +485,7 @@ describe('resolveVersion', () => {
 				'latest-sdk': '10.0.402',
 				'latest-runtime': '10.0.2',
 				'release-type': 'sts',
+				'support-phase': 'active',
 			},
 		]);
 
@@ -462,6 +496,200 @@ describe('resolveVersion', () => {
 	it('should throw error when no releases found for latest', () => {
 		setCachedReleases([]);
 
-		expect(() => resolveVersion('latest', 'sdk')).toThrow('No releases found');
+		expect(() => resolveVersion('latest', 'sdk')).toThrow(
+			'No available releases found',
+		);
+	});
+
+	it('should skip preview releases when resolving latest', () => {
+		setCachedReleases([
+			{
+				'channel-version': '11.0',
+				'latest-sdk': '11.0.100-preview.1',
+				'latest-runtime': '11.0.0-preview.1',
+				'release-type': 'lts',
+				'support-phase': 'preview',
+			},
+			{
+				'channel-version': '10.0',
+				'latest-sdk': '10.0.402',
+				'latest-runtime': '10.0.2',
+				'release-type': 'sts',
+				'support-phase': 'active',
+			},
+			{
+				'channel-version': '9.0',
+				'latest-sdk': '9.0.500',
+				'latest-runtime': '9.0.5',
+				'release-type': 'lts',
+				'support-phase': 'active',
+			},
+		]);
+
+		const result = resolveVersion('latest', 'sdk');
+		expect(result).toBe('10.0.402');
+	});
+
+	it('should skip preview releases when resolving lts', () => {
+		setCachedReleases([
+			{
+				'channel-version': '11.0',
+				'latest-sdk': '11.0.100-preview.1',
+				'latest-runtime': '11.0.0-preview.1',
+				'release-type': 'lts',
+				'support-phase': 'preview',
+			},
+			{
+				'channel-version': '10.0',
+				'latest-sdk': '10.0.402',
+				'latest-runtime': '10.0.2',
+				'release-type': 'sts',
+				'support-phase': 'active',
+			},
+			{
+				'channel-version': '9.0',
+				'latest-sdk': '9.0.500',
+				'latest-runtime': '9.0.5',
+				'release-type': 'lts',
+				'support-phase': 'active',
+			},
+		]);
+
+		const result = resolveVersion('lts', 'sdk');
+		expect(result).toBe('9.0.500');
+	});
+
+	it('should skip preview releases when resolving sts', () => {
+		setCachedReleases([
+			{
+				'channel-version': '11.0',
+				'latest-sdk': '11.0.100-preview.1',
+				'latest-runtime': '11.0.0-preview.1',
+				'release-type': 'lts',
+				'support-phase': 'preview',
+			},
+			{
+				'channel-version': '10.0',
+				'latest-sdk': '10.0.402',
+				'latest-runtime': '10.0.2',
+				'release-type': 'sts',
+				'support-phase': 'active',
+			},
+			{
+				'channel-version': '9.0',
+				'latest-sdk': '9.0.500',
+				'latest-runtime': '9.0.5',
+				'release-type': 'lts',
+				'support-phase': 'active',
+			},
+		]);
+
+		const result = resolveVersion('sts', 'sdk');
+		expect(result).toBe('10.0.402');
+	});
+
+	it('should throw error when only preview releases exist for latest', () => {
+		setCachedReleases([
+			{
+				'channel-version': '11.0',
+				'latest-sdk': '11.0.100-preview.1',
+				'latest-runtime': '11.0.0-preview.1',
+				'release-type': 'lts',
+				'support-phase': 'preview',
+			},
+		]);
+
+		expect(() => resolveVersion('latest', 'sdk')).toThrow(
+			'No available releases found',
+		);
+	});
+
+	it('should throw error when only preview LTS releases exist', () => {
+		setCachedReleases([
+			{
+				'channel-version': '11.0',
+				'latest-sdk': '11.0.100-preview.1',
+				'latest-runtime': '11.0.0-preview.1',
+				'release-type': 'lts',
+				'support-phase': 'preview',
+			},
+		]);
+
+		expect(() => resolveVersion('lts', 'sdk')).toThrow('No LTS releases found');
+	});
+
+	it('should include preview releases when allow-preview is enabled for latest', () => {
+		setCachedReleases(
+			[
+				{
+					'channel-version': '11.0',
+					'latest-sdk': '11.0.100-preview.1',
+					'latest-runtime': '11.0.0-preview.1',
+					'release-type': 'lts',
+					'support-phase': 'preview',
+				},
+				{
+					'channel-version': '10.0',
+					'latest-sdk': '10.0.402',
+					'latest-runtime': '10.0.2',
+					'release-type': 'sts',
+					'support-phase': 'active',
+				},
+			],
+			true,
+		);
+
+		const result = resolveVersion('latest', 'sdk');
+		expect(result).toBe('11.0.100-preview.1');
+	});
+
+	it('should include preview releases when allow-preview is enabled for lts', () => {
+		setCachedReleases(
+			[
+				{
+					'channel-version': '11.0',
+					'latest-sdk': '11.0.100-preview.1',
+					'latest-runtime': '11.0.0-preview.1',
+					'release-type': 'lts',
+					'support-phase': 'preview',
+				},
+				{
+					'channel-version': '9.0',
+					'latest-sdk': '9.0.500',
+					'latest-runtime': '9.0.5',
+					'release-type': 'lts',
+					'support-phase': 'active',
+				},
+			],
+			true,
+		);
+
+		const result = resolveVersion('lts', 'sdk');
+		expect(result).toBe('11.0.100-preview.1');
+	});
+
+	it('should include preview releases when allow-preview is enabled for sts', () => {
+		setCachedReleases(
+			[
+				{
+					'channel-version': '11.0',
+					'latest-sdk': '11.0.100-preview.1',
+					'latest-runtime': '11.0.0-preview.1',
+					'release-type': 'sts',
+					'support-phase': 'preview',
+				},
+				{
+					'channel-version': '10.0',
+					'latest-sdk': '10.0.402',
+					'latest-runtime': '10.0.2',
+					'release-type': 'sts',
+					'support-phase': 'active',
+				},
+			],
+			true,
+		);
+
+		const result = resolveVersion('sts', 'sdk');
+		expect(result).toBe('11.0.100-preview.1');
 	});
 });

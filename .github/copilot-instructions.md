@@ -15,7 +15,7 @@ GitHub Action for .NET SDK/Runtime installation with caching. TypeScript + Vite 
 - [src/utils/versioning/version-resolver.ts](../src/utils/versioning/version-resolver.ts) - Version wildcard resolution, keyword support (lts, sts, latest), and semver comparison
 - [src/utils/versioning/version-deduplicator.ts](../src/utils/versioning/version-deduplicator.ts) - Removes redundant SDK/Runtime installations using SDK/Runtime mapping
 - [src/utils/versioning/sdk-runtime-mapper.ts](../src/utils/versioning/sdk-runtime-mapper.ts) - Maps SDK versions to included runtimes to prevent duplicate installations
-- [action.yml](../action.yml) - GitHub Action inputs: `sdk-version`, `runtime-version`, `aspnetcore-version`, `global-json`, `cache`; outputs: `dotnet-version`, `dotnet-path`, `cache-hit`
+- [action.yml](../action.yml) - GitHub Action inputs: `sdk-version`, `runtime-version`, `aspnetcore-version`, `global-json`, `cache`, `allow-preview`; outputs: `dotnet-version`, `dotnet-path`, `cache-hit`
 
 ## Build System
 **Critical**: Vite bundles all deps into single `dist/index.js` for GitHub Actions.
