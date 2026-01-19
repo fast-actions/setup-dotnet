@@ -1,6 +1,8 @@
 # setup-dotnet
 
-High-performance GitHub Action for .NET SDK/Runtime installation with parallel downloads, intelligent version resolution, and caching.
+The fastest way to setup .NET SDK/Runtime in your workflow.
+
+Parallel downloads. Automatic caching. Smart version resolution. 
 
 ## Quick Setup
 
@@ -10,18 +12,15 @@ High-performance GitHub Action for .NET SDK/Runtime installation with parallel d
     sdk-version: '10.x.x'
 ```
 
-That's it! The action automatically:
-- Downloads the latest .NET 10 SDK
-- Adds it to PATH
-- Caches for future runs
+That's it!
 
 ## Features
 
-- **Flexible Installation** – Install SDK, Runtime, or ASP.NET Core separately or combined
-- **Parallel Downloads** – Multiple versions download simultaneously
-- **Smart Version Resolution** – Wildcards (`10.x.x`), keywords (`latest`, `lts`, `sts`), and `global.json` support
-- **Automatic Caching** – Speeds up subsequent workflow runs dramatically
-- **Intelligent Deduplication** – Skips redundant installations (SDK includes runtimes)
+- **Flexible Installation**: Mix and match SDK, Runtime, or ASP.NET Core however you like
+- **Parallel Downloads**: Sequential installs are so 2020. Downloads are running simultaneously
+- **Smart Version Resolution**: Wildcards (`10.x.x`), keywords (`latest`, `lts`, `sts`), and `global.json`. All supported
+- **Intelligent Deduplication**: Only download what you need. No more, no less
+- **Automatic Caching**: Dramatically faster subsequent runs (seriously, it's fast)
 
 ## Common Use Cases
 
@@ -47,6 +46,10 @@ That's it! The action automatically:
 ## Documentation
 
 For detailed documentation, advanced features, and more examples, see [guide.md](https://github.com/fast-actions/setup-dotnet/blob/main/docs/guide.md).
+
+### Coming from actions/setup-dotnet?
+
+Check out the [Migration Guide](https://github.com/fast-actions/setup-dotnet/blob/main/docs/migration.md) for a quick reference on how to switch to this action.
 
 ## Inputs
 
