@@ -49,7 +49,7 @@ That's it!
 
 | Scenario | Official Action | fast-actions (first run) | fast-actions (cached) |
 |----------|-----------------|--------------------------|----------------------|
-| Multiple SDKs (10.x, 9.x, 8.x) | ~24s | ~22s | ~8s |
+| Multiple SDKs (10.x, 9.x, 8.x) | ~24s | ~22s | ~6s |
 | Single SDK + runtimes (SDK 10.x, ASP.NET Core 9.x + 8.x) | (Not possible) | ~14s | ~4s |
 
 In typical workflows, you install a single SDK and multiple runtimes for compatibility testing. The "Single SDK + runtimes" scenario is more representative of real-world usage.
