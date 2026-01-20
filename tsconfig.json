@@ -1,20 +1,18 @@
 {
 	"compilerOptions": {
-		"target": "ES2022",
+		"target": "esnext",
 		"useDefineForClassFields": true,
 		"module": "ESNext",
-		"lib": ["ES2022"],
+		"lib": ["ESNext"],
 		"types": ["node"],
-		"skipLibCheck": true,
+		"skipLibCheck": false,
 
-		/* Bundler mode */
 		"moduleResolution": "bundler",
 		"allowImportingTsExtensions": true,
 		"verbatimModuleSyntax": true,
 		"moduleDetection": "force",
 		"noEmit": true,
 
-		/* Linting */
 		"strict": true,
 		"noImplicitAny": true,
 		"erasableSyntaxOnly": true,
