@@ -1,5 +1,6 @@
 import * as core from '@actions/core';
 import type { ReleaseManifest } from '../../types';
+import { fetchWithCache } from '../api-cache';
 
 // Cache for releases.json API responses (promise-based for parallel-safe access)
 const releasesCache = new Map<string, Promise<ReleaseManifest>>();
@@ -31,14 +32,7 @@ export async function fetchReleaseManifest(
 		const releasesUrl = `https://builds.dotnet.microsoft.com/dotnet/release-metadata/${channel}/releases.json`;
 		core.debug(`Fetching release manifest: ${releasesUrl}`);
 
-		const response = await fetch(releasesUrl);
-		if (!response.ok) {
-			throw new Error(
-				`Failed to fetch releases for channel ${channel}: ${response.statusText}`,
-			);
-		}
-
-		const data = (await response.json()) as ReleaseManifest;
+		const data = (await fetchWithCache(releasesUrl)) as ReleaseManifest;
 		if (!data.releases || !Array.isArray(data.releases)) {
 			throw new Error(
 				`Invalid manifest structure for channel ${channel}: missing releases array`,

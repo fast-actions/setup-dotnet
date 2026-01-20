@@ -1,6 +1,7 @@
 import * as core from '@actions/core';
 import { getDotNetInstallDirectory, installDotNet } from './installer';
 import type { DotnetType, VersionSet } from './types';
+import { configureCaching, persistApiCache } from './utils/api-cache';
 import {
 	cacheExists,
 	generateCacheKey,
@@ -221,6 +222,10 @@ function setOutputsFromInstallations(
 export async function run(): Promise<void> {
 	try {
 		const inputs = readInputs();
+
+		// Configure API caching based on cache input
+		configureCaching(inputs.cacheEnabled);
+
 		const requestedVersions = await resolveRequestedVersions(inputs);
 
 		ensureRequestedVersions(requestedVersions);
@@ -242,6 +247,7 @@ export async function run(): Promise<void> {
 		// Save to cache if enabled
 		if (inputs.cacheEnabled) {
 			await tryToSaveCache(deduplicated);
+			await persistApiCache();
 		}
 		setOutputsFromInstallations(installations, false);
 	} catch (error) {

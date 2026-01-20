@@ -249,7 +249,7 @@ describe('resolveVersion', () => {
 		});
 
 		await expect(fetchAndCacheReleaseInfo()).rejects.toThrow(
-			'Failed to fetch releases: Not Found',
+			'API request failed',
 		);
 	});
 

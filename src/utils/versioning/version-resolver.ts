@@ -1,5 +1,6 @@
 import * as core from '@actions/core';
 import type { DotnetType } from '../../types';
+import { fetchWithCache } from '../api-cache';
 
 interface ReleaseInfo {
 	'channel-version': string;
@@ -57,12 +58,8 @@ export async function fetchAndCacheReleaseInfo(
 		'https://builds.dotnet.microsoft.com/dotnet/release-metadata/releases-index.json';
 
 	core.debug(`Fetching releases from: ${releasesUrl}`);
-	const response = await fetch(releasesUrl);
-	if (!response.ok) {
-		throw new Error(`Failed to fetch releases: ${response.statusText}`);
-	}
 
-	const data = (await response.json()) as {
+	const data = (await fetchWithCache(releasesUrl)) as {
 		releases?: ReleaseInfo[];
 		'releases-index'?: ReleaseInfo[];
 	};

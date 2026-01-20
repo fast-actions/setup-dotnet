@@ -62,7 +62,7 @@ describe('fetchReleaseManifest', () => {
 		});
 
 		await expect(fetchReleaseManifest('8.0.100')).rejects.toThrow(
-			'Failed to fetch releases',
+			'API request failed',
 		);
 	});
 
