@@ -1,9 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-	clearReleaseCache,
-	fetchReleaseManifest,
-	type ReleaseManifest,
-} from './release-cache';
+import type { ReleaseManifest } from '../../types';
+import { clearReleaseCache, fetchReleaseManifest } from './release-cache';
 
 describe('fetchReleaseManifest', () => {
 	beforeEach(() => {

@@ -1,19 +1,5 @@
 import * as core from '@actions/core';
-
-interface FileInfo {
-	name: string;
-	rid: string;
-	url: string;
-	hash: string;
-}
-
-export interface ReleaseManifest {
-	releases: Array<{
-		sdks?: Array<{ version: string; files?: FileInfo[] }>;
-		runtime?: { version: string; files?: FileInfo[] };
-		'aspnetcore-runtime'?: { version: string; files?: FileInfo[] };
-	}>;
-}
+import type { ReleaseManifest } from '../../types';
 
 // Cache for releases.json API responses (promise-based for parallel-safe access)
 const releasesCache = new Map<string, Promise<ReleaseManifest>>();

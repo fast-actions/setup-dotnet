@@ -4,26 +4,13 @@ import * as toolCache from '@actions/tool-cache';
 import * as crypto from 'node:crypto';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import type { DotnetType } from './types';
+import type { DotnetType, FileInfo, Release } from './types';
 import { extractArchive } from './utils/archive-utils';
 import { getArchitecture, getPlatform } from './utils/platform-utils';
 import { fetchReleaseManifest } from './utils/versioning/release-cache';
 
 // Shared installation directory for all .NET installations
 let dotnetInstallDir: string | null = null;
-
-interface FileInfo {
-	name: string;
-	rid: string;
-	url: string;
-	hash: string;
-}
-
-interface ReleaseEntry {
-	sdks?: Array<{ version: string; files?: FileInfo[] }>;
-	runtime?: { version: string; files?: FileInfo[] };
-	'aspnetcore-runtime'?: { version: string; files?: FileInfo[] };
-}
 
 export interface InstallOptions {
 	version: string;
@@ -270,7 +257,7 @@ export async function getDotNetDownloadInfo(
  * Get the appropriate section from a release entry based on type and version
  */
 function getSectionFromRelease(
-	release: ReleaseEntry,
+	release: Release,
 	version: string,
 	type: DotnetType,
 ): { version: string; files?: FileInfo[] } | undefined {
