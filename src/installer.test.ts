@@ -27,7 +27,7 @@ describe('getDotNetDownloadInfo', () => {
 						version: '8.0.100',
 						files: [
 							{
-								name: 'dotnet-sdk-8.0.100-linux-x64.tar.gz',
+								name: 'dotnet-sdk-linux-x64.tar.gz',
 								rid: 'linux-x64',
 								url: 'https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.100/dotnet-sdk-8.0.100-linux-x64.tar.gz',
 								hash: 'abc123def456',
@@ -60,7 +60,7 @@ describe('getDotNetDownloadInfo', () => {
 						version: '7.0.15',
 						files: [
 							{
-								name: 'dotnet-runtime-7.0.15-linux-x64.tar.gz',
+								name: 'dotnet-runtime-linux-x64.tar.gz',
 								rid: 'linux-x64',
 								url: 'https://builds.dotnet.microsoft.com/dotnet/Runtime/7.0.15/dotnet-runtime-7.0.15-linux-x64.tar.gz',
 								hash: 'xyz789abc123',
@@ -90,7 +90,7 @@ describe('getDotNetDownloadInfo', () => {
 						version: '8.0.0',
 						files: [
 							{
-								name: 'aspnetcore-runtime-8.0.0-linux-x64.tar.gz',
+								name: 'aspnetcore-runtime-linux-x64.tar.gz',
 								rid: 'linux-x64',
 								url: 'https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/8.0.0/aspnetcore-runtime-8.0.0-linux-x64.tar.gz',
 								hash: 'def456ghi789',
@@ -135,7 +135,7 @@ describe('getDotNetDownloadInfo', () => {
 						version: '8.0.100',
 						files: [
 							{
-								name: 'dotnet-sdk-8.0.100-linux-x64.tar.gz',
+								name: 'dotnet-sdk-linux-x64.tar.gz',
 								rid: 'linux-x64',
 								url: 'https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.100/dotnet-sdk-8.0.100-linux-x64.tar.gz',
 								hash: '',
@@ -164,7 +164,7 @@ describe('getDotNetDownloadInfo', () => {
 						version: '8.0.100',
 						files: [
 							{
-								name: 'dotnet-sdk-8.0.100-linux-x64.tar.gz',
+								name: 'dotnet-sdk-linux-x64.tar.gz',
 								rid: 'linux-x64',
 								url: 'https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.100/dotnet-sdk-8.0.100-linux-x64.tar.gz',
 								hash: 'cached123',

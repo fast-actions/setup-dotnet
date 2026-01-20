@@ -302,10 +302,10 @@ export async function getDotNetDownloadInfo(
 	// Build expected filename pattern
 	const filePattern =
 		type === 'aspnetcore'
-			? `aspnetcore-runtime-${version}-${rid}.${extension}`
+			? `aspnetcore-runtime-${rid}.${extension}`
 			: type === 'sdk'
-				? `dotnet-sdk-${version}-${rid}.${extension}`
-				: `dotnet-runtime-${version}-${rid}.${extension}`;
+				? `dotnet-sdk-${rid}.${extension}`
+				: `dotnet-runtime-${rid}.${extension}`;
 
 	// Find matching file
 	const file = section.files.find(
