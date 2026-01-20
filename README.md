@@ -43,6 +43,19 @@ That's it!
 - uses: fast-actions/setup-dotnet@v1
 ```
 
+## Performance
+
+**Benchmark Results** (Ubuntu runner):
+
+| Scenario | Official Action | fast-actions (first run) | fast-actions (cached) |
+|----------|-----------------|--------------------------|----------------------|
+| Multiple SDKs (10.x, 9.x, 8.x) | ~24s | ~22s | ~8s |
+| Single SDK + runtimes (SDK 10.x, ASP.NET Core 9.x + 8.x) | (Not possible) | ~14s | ~4s |
+
+In typical workflows, you install a single SDK and multiple runtimes for compatibility testing. The "Single SDK + runtimes" scenario is more representative of real-world usage.
+
+**Note**: Actual performance depends on various factors including runner specifications, network conditions, and the number/size of versions being installed.
+
 ## Documentation
 
 For detailed documentation, advanced features, and more examples, see [guide.md](https://github.com/fast-actions/setup-dotnet/blob/main/docs/guide.md).
