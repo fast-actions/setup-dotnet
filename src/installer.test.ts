@@ -23,17 +23,19 @@ describe('getDotNetDownloadInfo', () => {
 		const mockResponse = {
 			releases: [
 				{
-					sdk: {
-						version: '8.0.100',
-						files: [
-							{
-								name: 'dotnet-sdk-linux-x64.tar.gz',
-								rid: 'linux-x64',
-								url: 'https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.100/dotnet-sdk-8.0.100-linux-x64.tar.gz',
-								hash: 'abc123def456',
-							},
-						],
-					},
+					sdks: [
+						{
+							version: '8.0.100',
+							files: [
+								{
+									name: 'dotnet-sdk-linux-x64.tar.gz',
+									rid: 'linux-x64',
+									url: 'https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.100/dotnet-sdk-8.0.100-linux-x64.tar.gz',
+									hash: 'abc123def456',
+								},
+							],
+						},
+					],
 				},
 			],
 		};
@@ -131,17 +133,19 @@ describe('getDotNetDownloadInfo', () => {
 		const mockResponse = {
 			releases: [
 				{
-					sdk: {
-						version: '8.0.100',
-						files: [
-							{
-								name: 'dotnet-sdk-linux-x64.tar.gz',
-								rid: 'linux-x64',
-								url: 'https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.100/dotnet-sdk-8.0.100-linux-x64.tar.gz',
-								hash: '',
-							},
-						],
-					},
+					sdks: [
+						{
+							version: '8.0.100',
+							files: [
+								{
+									name: 'dotnet-sdk-linux-x64.tar.gz',
+									rid: 'linux-x64',
+									url: 'https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.100/dotnet-sdk-8.0.100-linux-x64.tar.gz',
+									hash: '',
+								},
+							],
+						},
+					],
 				},
 			],
 		};
@@ -160,17 +164,19 @@ describe('getDotNetDownloadInfo', () => {
 		const mockResponse = {
 			releases: [
 				{
-					sdk: {
-						version: '8.0.100',
-						files: [
-							{
-								name: 'dotnet-sdk-linux-x64.tar.gz',
-								rid: 'linux-x64',
-								url: 'https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.100/dotnet-sdk-8.0.100-linux-x64.tar.gz',
-								hash: 'cached123',
-							},
-						],
-					},
+					sdks: [
+						{
+							version: '8.0.100',
+							files: [
+								{
+									name: 'dotnet-sdk-linux-x64.tar.gz',
+									rid: 'linux-x64',
+									url: 'https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.100/dotnet-sdk-8.0.100-linux-x64.tar.gz',
+									hash: 'cached123',
+								},
+							],
+						},
+					],
 				},
 			],
 		};

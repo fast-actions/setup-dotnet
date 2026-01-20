@@ -22,7 +22,7 @@ interface FileInfo {
 }
 
 interface ReleaseEntry {
-	sdk?: { version: string; files: FileInfo[] };
+	sdks?: Array<{ version: string; files: FileInfo[] }>;
 	runtime?: { version: string; files: FileInfo[] };
 	'aspnetcore-runtime'?: { version: string; files: FileInfo[] };
 }
@@ -273,7 +273,7 @@ export async function getDotNetDownloadInfo(
 	// Find the release matching our version
 	const release = manifest.releases.find((r) => {
 		if (type === 'sdk') {
-			return r.sdk?.version === version;
+			return r.sdks?.some((s) => s.version === version);
 		}
 		if (type === 'aspnetcore') {
 			return r['aspnetcore-runtime']?.version === version;
@@ -288,24 +288,14 @@ export async function getDotNetDownloadInfo(
 	}
 
 	// Get the appropriate section
-	const section =
-		type === 'sdk'
-			? release.sdk
-			: type === 'aspnetcore'
-				? release['aspnetcore-runtime']
-				: release.runtime;
+	const section = getSectionFromRelease(release, version, type);
 
 	if (!section?.files) {
 		throw new Error(`No files found for ${type} version ${version}`);
 	}
 
 	// Build expected filename pattern
-	const filePattern =
-		type === 'aspnetcore'
-			? `aspnetcore-runtime-${rid}.${extension}`
-			: type === 'sdk'
-				? `dotnet-sdk-${rid}.${extension}`
-				: `dotnet-runtime-${rid}.${extension}`;
+	const filePattern = getExpectedFileName(type, rid, extension);
 
 	// Find matching file
 	const file = section.files.find(
@@ -328,6 +318,40 @@ export async function getDotNetDownloadInfo(
 	core.debug(`Expected hash: ${file.hash.substring(0, 16)}...`);
 
 	return { url: file.url, hash: file.hash };
+}
+
+/**
+ * Get the appropriate section from a release entry based on type and version
+ */
+function getSectionFromRelease(
+	release: ReleaseEntry,
+	version: string,
+	type: DotnetType,
+): { version: string; files: FileInfo[] } | undefined {
+	if (type === 'sdk') {
+		return release.sdks?.find((s) => s.version === version);
+	}
+	if (type === 'aspnetcore') {
+		return release['aspnetcore-runtime'];
+	}
+	return release.runtime;
+}
+
+/**
+ * Get the expected filename pattern for download
+ */
+function getExpectedFileName(
+	type: DotnetType,
+	rid: string,
+	extension: string,
+): string {
+	if (type === 'aspnetcore') {
+		return `aspnetcore-runtime-${rid}.${extension}`;
+	}
+	if (type === 'sdk') {
+		return `dotnet-sdk-${rid}.${extension}`;
+	}
+	return `dotnet-runtime-${rid}.${extension}`;
 }
 
 /**
