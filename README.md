@@ -47,14 +47,12 @@ That's it!
 
 **Benchmark Results** (Ubuntu runner):
 
-| Scenario | Official Action | fast-actions (first run) | fast-actions (cached) |
-|----------|-----------------|--------------------------|----------------------|
-| Multiple SDKs (10.x, 9.x, 8.x) | ~24s | ~22s | ~6s |
-| Single SDK + runtimes (SDK 10.x, ASP.NET Core 9.x + 8.x) | (Not possible) | ~14s | ~4s |
+| Scenario | Official Action | fast-actions (without cache) | fast-actions (with cache) |
+|----------|-----------------|------------------------------|----------------------|
+| Multiple SDKs (10.x, 9.x, 8.x) | ~24s | ~15s | ~6s |
+| Single SDK + runtimes (SDK 10.x, ASP.NET Core 9.x + 8.x) | (Not possible) | ~9s | ~4s |
 
-In typical workflows, you install a single SDK and multiple runtimes for compatibility testing. The "Single SDK + runtimes" scenario is more representative of real-world usage.
-
-**Note**: Actual performance depends on various factors including runner specifications, network conditions, and the number/size of versions being installed.
+**Note**: Actual performance depends on various factors including runner specifications and network conditions.
 
 ## Documentation
 
