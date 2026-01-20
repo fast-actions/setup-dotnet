@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { clearReleaseCache } from './release-cache';
 import * as sdkRuntimeMapper from './sdk-runtime-mapper';
 
 describe('getSdkIncludedVersions', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		clearReleaseCache();
 	});
 
 	it('should return runtime and aspnetcore versions for valid SDK', async () => {
@@ -12,9 +14,9 @@ describe('getSdkIncludedVersions', () => {
 			json: async () => ({
 				releases: [
 					{
-						sdk: { version: '7.0.100' },
+						sdks: [{ version: '7.0.100' }],
 						runtime: { version: '7.0.0' },
-						aspnetcore: { version: '7.0.0' },
+						'aspnetcore-runtime': { version: '7.0.0' },
 					},
 				],
 			}),
@@ -34,7 +36,7 @@ describe('getSdkIncludedVersions', () => {
 			json: async () => ({
 				releases: [
 					{
-						sdk: { version: '7.0.100' },
+						sdks: [{ version: '7.0.100' }],
 						runtime: { version: '7.0.0' },
 					},
 				],
@@ -78,9 +80,9 @@ describe('getSdkIncludedVersions', () => {
 			json: async () => ({
 				releases: [
 					{
-						sdk: { version: '8.0.302' },
+						sdks: [{ version: '8.0.302' }],
 						runtime: { version: '8.0.6' },
-						aspnetcore: { version: '8.0.6' },
+						'aspnetcore-runtime': { version: '8.0.6' },
 					},
 				],
 			}),
@@ -104,7 +106,7 @@ describe('getSdkIncludedVersions', () => {
 			json: async () => ({
 				releases: [
 					{
-						sdk: { version: '7.0.100' },
+						sdks: [{ version: '7.0.100' }],
 						runtime: { version: '7.0.0' },
 					},
 				],
