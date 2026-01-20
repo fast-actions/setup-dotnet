@@ -43,7 +43,7 @@ export async function fetchReleaseManifest(
 	// Create promise and cache it immediately (prevents duplicate requests)
 	const fetchPromise = (async () => {
 		const releasesUrl = `https://builds.dotnet.microsoft.com/dotnet/release-metadata/${channel}/releases.json`;
-		core.debug(`Fetching release manifest: ${releasesUrl}`);
+		core.info(`Fetching release manifest: ${releasesUrl}`);
 
 		const response = await fetch(releasesUrl);
 		if (!response.ok) {
@@ -59,7 +59,7 @@ export async function fetchReleaseManifest(
 			);
 		}
 
-		core.debug(
+		core.info(
 			`Fetched manifest for channel ${channel} with ${data.releases.length} releases`,
 		);
 		return data;
