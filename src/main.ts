@@ -1,7 +1,12 @@
 import * as core from '@actions/core';
 import { getDotNetInstallDirectory, installDotNet } from './installer';
 import type { DotnetType, VersionSet } from './types';
-import { generateCacheKey, restoreCache, saveCache } from './utils/cache-utils';
+import {
+	cacheExists,
+	generateCacheKey,
+	restoreCache,
+	saveCache,
+} from './utils/cache-utils';
 import {
 	getDefaultGlobalJsonPath,
 	readGlobalJson,
@@ -96,8 +101,15 @@ async function tryRestoreFromCache(deduplicated: VersionSet): Promise<boolean> {
 /**
  * Save .NET installations to cache
  */
-async function trySaveToCache(deduplicated: VersionSet): Promise<void> {
+async function tryToSaveCache(deduplicated: VersionSet): Promise<void> {
 	const cacheKey = generateCacheKey(deduplicated);
+
+	const alreadyCached = await cacheExists(cacheKey);
+	if (alreadyCached) {
+		core.debug(`Cache already exists: ${cacheKey}`);
+		return;
+	}
+
 	await saveCache(cacheKey);
 }
 
@@ -229,7 +241,7 @@ export async function run(): Promise<void> {
 
 		// Save to cache if enabled
 		if (inputs.cacheEnabled) {
-			await trySaveToCache(deduplicated);
+			await tryToSaveCache(deduplicated);
 		}
 		setOutputsFromInstallations(installations, false);
 	} catch (error) {

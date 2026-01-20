@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as installer from '../installer';
 import {
 	type CacheVersions,
+	cacheExists,
 	generateCacheKey,
 	restoreCache,
 	saveCache,
@@ -199,5 +200,50 @@ describe('saveCache', () => {
 		);
 
 		await expect(saveCache('dotnet-linux-x64-abc123')).resolves.not.toThrow();
+	});
+});
+
+describe('cacheExists', () => {
+	afterEach(() => {
+		vi.resetAllMocks();
+	});
+
+	it('should return true when cache entry exists', async () => {
+		vi.mocked(cache.restoreCache).mockResolvedValue('dotnet-linux-x64-abc123');
+
+		const result = await cacheExists('dotnet-linux-x64-abc123');
+
+		expect(result).toBe(true);
+		expect(cache.restoreCache).toHaveBeenCalledWith(
+			[],
+			'dotnet-linux-x64-abc123',
+			undefined,
+			{ lookupOnly: true },
+		);
+	});
+
+	it('should return false when cache entry does not exist', async () => {
+		vi.mocked(cache.restoreCache).mockResolvedValue(undefined);
+
+		const result = await cacheExists('dotnet-linux-x64-abc123');
+
+		expect(result).toBe(false);
+	});
+
+	it('should return false on cache lookup error', async () => {
+		vi.mocked(cache.restoreCache).mockRejectedValue(new Error('Lookup failed'));
+
+		const result = await cacheExists('dotnet-linux-x64-abc123');
+
+		expect(result).toBe(false);
+	});
+
+	it('should use lookupOnly flag to avoid restoring', async () => {
+		vi.mocked(cache.restoreCache).mockResolvedValue('dotnet-linux-x64-abc123');
+
+		await cacheExists('dotnet-linux-x64-abc123');
+
+		const callArgs = vi.mocked(cache.restoreCache).mock.calls[0];
+		expect(callArgs[3]?.lookupOnly).toBe(true);
 	});
 });

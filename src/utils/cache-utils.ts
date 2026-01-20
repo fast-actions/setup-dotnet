@@ -83,3 +83,20 @@ export async function saveCache(cacheKey: string): Promise<void> {
 		}
 	}
 }
+
+/**
+ * Check if a cache entry exists for the given key without restoring it
+ */
+export async function cacheExists(cacheKey: string): Promise<boolean> {
+	try {
+		core.debug(`Checking if cache exists: ${cacheKey}`);
+		const restoredKey = await cache.restoreCache([], cacheKey, undefined, {
+			lookupOnly: true,
+		});
+		return restoredKey !== undefined;
+	} catch (error) {
+		const errorMsg = error instanceof Error ? error.message : String(error);
+		core.debug(`Error checking cache existence: ${errorMsg}`);
+		return false;
+	}
+}
