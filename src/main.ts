@@ -127,10 +127,20 @@ async function resolveSdkVersions(inputs: ActionInputs): Promise<{
 	allowPreview: boolean;
 }> {
 	if (inputs.sdkInput) {
-		// Use Action input allowPreview for explicitly provided SDK versions
+		const versions = parseVersions(inputs.sdkInput);
+
+		// Check if any version is a keyword (latest, lts, sts)
+		// Keywords should respect allow-preview, explicit versions/wildcards should not
+		const hasKeyword = versions.some((v) => {
+			const lower = v.toLowerCase();
+			return lower === 'latest' || lower === 'lts' || lower === 'sts';
+		});
+
 		return {
-			versions: parseVersions(inputs.sdkInput),
-			allowPreview: inputs.allowPreview,
+			versions,
+			// If any keyword is used, respect allow-preview input
+			// Otherwise, always allow preview for explicit versions/wildcards
+			allowPreview: hasKeyword ? inputs.allowPreview : true,
 		};
 	}
 

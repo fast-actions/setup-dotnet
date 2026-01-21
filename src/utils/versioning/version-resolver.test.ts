@@ -683,4 +683,50 @@ describe('resolveVersion', () => {
 		const result = resolveVersion('sts', 'sdk', true);
 		expect(result).toBe('11.0.100-preview.1');
 	});
+
+	it('should always include preview releases for wildcard versions', () => {
+		setCachedReleases([
+			{
+				'channel-version': '11.0',
+				'latest-sdk': '11.0.100-preview.1',
+				'latest-release': '11.0.0-preview.1',
+				'release-type': 'lts',
+				'support-phase': 'preview',
+			},
+			{
+				'channel-version': '10.0',
+				'latest-sdk': '10.0.402',
+				'latest-release': '10.0.2',
+				'release-type': 'sts',
+				'support-phase': 'active',
+			},
+		]);
+
+		// Wildcards should always resolve to preview versions even with allowPreview=false
+		const result = resolveVersion('11.x.x', 'sdk', false);
+		expect(result).toBe('11.0.100-preview.1');
+	});
+
+	it('should always include preview releases for wildcard runtime versions', () => {
+		setCachedReleases([
+			{
+				'channel-version': '11.0',
+				'latest-sdk': '11.0.100-preview.1',
+				'latest-release': '11.0.0-preview.1',
+				'release-type': 'lts',
+				'support-phase': 'preview',
+			},
+			{
+				'channel-version': '10.0',
+				'latest-sdk': '10.0.402',
+				'latest-release': '10.0.2',
+				'release-type': 'sts',
+				'support-phase': 'active',
+			},
+		]);
+
+		// Wildcards should always resolve to preview versions even with allowPreview=false
+		const result = resolveVersion('11.x.x', 'runtime', false);
+		expect(result).toBe('11.0.0-preview.1');
+	});
 });

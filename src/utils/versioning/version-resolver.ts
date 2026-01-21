@@ -101,7 +101,7 @@ function normalizeVersionPattern(version: string): string {
 /**
  * Resolve wildcard versions (10.x, 10.x.x), 'lts', or 'sts' to concrete versions
  * Cache must be initialized with initializeCache() before calling this function
- * @param allowPreview - Whether to include preview releases in resolution (default: false)
+ * @param allowPreview - Whether to include preview releases for keywords (latest/lts/sts). Wildcards always include preview releases (default: false)
  */
 export function resolveVersion(
 	version: string,
@@ -143,11 +143,12 @@ export function resolveVersion(
 		return resolved.value;
 	}
 
+	// For wildcards, always include preview releases (explicit version patterns)
 	const resolved = resolveVersionPatternFromReleases(
 		releases,
 		versionLower,
 		type,
-		allowPreview,
+		true,
 	);
 	core.debug(`Resolved ${version} -> ${resolved}`);
 	return resolved;
@@ -228,7 +229,8 @@ function resolveVersionPatternFromReleases(
 	const versionPattern = normalizedVersion
 		.replaceAll('.', '\\.')
 		.replaceAll('x', '\\d+');
-	const regex = new RegExp(`^${versionPattern}$`);
+	// Match semver including optional prerelease tag (e.g., 10.0.100-preview.7)
+	const regex = new RegExp(`^${versionPattern}(-[a-zA-Z0-9.-]+)?$`);
 
 	// Filter out preview releases unless explicitly allowed
 	const filteredReleases = allowPreview

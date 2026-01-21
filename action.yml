@@ -30,7 +30,7 @@ inputs:
     default: 'true'
 
   allow-preview:
-    description: 'Allow preview releases when using keywords (latest, lts, sts). When true, preview releases (support-phase: preview) will be included. When false (default), only stable releases are considered.'
+    description: 'Allow preview releases when using keywords (latest, lts, sts). When true, preview releases (support-phase: preview) will be included. When false (default), only stable releases are considered. Does not affect explicit versions or wildcards - they always include preview releases.'
     required: false
     default: 'false'
 
