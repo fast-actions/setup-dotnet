@@ -252,7 +252,7 @@ function pickVersion(
 ): string {
 	return versionType === 'sdk'
 		? release['latest-sdk']
-		: release['latest-release'];
+		: release['latest-runtime']!;
 }
 
 /**
