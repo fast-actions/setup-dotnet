@@ -54,6 +54,7 @@ That's it!
 
 **Note**: Actual performance depends on various factors including runner specifications and network conditions.
 
+
 ## Documentation
 
 For detailed documentation, advanced features, and more examples, see [guide.md](https://github.com/fast-actions/setup-dotnet/blob/main/docs/guide.md).
@@ -81,6 +82,13 @@ Check out the [Migration Guide](https://github.com/fast-actions/setup-dotnet/blo
 | `dotnet-path` | Path to .NET installation directory |
 | `cache-hit` | Whether installation was restored from cache (`true`/`false`) |
 
+## Why `fast-actions/setup-dotnet`?
+I built this because I care a lot about workflow execution time. The official `actions/setup-dotnet` works great for most cases, but in my workflows it was consistently slower than I wanted (especially when the runner spends a bunch of time installing multiple SDKs/Runtimes).
+
+I tried to improve the official action first: I opened a PR there, but it ended up being ignored/stalled. Rather than keep waiting, I rebuilt the idea with a different focus: faster installs, better parallelization, and caching.
+
+This isn’t meant to replace the official action for everyone. If you don’t care about shaving minutes off CI, you can stick with `actions/setup-dotnet`. If you do care about execution time (or you install multiple versions regularly), `fast-actions/setup-dotnet` is for you.
+
 ## License
 
-MIT – see [LICENSE](LICENSE)
+This project is licensed under the MIT License. See the [LICENSE](https://github.com/fast-actions/setup-dotnet/blob/main/LICENSE) file for details.
