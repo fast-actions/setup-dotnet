@@ -24,7 +24,7 @@ export function generateCacheKey(versions: CacheVersions): string {
 		...versions.runtime.map((v) => `runtime:${v}`),
 		...versions.aspnetcore.map((v) => `aspnetcore:${v}`),
 	]
-		.sort()
+		.sort((a, b) => a.localeCompare(b))
 		.join(',');
 
 	// Generate hash from version string
