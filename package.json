@@ -22,9 +22,9 @@
 		"build": "tsc && vite build",
 		"test": "vitest run",
 		"test:watch": "vitest",
-		"format": "prettier --write . && biome format --write",
+		"format": "prettier --write --log-level warn . && biome format --write",
 		"lint": "biome lint --write",
-		"format:ci": "prettier --check . && biome format",
+		"format:ci": "prettier --check --log-level warn . && biome format",
 		"lint:ci": "biome lint",
 		"validate": "pnpm format && pnpm lint && pnpm build && pnpm test"
 	},
