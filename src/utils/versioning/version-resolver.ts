@@ -4,7 +4,9 @@ import type { DotnetType } from '../../types';
 interface ReleaseInfo {
 	'channel-version': string;
 	'latest-sdk': string;
-	'latest-runtime': string;
+	'latest-release': string;
+	// For some reason, 'latest-runtime' was not the same as 'latest-release'. For now, we will use 'latest-release' only.
+	'latest-runtime'?: string;
 	'release-type': 'sts' | 'lts';
 	'support-phase': string;
 }
@@ -63,16 +65,17 @@ export async function fetchAndCacheReleaseInfo(
 	}
 
 	const data = (await response.json()) as {
-		releases?: ReleaseInfo[];
-		'releases-index'?: ReleaseInfo[];
+		'releases-index': ReleaseInfo[];
 	};
 
-	const releases = data.releases || data['releases-index'];
+	const releases = data['releases-index'];
 	if (!Array.isArray(releases)) {
 		throw new Error(
 			'Invalid API response: releases data is missing or malformed',
 		);
 	}
+
+	core.debug(`Release Index:\n${JSON.stringify(releases, null, 2)}`);
 
 	cachedReleases = releases;
 }
@@ -249,7 +252,7 @@ function pickVersion(
 ): string {
 	return versionType === 'sdk'
 		? release['latest-sdk']
-		: release['latest-runtime'];
+		: release['latest-release'];
 }
 
 /**
