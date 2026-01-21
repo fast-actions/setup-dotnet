@@ -75,7 +75,9 @@ export async function fetchAndCacheReleaseInfo(
 		);
 	}
 
-	core.debug(`Release Index:\n${JSON.stringify(releases, null, 2)}`);
+	if (core.isDebug()) {
+		core.debug(`Release Index:\n${JSON.stringify(releases, null, 2)}`);
+	}
 
 	cachedReleases = releases;
 }

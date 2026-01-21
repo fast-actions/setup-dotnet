@@ -50,7 +50,7 @@ export async function restoreCache(cacheKey: string): Promise<boolean> {
 			return true;
 		}
 
-		core.info('Cache not found, will download .NET');
+		core.debug('Cache not found');
 		return false;
 	} catch (error) {
 		const errorMsg = error instanceof Error ? error.message : String(error);
@@ -65,8 +65,8 @@ export async function restoreCache(cacheKey: string): Promise<boolean> {
 export async function saveCache(cacheKey: string): Promise<void> {
 	const installDir = getDotNetInstallDirectory();
 
-	core.info(`Saving cache: ${cacheKey}`);
-	core.debug(`Cache save path: ${installDir}`);
+	core.debug(`Saving cache: ${cacheKey}`);
+	core.debug(`Cache path: ${installDir}`);
 
 	try {
 		await cache.saveCache([installDir], cacheKey);

@@ -83,7 +83,7 @@ export async function readGlobalJson(filePath: string): Promise<string | null> {
 		// Apply rollForward policy by converting to wildcards
 		const resolvedVersion = applyRollForward(version, rollForward);
 		if (resolvedVersion !== version) {
-			core.info(
+			core.debug(
 				`Applied rollForward policy '${rollForward}': ${version} -> ${resolvedVersion}`,
 			);
 		}

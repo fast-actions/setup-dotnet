@@ -31,9 +31,10 @@ function validateDownloadedFile(downloadPath: string, prefix: string): void {
 	if (stats.size === 0) {
 		throw new Error('Downloaded file is empty');
 	}
-
-	const sizeInMB = (stats.size / 1024 / 1024).toFixed(2);
-	core.info(`${prefix} Downloaded ${sizeInMB} MB`);
+	if (core.isDebug()) {
+		const sizeInMB = (stats.size / 1024 / 1024).toFixed(2);
+		core.debug(`${prefix} Downloaded ${sizeInMB} MB`);
+	}
 }
 
 /**
@@ -44,7 +45,6 @@ function validateFileHash(
 	expectedHash: string,
 	prefix: string,
 ): void {
-	core.debug(`${prefix} Validating hash...`);
 	const fileBuffer = fs.readFileSync(filePath);
 	const actualHash = crypto
 		.createHash('sha512')
@@ -86,7 +86,7 @@ async function extractDotnetArchive(
 	platform: string,
 	prefix: string,
 ): Promise<string> {
-	core.info(`${prefix} Extracting...`);
+	core.debug(`${prefix} Extracting...`);
 	const extensions = platform === 'win' ? 'zip' : 'tar.gz';
 	try {
 		return await extractArchive(downloadPath, extensions);
@@ -115,7 +115,7 @@ async function copyToInstallDir(
 	installDir: string,
 	prefix: string,
 ): Promise<void> {
-	core.info(`${prefix} Installing...`);
+	core.debug(`${prefix} Installing...`);
 	await io.mkdirP(installDir);
 	try {
 		await io.cp(extractedPath, installDir, {
@@ -162,8 +162,6 @@ export async function installDotNet(
 	const { version, type } = options;
 	const prefix = `[${type.toUpperCase()}]`;
 	const platform = getPlatform();
-
-	core.info(`${prefix} Installing ${version}`);
 
 	const { url: downloadUrl, hash } = await getDotNetDownloadInfo(version, type);
 	const downloadPath = await downloadDotnetArchive(downloadUrl, hash, prefix);
@@ -248,7 +246,6 @@ export async function getDotNetDownloadInfo(
 	}
 
 	core.debug(`Found download: ${file.url}`);
-	core.debug(`Expected hash: ${file.hash.substring(0, 16)}...`);
 
 	return { url: file.url, hash: file.hash };
 }

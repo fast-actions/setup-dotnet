@@ -82,8 +82,6 @@ async function tryRestoreFromCache(deduplicated: VersionSet): Promise<boolean> {
 
 		core.exportVariable('DOTNET_ROOT', installDir);
 
-		core.info(`Restored .NET from cache: ${formatVersionPlan(deduplicated)}`);
-
 		const versions = [
 			...deduplicated.sdk.map((v) => `sdk:${v}`),
 			...deduplicated.runtime.map((v) => `runtime:${v}`),
@@ -91,7 +89,7 @@ async function tryRestoreFromCache(deduplicated: VersionSet): Promise<boolean> {
 		].join(', ');
 
 		setActionOutputs(versions, installDir, true);
-		core.info('✅ Installation complete (from cache)');
+		core.info(`✅ Restored from cache: ${formatVersionPlan(deduplicated)}`);
 		return true;
 	}
 
@@ -234,9 +232,8 @@ export async function run(): Promise<void> {
 			return;
 		}
 
-		core.info(`Installing .NET: ${formatVersionPlan(deduplicated)}`);
-
 		const plan = buildInstallPlan(deduplicated);
+		core.info(`Installing: ${formatVersionPlan(deduplicated)}`);
 		const installations = await executeInstallPlan(plan);
 
 		// Save to cache if enabled
