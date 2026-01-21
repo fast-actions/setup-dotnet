@@ -5,6 +5,7 @@ interface ReleaseInfo {
 	'channel-version': string;
 	'latest-sdk': string;
 	'latest-release': string;
+	// For some reason, 'latest-runtime' was not the same as 'latest-release'. For now, we will use 'latest-release' only.
 	'latest-runtime'?: string;
 	'release-type': 'sts' | 'lts';
 	'support-phase': string;
@@ -252,7 +253,7 @@ function pickVersion(
 ): string {
 	return versionType === 'sdk'
 		? release['latest-sdk']
-		: release['latest-runtime']!;
+		: release['latest-release'];
 }
 
 /**
