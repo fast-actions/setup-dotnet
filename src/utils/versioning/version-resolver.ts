@@ -222,8 +222,8 @@ function resolveVersionPatternFromReleases(
 	// Normalize pattern to 3 parts (10.x -> 10.x.x)
 	const normalizedVersion = normalizeVersionPattern(version);
 	const versionPattern = normalizedVersion
-		.replace(/\./g, '\\.')
-		.replace(/[x]/g, '\\d+');
+		.replaceAll('.', '\\.')
+		.replaceAll('x', '\\d+');
 	const regex = new RegExp(`^${versionPattern}$`);
 
 	const versionType = type === 'sdk' ? 'sdk' : 'runtime';

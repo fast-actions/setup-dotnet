@@ -1,12 +1,13 @@
 name: Renovate Config Validation
 
-permissions:
-  contents: read
-
 on:
   pull_request:
     paths:
       - '.github/renovate.json'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   validate-renovate-config:

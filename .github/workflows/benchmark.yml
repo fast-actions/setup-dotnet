@@ -6,6 +6,10 @@ on:
       - benchmark*
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   benchmark-official-setup-dotnet:
     name: Official setup-dotnet (10.x, 9.x, 8.x)

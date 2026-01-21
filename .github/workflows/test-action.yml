@@ -7,9 +7,6 @@ on:
       - 'src/**'
       - 'dist/index.js'
 
-permissions:
-  contents: read
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
