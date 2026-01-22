@@ -176,14 +176,14 @@ describe('readGlobalJson', () => {
 		);
 	});
 
-	it('should return null for missing sdk.version', async () => {
+	it('should return x.x.x for missing sdk.version', async () => {
 		const content = JSON.stringify({
 			sdk: {},
 		});
 		await fs.writeFile(testFile, content, 'utf-8');
 
 		const version = await readGlobalJson(testFile);
-		expect(version).toBeNull();
+		expect(version).toBe('x.x.x');
 	});
 
 	it('should return null for missing sdk section', async () => {

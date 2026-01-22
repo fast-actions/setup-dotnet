@@ -12,7 +12,7 @@ interface GlobalJson {
 }
 
 /**
- * Read and parse global.json file to extract SDK version
+ * Read and parse global.json file
  */
 export async function readGlobalJson(filePath: string): Promise<string | null> {
 	try {
@@ -22,7 +22,6 @@ export async function readGlobalJson(filePath: string): Promise<string | null> {
 
 		let parsed: GlobalJson;
 		try {
-			// Parse JSON with comments support (JavaScript/C# style)
 			parsed = parseJson(content) as GlobalJson;
 
 			// jsonc-parser returns undefined for invalid JSON instead of throwing
@@ -34,13 +33,21 @@ export async function readGlobalJson(filePath: string): Promise<string | null> {
 			throw new Error(`Invalid JSON in global.json: ${errorMsg}`);
 		}
 
-		if (!parsed.sdk?.version) {
-			core.warning('global.json found but sdk.version is missing');
+		if (!parsed.sdk) {
+			core.debug('No sdk section found in global.json');
 			return null;
 		}
 
-		const version = parsed.sdk.version;
-		const rollForward = parsed.sdk.rollForward;
+		const version = parsed.sdk?.version;
+		const rollForward = parsed.sdk?.rollForward;
+
+		// If version was missing, return x.x.x directly without validation
+		if (!version) {
+			core.debug(
+				'SDK version missing in global.json, resolving to x.x.x (latest)',
+			);
+			return 'x.x.x';
+		}
 
 		// Validate version format - must be full version number (e.g., 10.0.100)
 		// Wildcards are not supported in global.json per official spec
@@ -52,7 +59,6 @@ export async function readGlobalJson(filePath: string): Promise<string | null> {
 
 		// Check if this is a preview version using semver prerelease pattern
 		// Pattern: major.minor.patch-prerelease (e.g., 9.0.100-preview.7.24407.12)
-		// Prerelease identifiers can contain alphanumerics, dots, and hyphens per semver spec
 		const semverPattern = /^(\d+\.\d+\.\d+)(-[a-zA-Z0-9.-]+)?$/;
 		const match = version.match(semverPattern);
 
