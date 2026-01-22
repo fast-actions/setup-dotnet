@@ -222,11 +222,13 @@ export async function run(): Promise<void> {
 		const requestedVersions = await resolveRequestedVersions(inputs);
 
 		ensureRequestedVersions(requestedVersions);
-		await fetchAndCacheReleaseInfo(inputs.allowPreview);
+		await fetchAndCacheReleaseInfo();
 
 		// Remove redundant versions
-		const deduplicated = await deduplicateVersions(requestedVersions);
-
+		const deduplicated = await deduplicateVersions(
+			requestedVersions,
+			inputs.allowPreview,
+		);
 		// Try to restore from cache if enabled
 		if (inputs.cacheEnabled && (await tryRestoreFromCache(deduplicated))) {
 			return;

@@ -1,7 +1,7 @@
 import * as core from '@actions/core';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { parse as parseJsonc } from 'jsonc-parser';
+import { parse as parseJson } from 'jsonc-parser';
 
 interface GlobalJson {
 	sdk?: {
@@ -23,14 +23,12 @@ export async function readGlobalJson(filePath: string): Promise<string | null> {
 		let parsed: GlobalJson;
 		try {
 			// Parse JSON with comments support (JavaScript/C# style)
-			parsed = parseJsonc(content) as GlobalJson;
+			parsed = parseJson(content) as GlobalJson;
 
 			// jsonc-parser returns undefined for invalid JSON instead of throwing
 			if (parsed === undefined) {
 				throw new Error('Unable to parse JSON content');
 			}
-
-			core.debug(`Parsed global.json: ${JSON.stringify(parsed)}`);
 		} catch (error) {
 			const errorMsg = error instanceof Error ? error.message : String(error);
 			throw new Error(`Invalid JSON in global.json: ${errorMsg}`);
@@ -61,17 +59,6 @@ export async function readGlobalJson(filePath: string): Promise<string | null> {
 		if (!match) {
 			throw new Error(
 				`Invalid version format in global.json: '${version}'. Expected format: major.minor.patch (e.g., 10.0.100) or major.minor.patch-prerelease (e.g., 9.0.100-preview.7)`,
-			);
-		}
-
-		const prereleaseTag = match[2];
-		const isPreview = !!prereleaseTag;
-		const allowPrerelease = parsed.sdk.allowPrerelease ?? false;
-
-		// Enforce allowPrerelease requirement for preview versions
-		if (isPreview && !allowPrerelease) {
-			throw new Error(
-				`Preview version '${version}' specified in global.json, but 'allowPrerelease' is not set to true. Set "sdk": { "version": "${version}", "allowPrerelease": true } to use preview versions.`,
 			);
 		}
 
