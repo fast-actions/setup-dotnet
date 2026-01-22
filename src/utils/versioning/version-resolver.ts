@@ -12,25 +12,19 @@ interface ReleaseInfo {
 }
 
 let cachedReleases: ReleaseInfo[] | null = null;
-let allowPreviewReleases = false;
 
 /**
  * Reset the cached releases (for testing purposes)
  */
 export function resetCache(): void {
 	cachedReleases = null;
-	allowPreviewReleases = false;
 }
 
 /**
  * Set cached releases directly (for testing purposes)
  */
-export function setCachedReleases(
-	releases: ReleaseInfo[],
-	allowPreview = false,
-): void {
+export function setCachedReleases(releases: ReleaseInfo[]): void {
 	cachedReleases = releases;
-	allowPreviewReleases = allowPreview;
 }
 
 function getCachedReleasesOrThrow(): ReleaseInfo[] {
@@ -46,14 +40,10 @@ function getCachedReleasesOrThrow(): ReleaseInfo[] {
  * Initialize the releases cache by fetching from .NET releases API
  * Should be called once at the start before any resolveVersion calls
  */
-export async function fetchAndCacheReleaseInfo(
-	allowPreview = false,
-): Promise<void> {
+export async function fetchAndCacheReleaseInfo(): Promise<void> {
 	if (cachedReleases) {
 		return;
 	}
-
-	allowPreviewReleases = allowPreview;
 
 	const releasesUrl =
 		'https://builds.dotnet.microsoft.com/dotnet/release-metadata/releases-index.json';
@@ -112,7 +102,11 @@ function normalizeVersionPattern(version: string): string {
  * Resolve wildcard versions (10.x, 10.x.x), 'lts', or 'sts' to concrete versions
  * Cache must be initialized with initializeCache() before calling this function
  */
-export function resolveVersion(version: string, type: DotnetType): string {
+export function resolveVersion(
+	version: string,
+	type: DotnetType,
+	allowPreview: boolean,
+): string {
 	const versionLower = version.toLowerCase();
 
 	// If version has no wildcards or keywords, return as-is
@@ -132,6 +126,7 @@ export function resolveVersion(version: string, type: DotnetType): string {
 			releases,
 			versionLower,
 			type,
+			allowPreview,
 		);
 		const typeLabel = formatTypeLabel(type);
 		core.info(
@@ -141,7 +136,7 @@ export function resolveVersion(version: string, type: DotnetType): string {
 	}
 
 	if (versionLower === 'latest') {
-		const resolved = resolveLatestFromReleases(releases, type);
+		const resolved = resolveLatestFromReleases(releases, type, allowPreview);
 		const typeLabel = formatTypeLabel(type);
 		core.info(`Resolved LATEST (${typeLabel}) -> ${resolved.value}`);
 		return resolved.value;
@@ -163,12 +158,13 @@ export function resolveVersion(version: string, type: DotnetType): string {
 export function resolveLatestFromReleases(
 	releases: ReleaseInfo[],
 	type: DotnetType,
+	allowPreview: boolean,
 ): { value: string; channel: string } {
 	core.debug(`Resolving LATEST version for ${type}`);
 	const versionType = type === 'sdk' ? 'sdk' : 'runtime';
 
 	// Filter out preview releases unless explicitly allowed
-	const filteredReleases = allowPreviewReleases
+	const filteredReleases = allowPreview
 		? releases
 		: releases.filter((r) => r['support-phase'] !== 'preview');
 
@@ -194,13 +190,13 @@ export function resolveSupportTierFromReleases(
 	releases: ReleaseInfo[],
 	tier: 'lts' | 'sts',
 	type: DotnetType,
+	allowPreview: boolean,
 ): { value: string; channel: string } {
 	core.debug(`Resolving ${tier.toUpperCase()} version for ${type}`);
 
 	const supportedReleases = releases.filter((r) => {
 		const matchesTier = r['release-type'] === tier;
-		const isNotPreview =
-			allowPreviewReleases || r['support-phase'] !== 'preview';
+		const isNotPreview = allowPreview || r['support-phase'] !== 'preview';
 		return matchesTier && isNotPreview;
 	});
 

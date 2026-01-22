@@ -9,21 +9,22 @@ import { resolveVersion } from './version-resolver';
  */
 export async function deduplicateVersions(
 	versions: VersionSet,
+	allowPreview: boolean,
 ): Promise<VersionSet> {
 	// Resolve all wildcards to concrete versions
 	const resolvedSdk = versions.sdk.map((v) => ({
 		original: v,
-		resolved: resolveVersion(v, 'sdk'),
+		resolved: resolveVersion(v, 'sdk', allowPreview),
 	}));
 
 	const resolvedRuntime = versions.runtime.map((v) => ({
 		original: v,
-		resolved: resolveVersion(v, 'runtime'),
+		resolved: resolveVersion(v, 'runtime', allowPreview),
 	}));
 
 	const resolvedAspnetcore = versions.aspnetcore.map((v) => ({
 		original: v,
-		resolved: resolveVersion(v, 'aspnetcore'),
+		resolved: resolveVersion(v, 'aspnetcore', allowPreview),
 	}));
 
 	// Extract resolved versions as sets for fast lookup

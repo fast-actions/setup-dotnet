@@ -45,7 +45,7 @@ describe('resolveVersion', () => {
 	});
 
 	it('should return version as-is when no wildcards', () => {
-		const result = resolveVersion('10.0.0', 'sdk');
+		const result = resolveVersion('10.0.0', 'sdk', false);
 		expect(result).toBe('10.0.0');
 	});
 
@@ -74,7 +74,7 @@ describe('resolveVersion', () => {
 			},
 		]);
 
-		const result = resolveVersion('10.x.x', 'sdk');
+		const result = resolveVersion('10.x.x', 'sdk', false);
 		expect(result).toBe('10.1.100');
 	});
 
@@ -96,7 +96,7 @@ describe('resolveVersion', () => {
 			},
 		]);
 
-		const result = resolveVersion('8.x.x', 'runtime');
+		const result = resolveVersion('8.x.x', 'runtime', false);
 		expect(result).toBe('8.1.0');
 	});
 
@@ -118,7 +118,7 @@ describe('resolveVersion', () => {
 			},
 		]);
 
-		const result = resolveVersion('10.0.x', 'sdk');
+		const result = resolveVersion('10.0.x', 'sdk', false);
 		expect(result).toBe('10.0.402');
 	});
 
@@ -140,7 +140,7 @@ describe('resolveVersion', () => {
 			},
 		]);
 
-		const result = resolveVersion('10.x', 'sdk');
+		const result = resolveVersion('10.x', 'sdk', false);
 		expect(result).toBe('10.1.100');
 	});
 
@@ -162,7 +162,7 @@ describe('resolveVersion', () => {
 			},
 		]);
 
-		const result = resolveVersion('9.x', 'runtime');
+		const result = resolveVersion('9.x', 'runtime', false);
 		expect(result).toBe('9.1.0');
 	});
 
@@ -184,9 +184,9 @@ describe('resolveVersion', () => {
 			},
 		]);
 
-		expect(resolveVersion('10.X.X', 'sdk')).toBe('10.1.100');
-		expect(resolveVersion('10.0.X', 'sdk')).toBe('10.0.402');
-		expect(resolveVersion('10.X', 'sdk')).toBe('10.1.100');
+		expect(resolveVersion('10.X.X', 'sdk', false)).toBe('10.1.100');
+		expect(resolveVersion('10.0.X', 'sdk', false)).toBe('10.0.402');
+		expect(resolveVersion('10.X', 'sdk', false)).toBe('10.1.100');
 	});
 
 	it('should throw error when no matching version found', () => {
@@ -200,13 +200,13 @@ describe('resolveVersion', () => {
 			},
 		]);
 
-		expect(() => resolveVersion('99.x', 'sdk')).toThrow(
+		expect(() => resolveVersion('99.x', 'sdk', false)).toThrow(
 			'No matching version found for pattern: 99.x',
 		);
 	});
 
 	it('should throw error when cache not initialized', () => {
-		expect(() => resolveVersion('10.x', 'sdk')).toThrow(
+		expect(() => resolveVersion('10.x', 'sdk', false)).toThrow(
 			'Cache not initialized',
 		);
 	});
@@ -238,7 +238,7 @@ describe('resolveVersion', () => {
 
 		await fetchAndCacheReleaseInfo();
 
-		const result = resolveVersion('10.x.x', 'sdk');
+		const result = resolveVersion('10.x.x', 'sdk', false);
 		expect(result).toBe('10.0.402');
 	});
 
@@ -306,7 +306,7 @@ describe('resolveVersion', () => {
 			},
 		]);
 
-		const result = resolveVersion('lts', 'sdk');
+		const result = resolveVersion('lts', 'sdk', false);
 		expect(result).toBe('9.0.500');
 	});
 
@@ -321,7 +321,7 @@ describe('resolveVersion', () => {
 			},
 		]);
 
-		const result = resolveVersion('LTS', 'sdk');
+		const result = resolveVersion('LTS', 'sdk', false);
 		expect(result).toBe('9.0.500');
 	});
 
@@ -343,7 +343,7 @@ describe('resolveVersion', () => {
 			},
 		]);
 
-		const result = resolveVersion('sts', 'sdk');
+		const result = resolveVersion('sts', 'sdk', false);
 		expect(result).toBe('10.0.402');
 	});
 
@@ -358,7 +358,7 @@ describe('resolveVersion', () => {
 			},
 		]);
 
-		const result = resolveVersion('lts', 'runtime');
+		const result = resolveVersion('lts', 'runtime', false);
 		expect(result).toBe('9.0.5');
 	});
 
@@ -373,7 +373,7 @@ describe('resolveVersion', () => {
 			},
 		]);
 
-		const result = resolveVersion('sts', 'aspnetcore');
+		const result = resolveVersion('sts', 'aspnetcore', false);
 		expect(result).toBe('10.0.2');
 	});
 
@@ -388,7 +388,9 @@ describe('resolveVersion', () => {
 			},
 		]);
 
-		expect(() => resolveVersion('lts', 'sdk')).toThrow('No LTS releases found');
+		expect(() => resolveVersion('lts', 'sdk', false)).toThrow(
+			'No LTS releases found',
+		);
 	});
 
 	it('should throw error when no STS releases found', () => {
@@ -402,7 +404,9 @@ describe('resolveVersion', () => {
 			},
 		]);
 
-		expect(() => resolveVersion('sts', 'sdk')).toThrow('No STS releases found');
+		expect(() => resolveVersion('sts', 'sdk', false)).toThrow(
+			'No STS releases found',
+		);
 	});
 
 	it('should resolve "latest" to newest SDK version', () => {
@@ -430,7 +434,7 @@ describe('resolveVersion', () => {
 			},
 		]);
 
-		const result = resolveVersion('latest', 'sdk');
+		const result = resolveVersion('latest', 'sdk', false);
 		expect(result).toBe('10.0.402');
 	});
 
@@ -452,7 +456,7 @@ describe('resolveVersion', () => {
 			},
 		]);
 
-		const result = resolveVersion('LATEST', 'sdk');
+		const result = resolveVersion('LATEST', 'sdk', false);
 		expect(result).toBe('10.0.402');
 	});
 
@@ -474,7 +478,7 @@ describe('resolveVersion', () => {
 			},
 		]);
 
-		const result = resolveVersion('latest', 'runtime');
+		const result = resolveVersion('latest', 'runtime', false);
 		expect(result).toBe('10.0.2');
 	});
 
@@ -489,14 +493,14 @@ describe('resolveVersion', () => {
 			},
 		]);
 
-		const result = resolveVersion('latest', 'aspnetcore');
+		const result = resolveVersion('latest', 'aspnetcore', false);
 		expect(result).toBe('10.0.2');
 	});
 
 	it('should throw error when no releases found for latest', () => {
 		setCachedReleases([]);
 
-		expect(() => resolveVersion('latest', 'sdk')).toThrow(
+		expect(() => resolveVersion('latest', 'sdk', false)).toThrow(
 			'No available releases found',
 		);
 	});
@@ -526,7 +530,7 @@ describe('resolveVersion', () => {
 			},
 		]);
 
-		const result = resolveVersion('latest', 'sdk');
+		const result = resolveVersion('latest', 'sdk', false);
 		expect(result).toBe('10.0.402');
 	});
 
@@ -555,7 +559,7 @@ describe('resolveVersion', () => {
 			},
 		]);
 
-		const result = resolveVersion('lts', 'sdk');
+		const result = resolveVersion('lts', 'sdk', false);
 		expect(result).toBe('9.0.500');
 	});
 
@@ -584,7 +588,7 @@ describe('resolveVersion', () => {
 			},
 		]);
 
-		const result = resolveVersion('sts', 'sdk');
+		const result = resolveVersion('sts', 'sdk', false);
 		expect(result).toBe('10.0.402');
 	});
 
@@ -599,7 +603,7 @@ describe('resolveVersion', () => {
 			},
 		]);
 
-		expect(() => resolveVersion('latest', 'sdk')).toThrow(
+		expect(() => resolveVersion('latest', 'sdk', false)).toThrow(
 			'No available releases found',
 		);
 	});
@@ -615,81 +619,74 @@ describe('resolveVersion', () => {
 			},
 		]);
 
-		expect(() => resolveVersion('lts', 'sdk')).toThrow('No LTS releases found');
+		expect(() => resolveVersion('lts', 'sdk', false)).toThrow(
+			'No LTS releases found',
+		);
 	});
 
 	it('should include preview releases when allow-preview is enabled for latest', () => {
-		setCachedReleases(
-			[
-				{
-					'channel-version': '11.0',
-					'latest-sdk': '11.0.100-preview.1',
-					'latest-release': '11.0.0-preview.1',
-					'release-type': 'lts',
-					'support-phase': 'preview',
-				},
-				{
-					'channel-version': '10.0',
-					'latest-sdk': '10.0.402',
-					'latest-release': '10.0.2',
-					'release-type': 'sts',
-					'support-phase': 'active',
-				},
-			],
-			true,
-		);
+		setCachedReleases([
+			{
+				'channel-version': '11.0',
+				'latest-sdk': '11.0.100-preview.1',
+				'latest-release': '11.0.0-preview.1',
+				'release-type': 'lts',
+				'support-phase': 'preview',
+			},
+			{
+				'channel-version': '10.0',
+				'latest-sdk': '10.0.402',
+				'latest-release': '10.0.2',
+				'release-type': 'sts',
+				'support-phase': 'active',
+			},
+		]);
 
-		const result = resolveVersion('latest', 'sdk');
+		const result = resolveVersion('latest', 'sdk', true);
 		expect(result).toBe('11.0.100-preview.1');
 	});
 
 	it('should include preview releases when allow-preview is enabled for lts', () => {
-		setCachedReleases(
-			[
-				{
-					'channel-version': '11.0',
-					'latest-sdk': '11.0.100-preview.1',
-					'latest-release': '11.0.0-preview.1',
-					'release-type': 'lts',
-					'support-phase': 'preview',
-				},
-				{
-					'channel-version': '9.0',
-					'latest-sdk': '9.0.500',
-					'latest-release': '9.0.5',
-					'release-type': 'lts',
-					'support-phase': 'active',
-				},
-			],
-			true,
-		);
+		setCachedReleases([
+			{
+				'channel-version': '11.0',
+				'latest-sdk': '11.0.100-preview.1',
+				'latest-release': '11.0.0-preview.1',
+				'release-type': 'lts',
+				'support-phase': 'preview',
+			},
+			{
+				'channel-version': '9.0',
+				'latest-sdk': '9.0.500',
+				'latest-release': '9.0.5',
+				'release-type': 'lts',
+				'support-phase': 'active',
+			},
+		]);
 
-		const result = resolveVersion('lts', 'sdk');
+		const result = resolveVersion('lts', 'sdk', true);
 		expect(result).toBe('11.0.100-preview.1');
 	});
 
 	it('should include preview releases when allow-preview is enabled for sts', () => {
-		setCachedReleases(
-			[
-				{
-					'channel-version': '11.0',
-					'latest-sdk': '11.0.100-preview.1',
-					'latest-release': '11.0.0-preview.1',
-					'release-type': 'sts',
-					'support-phase': 'preview',
-				},
-				{
-					'channel-version': '10.0',
-					'latest-sdk': '10.0.402',
-					'latest-release': '10.0.2',
-					'release-type': 'sts',
-					'support-phase': 'active',
-				},
-			],
-			true,
-		);
+		setCachedReleases([
+			{
+				'channel-version': '11.0',
+				'latest-sdk': '11.0.100-preview.1',
+				'latest-release': '11.0.0-preview.1',
+				'release-type': 'sts',
+				'support-phase': 'preview',
+			},
+			{
+				'channel-version': '10.0',
+				'latest-sdk': '10.0.402',
+				'latest-release': '10.0.2',
+				'release-type': 'sts',
+				'support-phase': 'active',
+			},
+		]);
 
-		const result = resolveVersion('sts', 'sdk');
+		const result = resolveVersion('sts', 'sdk', true);
 		expect(result).toBe('11.0.100-preview.1');
 	});
 });
