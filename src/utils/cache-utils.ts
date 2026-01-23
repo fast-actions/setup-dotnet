@@ -4,6 +4,7 @@ import * as crypto from 'node:crypto';
 import { getDotNetInstallDirectory } from '../installer';
 import { getArchitecture, getPlatform } from './platform-utils';
 import * as fs from 'node:fs';
+import * as path from 'node:path';
 
 export interface CacheVersions {
 	sdk: string[];
@@ -68,6 +69,12 @@ export async function saveCache(cacheKey: string): Promise<void> {
 
 	core.info(`Saving cache: ${cacheKey}`);
 	core.info(`Cache path: ${installDir}`);
+	core.info(`GITHUB_WORKSPACE: ${process.env.GITHUB_WORKSPACE || 'not set'}`);
+	core.info(`RUNNER_TOOL_CACHE: ${process.env.RUNNER_TOOL_CACHE || 'not set'}`);
+	core.info(
+		`AGENT_TOOLSDIRECTORY: ${process.env.AGENT_TOOLSDIRECTORY || 'not set'}`,
+	);
+	core.info(`RUNNER_TEMP: ${process.env.RUNNER_TEMP || 'not set'}`);
 
 	// Debug: Check if directory exists
 	const directoryExists = fs.existsSync(installDir);
@@ -94,6 +101,15 @@ export async function saveCache(cacheKey: string): Promise<void> {
 			const binaryPath = `${installDir}/${dotnetBinary}`;
 			const binaryExists = fs.existsSync(binaryPath);
 			core.info(`${dotnetBinary} exists: ${binaryExists}`);
+
+			// Check if we can list stat the parent directory
+			const parentDir = path.dirname(installDir);
+			const parentExists = fs.existsSync(parentDir);
+			core.info(`Parent directory exists: ${parentExists}`);
+			if (parentExists) {
+				const parentContents = fs.readdirSync(parentDir);
+				core.info(`Parent contains: ${parentContents.join(', ')}`);
+			}
 		} catch (error) {
 			const errorMsg = error instanceof Error ? error.message : String(error);
 			core.warning(`Failed to read directory: ${errorMsg}`);
