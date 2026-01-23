@@ -130,10 +130,10 @@ async function resolveSdkVersions(inputs: ActionInputs): Promise<string[]> {
 	const globalJsonPath = inputs.globalJsonInput || getDefaultGlobalJsonPath();
 	core.debug(`Looking for global.json at: ${globalJsonPath}`);
 
-	const globalJsonVersion = await readGlobalJson(globalJsonPath);
-	if (globalJsonVersion) {
-		core.info(`Using SDK version from global.json: ${globalJsonVersion}`);
-		return [globalJsonVersion];
+	const globalJsonInfo = await readGlobalJson(globalJsonPath);
+	if (globalJsonInfo) {
+		core.info(`Using SDK version from global.json: ${globalJsonInfo.version}`);
+		return [globalJsonInfo.version];
 	}
 
 	return [];

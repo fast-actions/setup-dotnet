@@ -11,10 +11,17 @@ interface GlobalJson {
 	};
 }
 
+interface SdkInfo {
+	version: string;
+	allowPrerelease: boolean;
+}
+
 /**
  * Read and parse global.json file
  */
-export async function readGlobalJson(filePath: string): Promise<string | null> {
+export async function readGlobalJson(
+	filePath: string,
+): Promise<SdkInfo | null> {
 	try {
 		core.debug(`Attempting to read global.json from: ${filePath}`);
 		const content = await fs.readFile(filePath, 'utf-8');
@@ -40,11 +47,12 @@ export async function readGlobalJson(filePath: string): Promise<string | null> {
 
 		const version = parsed.sdk?.version;
 		const rollForward = parsed.sdk?.rollForward;
+		const allowPrerelease = parsed.sdk?.allowPrerelease ?? false;
 
 		// If version was missing, return latest directly without validation
 		if (!version) {
 			core.debug('SDK version missing in global.json, resolving to latest');
-			return 'latest';
+			return { version: 'latest', allowPrerelease };
 		}
 
 		// Validate version format - must be full version number (e.g., 10.0.100)
@@ -79,7 +87,7 @@ export async function readGlobalJson(filePath: string): Promise<string | null> {
 			);
 		}
 
-		return resolvedVersion;
+		return { version: resolvedVersion, allowPrerelease };
 	} catch (error) {
 		if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
 			core.debug(`global.json not found at: ${filePath}`);
