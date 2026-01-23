@@ -11,7 +11,7 @@ interface GlobalJson {
 	};
 }
 
-interface SdkInfo {
+export interface SdkInfo {
 	version: string;
 	allowPrerelease: boolean;
 }

@@ -6,6 +6,17 @@ export interface VersionSet {
 	aspnetcore: string[];
 }
 
+export interface VersionSetWithPrerelease {
+	sdk: VersionInfo;
+	runtime: VersionInfo;
+	aspnetcore: VersionInfo;
+}
+
+export interface VersionInfo {
+	versions: string[];
+	allowPrerelease: boolean;
+}
+
 export interface FileInfo {
 	name: string;
 	rid: string;

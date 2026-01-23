@@ -1,6 +1,11 @@
 import * as core from '@actions/core';
 import { getDotNetInstallDirectory, installDotNet } from './installer';
-import type { DotnetType, VersionSet } from './types';
+import type {
+	DotnetType,
+	VersionInfo,
+	VersionSet,
+	VersionSetWithPrerelease,
+} from './types';
 import {
 	cacheExists,
 	generateCacheKey,
@@ -122,9 +127,10 @@ function readInputs(): ActionInputs {
 	};
 }
 
-async function resolveSdkVersions(inputs: ActionInputs): Promise<string[]> {
+async function resolveSdkVersions(inputs: ActionInputs): Promise<VersionInfo> {
 	if (inputs.sdkInput) {
-		return parseVersions(inputs.sdkInput);
+		const versions = parseVersions(inputs.sdkInput);
+		return { versions, allowPrerelease: inputs.allowPreview };
 	}
 
 	const globalJsonPath = inputs.globalJsonInput || getDefaultGlobalJsonPath();
@@ -133,31 +139,40 @@ async function resolveSdkVersions(inputs: ActionInputs): Promise<string[]> {
 	const globalJsonInfo = await readGlobalJson(globalJsonPath);
 	if (globalJsonInfo) {
 		core.info(`Using SDK version from global.json: ${globalJsonInfo.version}`);
-		return [globalJsonInfo.version];
+		return {
+			versions: [globalJsonInfo.version],
+			allowPrerelease: globalJsonInfo.allowPrerelease,
+		};
 	}
 
-	return [];
+	return { versions: [], allowPrerelease: inputs.allowPreview };
 }
 
 async function resolveRequestedVersions(
 	inputs: ActionInputs,
-): Promise<VersionSet> {
+): Promise<VersionSetWithPrerelease> {
 	const sdkVersions = await resolveSdkVersions(inputs);
 	const runtimeVersions = parseVersions(inputs.runtimeInput);
 	const aspnetcoreVersions = parseVersions(inputs.aspnetcoreInput);
 
 	return {
 		sdk: sdkVersions,
-		runtime: runtimeVersions,
-		aspnetcore: aspnetcoreVersions,
+		runtime: {
+			versions: runtimeVersions,
+			allowPrerelease: inputs.allowPreview,
+		},
+		aspnetcore: {
+			versions: aspnetcoreVersions,
+			allowPrerelease: inputs.allowPreview,
+		},
 	};
 }
 
-function ensureRequestedVersions(versionSet: VersionSet): void {
+function ensureRequestedVersions(versionSet: VersionSetWithPrerelease): void {
 	if (
-		versionSet.sdk.length === 0 &&
-		versionSet.runtime.length === 0 &&
-		versionSet.aspnetcore.length === 0
+		versionSet.sdk.versions.length === 0 &&
+		versionSet.runtime.versions.length === 0 &&
+		versionSet.aspnetcore.versions.length === 0
 	) {
 		throw new Error(
 			'At least one of sdk-version, runtime-version, or aspnetcore-version must be specified',
@@ -225,10 +240,7 @@ export async function run(): Promise<void> {
 		await fetchAndCacheReleaseInfo();
 
 		// Remove redundant versions
-		const deduplicated = await deduplicateVersions(
-			requestedVersions,
-			inputs.allowPreview,
-		);
+		const deduplicated = await deduplicateVersions(requestedVersions);
 		// Try to restore from cache if enabled
 		if (inputs.cacheEnabled && (await tryRestoreFromCache(deduplicated))) {
 			return;
