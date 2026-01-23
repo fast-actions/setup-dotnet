@@ -66,7 +66,7 @@ export async function readGlobalJson(
 		// Check if this is a preview version using semver prerelease pattern
 		// Pattern: major.minor.patch-prerelease (e.g., 9.0.100-preview.7.24407.12)
 		const semverPattern = /^(\d+\.\d+\.\d+)(-[a-zA-Z0-9.-]+)?$/;
-		const match = version.match(semverPattern);
+		const match = semverPattern.exec(version);
 
 		if (!match) {
 			throw new Error(

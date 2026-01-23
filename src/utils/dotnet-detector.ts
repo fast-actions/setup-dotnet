@@ -21,7 +21,7 @@ function parseVersionList(output: string): string[] {
 		.filter((line) => line.length > 0)
 		.map((line) => {
 			// Extract version from "version [path]" format
-			const match = line.match(/^([\d.]+(?:-[a-zA-Z0-9.-]+)?)\s*\[/);
+			const match = /^([\d.]+(?:-[a-zA-Z0-9.-]+)?)\s*\[/.exec(line);
 			return match ? match[1] : null;
 		})
 		.filter((version): version is string => version !== null);
@@ -92,9 +92,8 @@ async function getInstalledRuntimes(): Promise<string[]> {
 
 	for (const line of lines) {
 		// Format: "Microsoft.NETCore.App 8.0.0 [/usr/share/dotnet/shared/Microsoft.NETCore.App]"
-		const match = line.match(
-			/^Microsoft\.NETCore\.App\s+([\d.]+(?:-[a-zA-Z0-9.-]+)?)\s*\[/,
-		);
+		const match =
+			/^Microsoft\.NETCore\.App\s+([\d.]+(?:-[a-zA-Z0-9.-]+)?)\s*\[/.exec(line);
 		if (match) {
 			runtimes.push(match[1]);
 		}
@@ -125,9 +124,10 @@ async function getInstalledAspNetCoreRuntimes(): Promise<string[]> {
 
 	for (const line of lines) {
 		// Format: "Microsoft.AspNetCore.App 8.0.0 [/usr/share/dotnet/shared/Microsoft.AspNetCore.App]"
-		const match = line.match(
-			/^Microsoft\.AspNetCore\.App\s+([\d.]+(?:-[a-zA-Z0-9.-]+)?)\s*\[/,
-		);
+		const match =
+			/^Microsoft\.AspNetCore\.App\s+([\d.]+(?:-[a-zA-Z0-9.-]+)?)\s*\[/.exec(
+				line,
+			);
 		if (match) {
 			aspnetcoreRuntimes.push(match[1]);
 		}
@@ -171,12 +171,11 @@ export function isVersionInstalled(
 	type: DotnetType,
 	installed: InstalledVersions,
 ): boolean {
-	const installedList =
-		type === 'sdk'
-			? installed.sdk
-			: type === 'runtime'
-				? installed.runtime
-				: installed.aspnetcore;
-
-	return installedList.includes(version);
+	if (type === 'sdk') {
+		return installed.sdk.includes(version);
+	}
+	if (type === 'runtime') {
+		return installed.runtime.includes(version);
+	}
+	return installed.aspnetcore.includes(version);
 }
