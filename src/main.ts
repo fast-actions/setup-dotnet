@@ -1,5 +1,5 @@
 import * as core from '@actions/core';
-import { getDotNetInstallDirectory, installDotNet } from './installer';
+import { installDotNet } from './installer';
 import type {
 	DotnetType,
 	VersionInfo,
@@ -106,21 +106,6 @@ async function tryRestoreFromCache(deduplicated: VersionSet): Promise<boolean> {
 	const cacheRestored = await restoreCache(cacheKey);
 
 	if (cacheRestored) {
-		const installDir = getDotNetInstallDirectory();
-
-		if (!process.env.PATH?.includes(installDir)) {
-			core.addPath(installDir);
-		}
-
-		core.exportVariable('DOTNET_ROOT', installDir);
-
-		const versions = [
-			...deduplicated.sdk.map((v) => `sdk:${v}`),
-			...deduplicated.runtime.map((v) => `runtime:${v}`),
-			...deduplicated.aspnetcore.map((v) => `aspnetcore:${v}`),
-		].join(', ');
-
-		setActionOutputs(versions, installDir, true);
 		core.info(`✅ Restored from cache: ${formatVersionPlan(deduplicated)}`);
 		return true;
 	}
@@ -278,16 +263,16 @@ export async function run(): Promise<void> {
 		// At least one version is missing, so we install ALL versions ourselves
 		core.info('At least one requested version is not installed on the system');
 
-		// Try to restore from cache if enabled
-		if (inputs.cacheEnabled && (await tryRestoreFromCache(deduplicated))) {
-			return;
+		// Try to restore archives from cache if enabled
+		if (inputs.cacheEnabled) {
+			await tryRestoreFromCache(deduplicated);
 		}
 
 		const plan = buildInstallPlan(deduplicated);
 		core.info(`Installing: ${formatVersionPlan(deduplicated)}`);
 		const installations = await executeInstallPlan(plan);
 
-		// Save to cache if enabled
+		// Save archives to cache if enabled
 		if (inputs.cacheEnabled) {
 			await tryToSaveCache(deduplicated);
 		}

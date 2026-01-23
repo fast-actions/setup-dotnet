@@ -1,10 +1,10 @@
 import * as cache from '@actions/cache';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import * as installer from '../installer';
 import {
 	type CacheVersions,
 	cacheExists,
 	generateCacheKey,
+	getArchiveCacheDirectory,
 	restoreCache,
 	saveCache,
 } from './cache-utils';
@@ -12,8 +12,45 @@ import * as platformUtils from './platform-utils';
 
 // Mock dependencies
 vi.mock('@actions/cache');
-vi.mock('../installer');
 vi.mock('./platform-utils');
+
+describe('getArchiveCacheDirectory', () => {
+	afterEach(() => {
+		delete process.env.RUNNER_TOOL_CACHE;
+		delete process.env.AGENT_TOOLSDIRECTORY;
+	});
+
+	it('should return archive directory from RUNNER_TOOL_CACHE', () => {
+		process.env.RUNNER_TOOL_CACHE = '/runner/tool-cache';
+
+		const dir = getArchiveCacheDirectory();
+
+		expect(dir).toBe('/runner/tool-cache/dotnet-archives');
+	});
+
+	it('should return archive directory from AGENT_TOOLSDIRECTORY', () => {
+		process.env.AGENT_TOOLSDIRECTORY = '/agent/tools';
+
+		const dir = getArchiveCacheDirectory();
+
+		expect(dir).toBe('/agent/tools/dotnet-archives');
+	});
+
+	it('should prefer AGENT_TOOLSDIRECTORY over RUNNER_TOOL_CACHE', () => {
+		process.env.RUNNER_TOOL_CACHE = '/runner/tool-cache';
+		process.env.AGENT_TOOLSDIRECTORY = '/agent/tools';
+
+		const dir = getArchiveCacheDirectory();
+
+		expect(dir).toBe('/agent/tools/dotnet-archives');
+	});
+
+	it('should throw error when neither environment variable is set', () => {
+		expect(() => getArchiveCacheDirectory()).toThrow(
+			'Neither AGENT_TOOLSDIRECTORY nor RUNNER_TOOL_CACHE environment variable is set.',
+		);
+	});
+});
 
 describe('generateCacheKey', () => {
 	afterEach(() => {
@@ -32,7 +69,7 @@ describe('generateCacheKey', () => {
 
 		const key = generateCacheKey(versions);
 
-		expect(key).toMatch(/^dotnet-linux-x64-[a-f0-9]{12}$/);
+		expect(key).toMatch(/^dotnet-archives-linux-x64-[a-f0-9]{12}$/);
 	});
 
 	it('should generate same key for same versions regardless of order', () => {
@@ -126,38 +163,35 @@ describe('restoreCache', () => {
 	});
 
 	it('should return true when cache is restored', async () => {
-		vi.mocked(installer.getDotNetInstallDirectory).mockReturnValue(
-			'/path/to/dotnet',
+		const mockArchiveDir = '/runner/tool-cache/dotnet-archives';
+		process.env.RUNNER_TOOL_CACHE = '/runner/tool-cache';
+		vi.mocked(cache.restoreCache).mockResolvedValue(
+			'dotnet-archives-linux-x64-abc123',
 		);
-		vi.mocked(cache.restoreCache).mockResolvedValue('dotnet-linux-x64-abc123');
 
-		const result = await restoreCache('dotnet-linux-x64-abc123');
+		const result = await restoreCache('dotnet-archives-linux-x64-abc123');
 
 		expect(result).toBe(true);
 		expect(cache.restoreCache).toHaveBeenCalledWith(
-			['/path/to/dotnet'],
-			'dotnet-linux-x64-abc123',
+			[mockArchiveDir],
+			'dotnet-archives-linux-x64-abc123',
 		);
 	});
 
 	it('should return false when cache is not found', async () => {
-		vi.mocked(installer.getDotNetInstallDirectory).mockReturnValue(
-			'/path/to/dotnet',
-		);
+		process.env.RUNNER_TOOL_CACHE = '/runner/tool-cache';
 		vi.mocked(cache.restoreCache).mockResolvedValue(undefined);
 
-		const result = await restoreCache('dotnet-linux-x64-abc123');
+		const result = await restoreCache('dotnet-archives-linux-x64-abc123');
 
 		expect(result).toBe(false);
 	});
 
 	it('should return false and log warning on cache restore error', async () => {
-		vi.mocked(installer.getDotNetInstallDirectory).mockReturnValue(
-			'/path/to/dotnet',
-		);
+		process.env.RUNNER_TOOL_CACHE = '/runner/tool-cache';
 		vi.mocked(cache.restoreCache).mockRejectedValue(new Error('Network error'));
 
-		const result = await restoreCache('dotnet-linux-x64-abc123');
+		const result = await restoreCache('dotnet-archives-linux-x64-abc123');
 
 		expect(result).toBe(false);
 	});
@@ -169,37 +203,36 @@ describe('saveCache', () => {
 	});
 
 	it('should save cache successfully', async () => {
-		vi.mocked(installer.getDotNetInstallDirectory).mockReturnValue(
-			'/path/to/dotnet',
-		);
+		const mockArchiveDir = '/runner/tool-cache/dotnet-archives';
+		process.env.RUNNER_TOOL_CACHE = '/runner/tool-cache';
 		vi.mocked(cache.saveCache).mockResolvedValue(123);
 
-		await saveCache('dotnet-linux-x64-abc123');
+		await saveCache('dotnet-archives-linux-x64-abc123');
 
 		expect(cache.saveCache).toHaveBeenCalledWith(
-			['/path/to/dotnet'],
-			'dotnet-linux-x64-abc123',
+			[mockArchiveDir],
+			'dotnet-archives-linux-x64-abc123',
 		);
 	});
 
 	it('should not throw on cache save error', async () => {
-		vi.mocked(installer.getDotNetInstallDirectory).mockReturnValue(
-			'/path/to/dotnet',
-		);
+		process.env.RUNNER_TOOL_CACHE = '/runner/tool-cache';
 		vi.mocked(cache.saveCache).mockRejectedValue(new Error('Save failed'));
 
-		await expect(saveCache('dotnet-linux-x64-abc123')).resolves.not.toThrow();
+		await expect(
+			saveCache('dotnet-archives-linux-x64-abc123'),
+		).resolves.not.toThrow();
 	});
 
 	it('should handle ReserveCacheError gracefully', async () => {
-		vi.mocked(installer.getDotNetInstallDirectory).mockReturnValue(
-			'/path/to/dotnet',
-		);
+		process.env.RUNNER_TOOL_CACHE = '/runner/tool-cache';
 		vi.mocked(cache.saveCache).mockRejectedValue(
 			new Error('ReserveCacheError: Cache already exists'),
 		);
 
-		await expect(saveCache('dotnet-linux-x64-abc123')).resolves.not.toThrow();
+		await expect(
+			saveCache('dotnet-archives-linux-x64-abc123'),
+		).resolves.not.toThrow();
 	});
 });
 
@@ -209,42 +242,48 @@ describe('cacheExists', () => {
 	});
 
 	it('should return true when cache entry exists', async () => {
-		vi.mocked(installer.getDotNetInstallDirectory).mockReturnValue(
-			'/path/to/dotnet',
+		const mockArchiveDir = '/runner/tool-cache/dotnet-archives';
+		process.env.RUNNER_TOOL_CACHE = '/runner/tool-cache';
+		vi.mocked(cache.restoreCache).mockResolvedValue(
+			'dotnet-archives-linux-x64-abc123',
 		);
-		vi.mocked(cache.restoreCache).mockResolvedValue('dotnet-linux-x64-abc123');
 
-		const result = await cacheExists('dotnet-linux-x64-abc123');
+		const result = await cacheExists('dotnet-archives-linux-x64-abc123');
 
 		expect(result).toBe(true);
 		expect(cache.restoreCache).toHaveBeenCalledWith(
-			['/path/to/dotnet'],
-			'dotnet-linux-x64-abc123',
+			[mockArchiveDir],
+			'dotnet-archives-linux-x64-abc123',
 			undefined,
 			{ lookupOnly: true },
 		);
 	});
 
 	it('should return false when cache entry does not exist', async () => {
+		process.env.RUNNER_TOOL_CACHE = '/runner/tool-cache';
 		vi.mocked(cache.restoreCache).mockResolvedValue(undefined);
 
-		const result = await cacheExists('dotnet-linux-x64-abc123');
+		const result = await cacheExists('dotnet-archives-linux-x64-abc123');
 
 		expect(result).toBe(false);
 	});
 
 	it('should return false on cache lookup error', async () => {
+		process.env.RUNNER_TOOL_CACHE = '/runner/tool-cache';
 		vi.mocked(cache.restoreCache).mockRejectedValue(new Error('Lookup failed'));
 
-		const result = await cacheExists('dotnet-linux-x64-abc123');
+		const result = await cacheExists('dotnet-archives-linux-x64-abc123');
 
 		expect(result).toBe(false);
 	});
 
 	it('should use lookupOnly flag to avoid restoring', async () => {
-		vi.mocked(cache.restoreCache).mockResolvedValue('dotnet-linux-x64-abc123');
+		process.env.RUNNER_TOOL_CACHE = '/runner/tool-cache';
+		vi.mocked(cache.restoreCache).mockResolvedValue(
+			'dotnet-archives-linux-x64-abc123',
+		);
 
-		await cacheExists('dotnet-linux-x64-abc123');
+		await cacheExists('dotnet-archives-linux-x64-abc123');
 
 		const callArgs = vi.mocked(cache.restoreCache).mock.calls[0];
 		expect(callArgs[3]?.lookupOnly).toBe(true);

@@ -6,6 +6,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { DotnetType, FileInfo, Release } from './types';
 import { extractArchive } from './utils/archive-utils';
+import { getArchiveCacheDirectory } from './utils/cache-utils';
 import { getArchitecture, getPlatform } from './utils/platform-utils';
 import { fetchReleaseManifest } from './utils/versioning/release-cache';
 
@@ -21,6 +22,31 @@ export interface InstallResult {
 	version: string;
 	type: DotnetType;
 	path: string;
+}
+
+/**
+ * Get the archive file name based on type, version and platform
+ */
+function getArchiveFileName(
+	type: DotnetType,
+	version: string,
+	rid: string,
+	extension: string,
+): string {
+	return `${type}-${version}-${rid}.${extension}`;
+}
+
+/**
+ * Get the full path to a cached archive
+ */
+export function getArchivePath(type: DotnetType, version: string): string {
+	const platform = getPlatform();
+	const architecture = getArchitecture();
+	const extension = platform === 'win' ? 'zip' : 'tar.gz';
+	const rid = `${platform}-${architecture}`;
+	const fileName = getArchiveFileName(type, version, rid, extension);
+	const archiveDir = getArchiveCacheDirectory();
+	return path.join(archiveDir, fileName);
 }
 
 /**
@@ -63,18 +89,39 @@ function validateFileHash(
 	core.debug(`${prefix} Hash validated successfully`);
 }
 
-async function downloadDotnetArchive(
-	downloadUrl: string,
-	expectedHash: string,
-	prefix: string,
+/**
+ * Download .NET archive to cache directory
+ * Returns the path to the cached archive
+ */
+export async function downloadToCache(
+	version: string,
+	type: DotnetType,
 ): Promise<string> {
+	const prefix = `[${type.toUpperCase()}]`;
+	const archivePath = getArchivePath(type, version);
+
+	// Check if archive already exists in cache
+	if (fs.existsSync(archivePath)) {
+		core.debug(`${prefix} Archive already cached: ${archivePath}`);
+		return archivePath;
+	}
+
+	const { url: downloadUrl, hash } = await getDotNetDownloadInfo(version, type);
 	core.debug(`${prefix} Download URL: ${downloadUrl}`);
 
 	try {
-		const downloadPath = await downloadWithRetry(downloadUrl, 3);
-		validateDownloadedFile(downloadPath, prefix);
-		validateFileHash(downloadPath, expectedHash, prefix);
-		return downloadPath;
+		// Download to temp location first
+		const tempPath = await downloadWithRetry(downloadUrl, 3);
+		validateDownloadedFile(tempPath, prefix);
+		validateFileHash(tempPath, hash, prefix);
+
+		// Move to cache directory
+		const archiveDir = getArchiveCacheDirectory();
+		await io.mkdirP(archiveDir);
+		await io.mv(tempPath, archivePath);
+
+		core.debug(`${prefix} Archive cached: ${archivePath}`);
+		return archivePath;
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error);
 		throw new Error(`Failed to download from ${downloadUrl}: ${errorMessage}`);
@@ -154,20 +201,20 @@ export function getDotNetInstallDirectory(): string {
 }
 
 /**
- * Install .NET SDK or Runtime
+ * Install .NET SDK or Runtime from a cached archive
+ * Always extracts from the archive (no shortcuts)
  */
-export async function installDotNet(
-	options: InstallOptions,
+export async function installFromArchive(
+	archivePath: string,
+	version: string,
+	type: DotnetType,
 ): Promise<InstallResult> {
-	const { version, type } = options;
 	const prefix = `[${type.toUpperCase()}]`;
 	const platform = getPlatform();
 
-	const { url: downloadUrl, hash } = await getDotNetDownloadInfo(version, type);
-	const downloadPath = await downloadDotnetArchive(downloadUrl, hash, prefix);
-
+	core.debug(`${prefix} Extracting from: ${archivePath}`);
 	const extractedPath = await extractDotnetArchive(
-		downloadPath,
+		archivePath,
 		platform,
 		prefix,
 	);
@@ -182,6 +229,22 @@ export async function installDotNet(
 		type,
 		path: installDir,
 	};
+}
+
+/**
+ * Install .NET SDK or Runtime
+ * Downloads to cache if needed, then always installs from archive
+ */
+export async function installDotNet(
+	options: InstallOptions,
+): Promise<InstallResult> {
+	const { version, type } = options;
+
+	// Download to cache (or use existing cached archive)
+	const archivePath = await downloadToCache(version, type);
+
+	// Always install from the cached archive
+	return await installFromArchive(archivePath, version, type);
 }
 
 /**

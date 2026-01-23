@@ -1,10 +1,23 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getDotNetDownloadInfo } from './installer';
+import type * as fsModule from 'node:fs';
+import {
+	downloadToCache,
+	getArchivePath,
+	getDotNetDownloadInfo,
+	installFromArchive,
+} from './installer';
 import * as platformUtils from './utils/platform-utils';
 import { clearReleaseCache } from './utils/versioning/release-cache';
 
 // Mock fetch globally
 globalThis.fetch = vi.fn();
+
+// Mock fs and io modules
+vi.mock('node:fs');
+vi.mock('node:fs/promises');
+vi.mock('@actions/io');
+vi.mock('@actions/tool-cache');
+vi.mock('./utils/archive-utils');
 
 describe('getDotNetDownloadInfo', () => {
 	beforeEach(() => {
@@ -196,6 +209,175 @@ describe('getDotNetDownloadInfo', () => {
 
 		// Should only fetch once due to caching
 		expect(fetch).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe('getArchivePath', () => {
+	beforeEach(() => {
+		process.env.RUNNER_TOOL_CACHE = '/runner/tool-cache';
+		vi.spyOn(platformUtils, 'getPlatform').mockReturnValue('linux');
+		vi.spyOn(platformUtils, 'getArchitecture').mockReturnValue('x64');
+	});
+
+	afterEach(() => {
+		delete process.env.RUNNER_TOOL_CACHE;
+		vi.restoreAllMocks();
+	});
+
+	it('should generate archive path for SDK', () => {
+		const path = getArchivePath('sdk', '8.0.100');
+
+		expect(path).toBe(
+			'/runner/tool-cache/dotnet-archives/sdk-8.0.100-linux-x64.tar.gz',
+		);
+	});
+
+	it('should generate archive path for runtime', () => {
+		const path = getArchivePath('runtime', '7.0.15');
+
+		expect(path).toBe(
+			'/runner/tool-cache/dotnet-archives/runtime-7.0.15-linux-x64.tar.gz',
+		);
+	});
+
+	it('should generate archive path for aspnetcore', () => {
+		const path = getArchivePath('aspnetcore', '8.0.0');
+
+		expect(path).toBe(
+			'/runner/tool-cache/dotnet-archives/aspnetcore-8.0.0-linux-x64.tar.gz',
+		);
+	});
+
+	it('should use .zip extension on Windows', () => {
+		vi.spyOn(platformUtils, 'getPlatform').mockReturnValue('win');
+
+		const path = getArchivePath('sdk', '8.0.100');
+
+		expect(path).toBe(
+			'/runner/tool-cache/dotnet-archives/sdk-8.0.100-win-x64.zip',
+		);
+	});
+});
+
+describe('downloadToCache', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		clearReleaseCache();
+		process.env.RUNNER_TOOL_CACHE = '/runner/tool-cache';
+		vi.spyOn(platformUtils, 'getPlatform').mockReturnValue('linux');
+		vi.spyOn(platformUtils, 'getArchitecture').mockReturnValue('x64');
+	});
+
+	afterEach(() => {
+		delete process.env.RUNNER_TOOL_CACHE;
+		vi.restoreAllMocks();
+	});
+
+	it('should return existing archive path if already cached', async () => {
+		const fs = await import('node:fs');
+		vi.spyOn(fs, 'existsSync').mockReturnValue(true);
+
+		const archivePath = await downloadToCache('8.0.100', 'sdk');
+
+		expect(archivePath).toBe(
+			'/runner/tool-cache/dotnet-archives/sdk-8.0.100-linux-x64.tar.gz',
+		);
+		expect(fs.existsSync).toHaveBeenCalledWith(archivePath);
+	});
+
+	it('should download and cache archive if not already cached', async () => {
+		const fs = await import('node:fs');
+		const io = await import('@actions/io');
+		const toolCache = await import('@actions/tool-cache');
+
+		vi.spyOn(fs, 'existsSync').mockReturnValue(false);
+		vi.spyOn(fs, 'statSync').mockReturnValue({
+			size: 1024 * 1024,
+		} as fsModule.Stats);
+		vi.spyOn(fs, 'readFileSync').mockReturnValue(Buffer.from('test'));
+		vi.spyOn(io, 'mkdirP').mockResolvedValue(undefined);
+		vi.spyOn(io, 'mv').mockResolvedValue(undefined);
+		vi.spyOn(toolCache, 'downloadTool').mockResolvedValue(
+			'/tmp/download.tar.gz',
+		);
+
+		const mockResponse = {
+			releases: [
+				{
+					sdks: [
+						{
+							version: '8.0.100',
+							files: [
+								{
+									name: 'dotnet-sdk-linux-x64.tar.gz',
+									rid: 'linux-x64',
+									url: 'https://example.com/sdk.tar.gz',
+									hash: 'EE26B0DD4AF7E749AA1A8EE3C10AE9923F618980772E473F8819A5D4940E0DB27AC185F8A0E1D5F84F88BC887FD67B143732C304CC5FA9AD8E6F57F50028A8FF',
+								},
+							],
+						},
+					],
+				},
+			],
+		};
+
+		vi.mocked(fetch).mockResolvedValueOnce({
+			ok: true,
+			json: async () => mockResponse,
+		} as Response);
+
+		const archivePath = await downloadToCache('8.0.100', 'sdk');
+
+		expect(archivePath).toBe(
+			'/runner/tool-cache/dotnet-archives/sdk-8.0.100-linux-x64.tar.gz',
+		);
+		expect(toolCache.downloadTool).toHaveBeenCalledWith(
+			'https://example.com/sdk.tar.gz',
+		);
+		expect(io.mkdirP).toHaveBeenCalledWith(
+			'/runner/tool-cache/dotnet-archives',
+		);
+		expect(io.mv).toHaveBeenCalledWith('/tmp/download.tar.gz', archivePath);
+	});
+});
+
+describe('installFromArchive', () => {
+	beforeEach(() => {
+		process.env.RUNNER_TOOL_CACHE = '/runner/tool-cache';
+		vi.spyOn(platformUtils, 'getPlatform').mockReturnValue('linux');
+		vi.spyOn(platformUtils, 'getArchitecture').mockReturnValue('x64');
+	});
+
+	afterEach(() => {
+		delete process.env.RUNNER_TOOL_CACHE;
+		vi.restoreAllMocks();
+	});
+
+	it('should extract archive and install to directory', async () => {
+		const fs = await import('node:fs');
+		const io = await import('@actions/io');
+		const archiveUtils = await import('./utils/archive-utils');
+
+		vi.spyOn(archiveUtils, 'extractArchive').mockResolvedValue(
+			'/tmp/extracted',
+		);
+		vi.spyOn(fs, 'existsSync').mockReturnValue(true);
+		vi.spyOn(io, 'mkdirP').mockResolvedValue(undefined);
+		vi.spyOn(io, 'cp').mockResolvedValue(undefined);
+
+		const result = await installFromArchive(
+			'/runner/tool-cache/dotnet-archives/sdk-8.0.100-linux-x64.tar.gz',
+			'8.0.100',
+			'sdk',
+		);
+
+		expect(result.version).toBe('8.0.100');
+		expect(result.type).toBe('sdk');
+		expect(result.path).toBe('/runner/tool-cache/dotnet');
+		expect(archiveUtils.extractArchive).toHaveBeenCalledWith(
+			'/runner/tool-cache/dotnet-archives/sdk-8.0.100-linux-x64.tar.gz',
+			'tar.gz',
+		);
 	});
 });
 
