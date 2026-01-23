@@ -130,7 +130,7 @@ jobs:
         with:
           sdk-version: '10.x'
           runtime-version: '9.x'
-          aspnetcore-version: '9.x'
+          aspnetcore-version: '8.0.0'
 
       - name: Verify installation
         run: |
