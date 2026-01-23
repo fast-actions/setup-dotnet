@@ -296,10 +296,10 @@ describe('downloadToCache', () => {
 		} as fsModule.Stats);
 		vi.spyOn(fs, 'readFileSync').mockReturnValue(Buffer.from('test'));
 		vi.spyOn(io, 'mkdirP').mockResolvedValue(undefined);
-	vi.spyOn(io, 'cp').mockResolvedValue(undefined);
-	vi.spyOn(toolCache, 'downloadTool').mockResolvedValue(
-		'/tmp/download.tar.gz',
-	);
+		vi.spyOn(io, 'cp').mockResolvedValue(undefined);
+		vi.spyOn(toolCache, 'downloadTool').mockResolvedValue(
+			'/tmp/download.tar.gz',
+		);
 
 		const mockResponse = {
 			releases: [

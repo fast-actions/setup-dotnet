@@ -115,10 +115,10 @@ export async function downloadToCache(
 		validateDownloadedFile(tempPath, prefix);
 		validateFileHash(tempPath, hash, prefix);
 
-	// Copy to cache directory
-	const archiveDir = getArchiveCacheDirectory();
-	await io.mkdirP(archiveDir);
-	await io.cp(tempPath, archivePath);
+		// Copy to cache directory
+		const archiveDir = getArchiveCacheDirectory();
+		await io.mkdirP(archiveDir);
+		await io.cp(tempPath, archivePath);
 
 		core.debug(`${prefix} Archive cached: ${archivePath}`);
 		return archivePath;
