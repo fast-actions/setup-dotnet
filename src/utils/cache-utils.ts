@@ -63,6 +63,16 @@ export async function restoreCache(cacheKey: string): Promise<boolean> {
  * Save .NET installation to cache
  */
 export async function saveCache(cacheKey: string): Promise<void> {
+	const platform = getPlatform();
+
+	// Temporarily disable cache save on Windows
+	if (platform === 'win') {
+		core.info(
+			'Cache save is disabled on Windows. Checkout https://github.com/fast-actions/setup-dotnet/issues/28 for more details.',
+		);
+		return;
+	}
+
 	const installDir = getDotNetInstallDirectory();
 
 	core.debug(`Saving cache: ${cacheKey}`);
