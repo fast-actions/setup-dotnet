@@ -118,7 +118,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, ubuntu-slim, windows-latest, macos-latest]
+        os: [ubuntu-latest, ubuntu-slim, windows-latest, macos-latest, self-hosted]
 
     steps:
       - name: Checkout
@@ -148,7 +148,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, ubuntu-slim, windows-latest, macos-latest]
+        os: [ubuntu-latest, ubuntu-slim, windows-latest, macos-latest, self-hosted]
         scenario:
           - name: 'Multiple SDKs'
             sdk: '10.x.x, 9.0.100'
