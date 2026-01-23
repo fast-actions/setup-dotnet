@@ -75,44 +75,26 @@ function setActionOutputs(
 }
 
 /**
- * Remove versions that are already installed on the system
+ * Check if ALL requested versions are already installed on the system
  */
-async function removeAlreadyInstalled(
+async function areAllVersionsInstalled(
 	deduplicated: VersionSet,
-): Promise<VersionSet> {
+): Promise<boolean> {
 	const installed = await getInstalledVersions();
 
-	const filteredSdk = deduplicated.sdk.filter((version) => {
-		if (isVersionInstalled(version, 'sdk', installed)) {
-			core.info(`Skipping SDK ${version} (already installed on system)`);
-			return false;
-		}
-		return true;
-	});
+	const allSdkInstalled = deduplicated.sdk.every((version) =>
+		isVersionInstalled(version, 'sdk', installed),
+	);
 
-	const filteredRuntime = deduplicated.runtime.filter((version) => {
-		if (isVersionInstalled(version, 'runtime', installed)) {
-			core.info(`Skipping Runtime ${version} (already installed on system)`);
-			return false;
-		}
-		return true;
-	});
+	const allRuntimeInstalled = deduplicated.runtime.every((version) =>
+		isVersionInstalled(version, 'runtime', installed),
+	);
 
-	const filteredAspnetcore = deduplicated.aspnetcore.filter((version) => {
-		if (isVersionInstalled(version, 'aspnetcore', installed)) {
-			core.info(
-				`Skipping ASP.NET Core ${version} (already installed on system)`,
-			);
-			return false;
-		}
-		return true;
-	});
+	const allAspnetcoreInstalled = deduplicated.aspnetcore.every((version) =>
+		isVersionInstalled(version, 'aspnetcore', installed),
+	);
 
-	return {
-		sdk: filteredSdk,
-		runtime: filteredRuntime,
-		aspnetcore: filteredAspnetcore,
-	};
+	return allSdkInstalled && allRuntimeInstalled && allAspnetcoreInstalled;
 }
 
 /**
@@ -287,34 +269,32 @@ export async function run(): Promise<void> {
 		// Remove redundant versions
 		const deduplicated = await deduplicateVersions(requestedVersions);
 
-		// Remove versions that are already installed on the system
-		const toInstall = await removeAlreadyInstalled(deduplicated);
-
-		// Check if there's anything left to install
-		const hasVersionsToInstall =
-			toInstall.sdk.length > 0 ||
-			toInstall.runtime.length > 0 ||
-			toInstall.aspnetcore.length > 0;
-
-		if (!hasVersionsToInstall) {
-			core.info('All requested versions are already installed on the system');
-			const installDir = getDotNetInstallDirectory();
-			setActionOutputs('', installDir, false);
+		// Check if ALL requested versions are already installed on the system
+		// If yes: do nothing and exit early (don't set DOTNET_ROOT)
+		// If no: install ALL versions ourselves (even if some are already installed)
+		// so that DOTNET_ROOT points to a location that contains everything
+		if (await areAllVersionsInstalled(deduplicated)) {
+			core.info(
+				'✅ All requested versions are already installed on the system',
+			);
 			return;
 		}
+
+		// At least one version is missing, so we install ALL versions ourselves
+		core.info('At least one requested version is not installed on the system');
 
 		// Try to restore from cache if enabled
-		if (inputs.cacheEnabled && (await tryRestoreFromCache(toInstall))) {
+		if (inputs.cacheEnabled && (await tryRestoreFromCache(deduplicated))) {
 			return;
 		}
 
-		const plan = buildInstallPlan(toInstall);
-		core.info(`Installing: ${formatVersionPlan(toInstall)}`);
+		const plan = buildInstallPlan(deduplicated);
+		core.info(`Installing: ${formatVersionPlan(deduplicated)}`);
 		const installations = await executeInstallPlan(plan);
 
 		// Save to cache if enabled
 		if (inputs.cacheEnabled) {
-			await tryToSaveCache(toInstall);
+			await tryToSaveCache(deduplicated);
 		}
 		setOutputsFromInstallations(installations, false);
 	} catch (error) {

@@ -316,7 +316,7 @@ describe('main', () => {
 		});
 	});
 
-	it('should skip already installed SDK version', async () => {
+	it('should skip installation when all versions already installed', async () => {
 		vi.mocked(core.getInput).mockImplementation((name: string) => {
 			if (name === 'sdk-version') return '10.0.402';
 			return '';
@@ -332,14 +332,11 @@ describe('main', () => {
 
 		expect(installDotNet).not.toHaveBeenCalled();
 		expect(core.info).toHaveBeenCalledWith(
-			'Skipping SDK 10.0.402 (already installed on system)',
-		);
-		expect(core.info).toHaveBeenCalledWith(
-			'All requested versions are already installed on the system',
+			'✅ All requested versions are already installed on the system',
 		);
 	});
 
-	it('should skip already installed Runtime version', async () => {
+	it('should skip installation when all runtime versions already installed', async () => {
 		vi.mocked(core.getInput).mockImplementation((name: string) => {
 			if (name === 'runtime-version') return '8.0.23';
 			return '';
@@ -355,18 +352,16 @@ describe('main', () => {
 
 		expect(installDotNet).not.toHaveBeenCalled();
 		expect(core.info).toHaveBeenCalledWith(
-			'Skipping Runtime 8.0.23 (already installed on system)',
-		);
-		expect(core.info).toHaveBeenCalledWith(
-			'All requested versions are already installed on the system',
+			'✅ All requested versions are already installed on the system',
 		);
 	});
 
-	it('should install only non-installed versions when some are already installed', async () => {
+	it('should install all versions when at least one is not installed', async () => {
 		vi.mocked(core.getInput).mockImplementation((name: string) => {
 			if (name === 'sdk-version') return '10.0.402, 9.0.500';
 			return '';
 		});
+		// Only 9.0.500 is installed, so we need to install BOTH versions
 		vi.mocked(dotnetDetector.getInstalledVersions).mockResolvedValue({
 			sdk: ['9.0.500'],
 			runtime: [],
@@ -375,25 +370,36 @@ describe('main', () => {
 		vi.mocked(dotnetDetector.isVersionInstalled).mockImplementation(
 			(version: string) => version === '9.0.500',
 		);
-		vi.mocked(installDotNet).mockResolvedValue({
-			version: '10.0.402',
-			type: 'sdk',
-			path: '/path/to/sdk',
-		} as InstallResult);
+		vi.mocked(installDotNet)
+			.mockResolvedValueOnce({
+				version: '10.0.402',
+				type: 'sdk',
+				path: '/path/to/sdk',
+			} as InstallResult)
+			.mockResolvedValueOnce({
+				version: '9.0.500',
+				type: 'sdk',
+				path: '/path/to/sdk',
+			} as InstallResult);
 
 		await run();
 
-		expect(installDotNet).toHaveBeenCalledTimes(1);
+		// Should install BOTH versions since one is missing
+		expect(installDotNet).toHaveBeenCalledTimes(2);
 		expect(installDotNet).toHaveBeenCalledWith({
 			version: '10.0.402',
 			type: 'sdk',
 		});
+		expect(installDotNet).toHaveBeenCalledWith({
+			version: '9.0.500',
+			type: 'sdk',
+		});
 		expect(core.info).toHaveBeenCalledWith(
-			'Skipping SDK 9.0.500 (already installed on system)',
+			'At least one requested version is not installed on the system',
 		);
 	});
 
-	it('should skip installed ASP.NET Core runtime', async () => {
+	it('should skip installation when all aspnetcore versions already installed', async () => {
 		vi.mocked(core.getInput).mockImplementation((name: string) => {
 			if (name === 'aspnetcore-version') return '8.0.23';
 			return '';
@@ -409,7 +415,7 @@ describe('main', () => {
 
 		expect(installDotNet).not.toHaveBeenCalled();
 		expect(core.info).toHaveBeenCalledWith(
-			'Skipping ASP.NET Core 8.0.23 (already installed on system)',
+			'✅ All requested versions are already installed on the system',
 		);
 	});
 });
