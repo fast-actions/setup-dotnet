@@ -134,11 +134,11 @@ async function getInstalledAspNetCoreRuntimes(): Promise<string[]> {
 	}
 
 	if (aspnetcoreRuntimes.length > 0) {
-		core.debug(
+		core.info(
 			`Found ${aspnetcoreRuntimes.length} pre-installed ASP.NET Core Runtime(s): ${aspnetcoreRuntimes.join(', ')}`,
 		);
 	} else {
-		core.debug('No pre-installed ASP.NET Core Runtimes found');
+		core.info('No pre-installed ASP.NET Core Runtimes found');
 	}
 	return aspnetcoreRuntimes;
 }
