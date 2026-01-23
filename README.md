@@ -19,6 +19,8 @@ Parallel downloads, automatic caching, and smart version resolution.
 - **Smart version resolution**: Wildcards (`10.x`, `10.x.x`), keywords (`latest`, `lts`, `sts`), and `global.json`
 - **Intelligent deduplication**: Skip redundant installs when an SDK already includes the requested runtimes
 - **Automatic caching**: Cache the .NET installation directory to speed up subsequent runs
+- **Conditional installation**: Uses pre-installed system .NET when all versions are present
+- **Non-root installation**: Installs to user-writable tool cache without requiring root permissions
 
 ## Common Use Cases
 
