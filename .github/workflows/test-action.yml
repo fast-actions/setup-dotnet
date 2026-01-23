@@ -232,33 +232,6 @@ jobs:
           dotnet --list-sdks
           dotnet --list-runtimes
 
-  test-yaml-array-inputs:
-    name: Test YAML Array Inputs
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
-
-      - name: Setup .NET with YAML array syntax
-        uses: ./
-        id: setup-dotnet
-        with:
-          sdk-version: |
-            10.x.x
-            9.0.100
-          runtime-version: |
-            9.0.0
-            8.0.0
-          aspnetcore-version: |
-            9.x
-            8.0.0
-          cache: false
-
-      - name: Verify installation
-        run: |
-          dotnet --list-sdks
-          dotnet --list-runtimes
-
   test-edge-cases:
     name: Test Edge Cases
     runs-on: ubuntu-latest

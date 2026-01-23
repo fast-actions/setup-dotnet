@@ -1,5 +1,5 @@
 import * as core from '@actions/core';
-import type { VersionSet } from '../../types';
+import type { VersionSet, VersionSetWithPrerelease } from '../../types';
 import { getSdkIncludedVersions } from './sdk-runtime-mapper';
 import { resolveVersion } from './version-resolver';
 
@@ -8,23 +8,26 @@ import { resolveVersion } from './version-resolver';
  * SDK > ASP.NET Core Runtime > .NET Runtime
  */
 export async function deduplicateVersions(
-	versions: VersionSet,
-	allowPreview: boolean,
+	versions: VersionSetWithPrerelease,
 ): Promise<VersionSet> {
 	// Resolve all wildcards to concrete versions
-	const resolvedSdk = versions.sdk.map((v) => ({
+	const resolvedSdk = versions.sdk.versions.map((v) => ({
 		original: v,
-		resolved: resolveVersion(v, 'sdk', allowPreview),
+		resolved: resolveVersion(v, 'sdk', versions.sdk.allowPrerelease),
 	}));
 
-	const resolvedRuntime = versions.runtime.map((v) => ({
+	const resolvedRuntime = versions.runtime.versions.map((v) => ({
 		original: v,
-		resolved: resolveVersion(v, 'runtime', allowPreview),
+		resolved: resolveVersion(v, 'runtime', versions.runtime.allowPrerelease),
 	}));
 
-	const resolvedAspnetcore = versions.aspnetcore.map((v) => ({
+	const resolvedAspnetcore = versions.aspnetcore.versions.map((v) => ({
 		original: v,
-		resolved: resolveVersion(v, 'aspnetcore', allowPreview),
+		resolved: resolveVersion(
+			v,
+			'aspnetcore',
+			versions.aspnetcore.allowPrerelease,
+		),
 	}));
 
 	// Extract resolved versions as sets for fast lookup

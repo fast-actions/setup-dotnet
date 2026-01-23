@@ -24,14 +24,14 @@
 		"test:watch": "vitest",
 		"format": "prettier --write --log-level warn . && biome format --write",
 		"lint": "biome lint --write",
+		"knip": "knip",
 		"format:ci": "prettier --check --log-level warn . && biome format",
 		"lint:ci": "biome lint",
-		"validate": "pnpm format && pnpm lint && pnpm build && pnpm test"
+		"validate": "pnpm format && pnpm lint && pnpm knip && pnpm build && pnpm test"
 	},
 	"dependencies": {
 		"@actions/cache": "5.0.3",
 		"@actions/core": "2.0.2",
-		"@actions/github": "7.0.0",
 		"@actions/io": "2.0.0",
 		"@actions/tool-cache": "3.0.0",
 		"jsonc-parser": "3.3.1"
@@ -39,6 +39,7 @@
 	"devDependencies": {
 		"@biomejs/biome": "2.3.11",
 		"@types/node": "25.0.9",
+		"knip": "5.82.1",
 		"prettier": "3.8.0",
 		"typescript": "5.9.3",
 		"vite": "7.3.1",

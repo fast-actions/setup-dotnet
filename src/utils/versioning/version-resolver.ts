@@ -155,7 +155,7 @@ export function resolveVersion(
  * Resolve LATEST to the newest available version within provided releases
  * Excludes preview releases (support-phase: 'preview') unless allowPreview is true
  */
-export function resolveLatestFromReleases(
+function resolveLatestFromReleases(
 	releases: ReleaseInfo[],
 	type: DotnetType,
 	allowPreview: boolean,
@@ -186,7 +186,7 @@ export function resolveLatestFromReleases(
  * Resolve LTS or STS to the latest version of that support tier within provided releases
  * Excludes preview releases (support-phase: 'preview') unless allowPreview is true
  */
-export function resolveSupportTierFromReleases(
+function resolveSupportTierFromReleases(
 	releases: ReleaseInfo[],
 	tier: 'lts' | 'sts',
 	type: DotnetType,
@@ -215,6 +215,9 @@ export function resolveSupportTierFromReleases(
 	};
 }
 
+/**
+ * Resolves a version pattern (e.g., 10.x, 10.0.x)
+ */
 function resolveVersionPatternFromReleases(
 	releases: ReleaseInfo[],
 	version: string,

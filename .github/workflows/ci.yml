@@ -33,6 +33,9 @@ jobs:
       - name: Check Lint
         run: pnpm lint:ci
 
+      - name: Check for unused dependencies
+        run: pnpm knip
+
       - name: Run tests
         run: pnpm test
 
