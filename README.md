@@ -16,7 +16,8 @@ Parallel downloads, automatic caching, and smart version resolution.
 
 - **Flexible installation**: Install SDK, Runtime, and/or ASP.NET Core Runtime
 - **Parallel downloads**: Multiple requested versions download concurrently
-- **Smart version resolution**: Wildcards (`10.x`, `10.x.x`), keywords (`latest`, `lts`, `sts`), and `global.json`
+- **Smart version resolution**: Wildcards (`10.x`, `10.x.x`) and keywords (`latest`, `lts`, `sts`)
+- **Full `global.json` support**: Supports `global.json` file for SDK version resolution
 - **Intelligent deduplication**: Skip redundant installs when an SDK already includes the requested runtimes
 - **Automatic caching**: Cache the .NET installation directory to speed up subsequent runs
 - **Conditional installation**: Uses pre-installed system .NET when all versions are present
