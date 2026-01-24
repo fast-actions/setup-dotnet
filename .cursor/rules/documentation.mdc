@@ -1,0 +1,16 @@
+---
+description: Documentation guidelines for setup-dotnet
+globs: "**/*.md"
+alwaysApply: false
+---
+
+# Documentation
+
+- **Simple and clear** – straightforward language; explain jargon when used
+- **Precise** – concise, only what’s needed
+- **Realistic examples** – real-world use cases, not contrived edge cases
+- **Structure:**
+  - Brief overview of what the section covers
+  - Headings, bullet points, code blocks
+  - Flow: concept → explanation → example → expected behavior
+  - Group related information together
