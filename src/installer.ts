@@ -238,8 +238,8 @@ export async function installDotNet(
 	// Check if already installed in installation directory (from previous run)
 	core.debug(`${prefix} Checking if already installed in: ${installDir}`);
 	if (await isVersionInstalledInDirectory(installDir, version, type)) {
-		core.info(
-			`${prefix} Already installed in installation directory: ${installDir}`,
+		core.debug(
+			`${prefix} Version ${version} already installed in installation directory: ${installDir}`,
 		);
 		configureEnvironment(installDir);
 		return {
