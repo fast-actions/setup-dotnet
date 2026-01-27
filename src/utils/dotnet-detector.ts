@@ -29,8 +29,13 @@ function parseVersionList(output: string): string[] {
 
 /**
  * Execute dotnet command and capture output
+ * @param args Command arguments
+ * @param dotnetPath Optional path to dotnet binary (defaults to 'dotnet' from PATH)
  */
-async function executeDotnetCommand(args: string[]): Promise<string> {
+async function executeDotnetCommand(
+	args: string[],
+	dotnetPath?: string,
+): Promise<string> {
 	let output = '';
 	let errorOutput = '';
 
@@ -47,10 +52,13 @@ async function executeDotnetCommand(args: string[]): Promise<string> {
 		},
 	};
 
-	const exitCode = await exec.exec('dotnet', args, options);
+	const command = dotnetPath || 'dotnet';
+	const exitCode = await exec.exec(command, args, options);
 
 	if (exitCode !== 0) {
-		core.debug(`dotnet ${args.join(' ')} failed with exit code ${exitCode}`);
+		core.debug(
+			`${command} ${args.join(' ')} failed with exit code ${exitCode}`,
+		);
 		if (errorOutput) {
 			core.debug(`Error output: ${errorOutput}`);
 		}
@@ -62,10 +70,11 @@ async function executeDotnetCommand(args: string[]): Promise<string> {
 
 /**
  * Get list of installed .NET SDKs on the system
+ * @param dotnetPath Optional path to dotnet binary (defaults to 'dotnet' from PATH)
  */
-async function getInstalledSdks(): Promise<string[]> {
+async function getInstalledSdks(dotnetPath?: string): Promise<string[]> {
 	core.debug('Checking for pre-installed SDKs...');
-	const output = await executeDotnetCommand(['--list-sdks']);
+	const output = await executeDotnetCommand(['--list-sdks'], dotnetPath);
 	const versions = parseVersionList(output);
 	if (versions.length > 0) {
 		core.debug(
@@ -79,10 +88,11 @@ async function getInstalledSdks(): Promise<string[]> {
 
 /**
  * Get list of installed .NET Runtimes on the system
+ * @param dotnetPath Optional path to dotnet binary (defaults to 'dotnet' from PATH)
  */
-async function getInstalledRuntimes(): Promise<string[]> {
+async function getInstalledRuntimes(dotnetPath?: string): Promise<string[]> {
 	core.debug('Checking for pre-installed Runtimes...');
-	const output = await executeDotnetCommand(['--list-runtimes']);
+	const output = await executeDotnetCommand(['--list-runtimes'], dotnetPath);
 	const lines = output
 		.split('\n')
 		.map((line) => line.trim())
@@ -111,10 +121,13 @@ async function getInstalledRuntimes(): Promise<string[]> {
 
 /**
  * Get list of installed ASP.NET Core Runtimes on the system
+ * @param dotnetPath Optional path to dotnet binary (defaults to 'dotnet' from PATH)
  */
-async function getInstalledAspNetCoreRuntimes(): Promise<string[]> {
+async function getInstalledAspNetCoreRuntimes(
+	dotnetPath?: string,
+): Promise<string[]> {
 	core.debug('Checking for pre-installed ASP.NET Core Runtimes...');
-	const output = await executeDotnetCommand(['--list-runtimes']);
+	const output = await executeDotnetCommand(['--list-runtimes'], dotnetPath);
 	const lines = output
 		.split('\n')
 		.map((line) => line.trim())
@@ -145,13 +158,16 @@ async function getInstalledAspNetCoreRuntimes(): Promise<string[]> {
 
 /**
  * Get all installed .NET versions on the system
+ * @param dotnetPath Optional path to dotnet binary (defaults to 'dotnet' from PATH)
  */
-export async function getInstalledVersions(): Promise<InstalledVersions> {
+export async function getInstalledVersions(
+	dotnetPath?: string,
+): Promise<InstalledVersions> {
 	try {
 		const [sdk, runtime, aspnetcore] = await Promise.all([
-			getInstalledSdks(),
-			getInstalledRuntimes(),
-			getInstalledAspNetCoreRuntimes(),
+			getInstalledSdks(dotnetPath),
+			getInstalledRuntimes(dotnetPath),
+			getInstalledAspNetCoreRuntimes(dotnetPath),
 		]);
 
 		return { sdk, runtime, aspnetcore };
