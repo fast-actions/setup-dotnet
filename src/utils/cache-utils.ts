@@ -70,6 +70,13 @@ export async function saveVersionCache(
 ): Promise<void> {
 	const cacheKey = generateVersionCacheKey(version, type);
 
+	// Check if cache already exists before attempting to save
+	const exists = await versionCacheExists(version, type);
+	if (exists) {
+		core.debug(`Cache already exists (skipped): ${cacheKey}`);
+		return;
+	}
+
 	core.debug(`Saving cache: ${cacheKey} <- ${sourcePath}`);
 
 	try {

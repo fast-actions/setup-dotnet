@@ -180,22 +180,51 @@ describe('saveVersionCache', () => {
 		vi.resetAllMocks();
 	});
 
-	it('should save cache successfully', async () => {
+	it('should save cache successfully when cache does not exist', async () => {
 		vi.mocked(platformUtils.getPlatform).mockReturnValue('linux');
 		vi.mocked(platformUtils.getArchitecture).mockReturnValue('x64');
+		// Mock versionCacheExists to return false (cache doesn't exist)
+		vi.mocked(cache.restoreCache).mockResolvedValueOnce(undefined);
 		vi.mocked(cache.saveCache).mockResolvedValue(123);
 
 		await saveVersionCache('10.0.102', 'sdk', '/path/to/cache');
 
+		expect(cache.restoreCache).toHaveBeenCalledWith(
+			expect.any(Array),
+			'dotnet-linux-x64-sdk-10.0.102',
+			undefined,
+			{ lookupOnly: true },
+		);
 		expect(cache.saveCache).toHaveBeenCalledWith(
 			['/path/to/cache'],
 			'dotnet-linux-x64-sdk-10.0.102',
 		);
 	});
 
+	it('should skip saving when cache already exists', async () => {
+		vi.mocked(platformUtils.getPlatform).mockReturnValue('linux');
+		vi.mocked(platformUtils.getArchitecture).mockReturnValue('x64');
+		// Mock versionCacheExists to return true (cache exists)
+		vi.mocked(cache.restoreCache).mockResolvedValueOnce(
+			'dotnet-linux-x64-sdk-10.0.102',
+		);
+
+		await saveVersionCache('10.0.102', 'sdk', '/path/to/cache');
+
+		expect(cache.restoreCache).toHaveBeenCalledWith(
+			expect.any(Array),
+			'dotnet-linux-x64-sdk-10.0.102',
+			undefined,
+			{ lookupOnly: true },
+		);
+		expect(cache.saveCache).not.toHaveBeenCalled();
+	});
+
 	it('should not throw on cache save error', async () => {
 		vi.mocked(platformUtils.getPlatform).mockReturnValue('linux');
 		vi.mocked(platformUtils.getArchitecture).mockReturnValue('x64');
+		// Mock versionCacheExists to return false (cache doesn't exist)
+		vi.mocked(cache.restoreCache).mockResolvedValueOnce(undefined);
 		vi.mocked(cache.saveCache).mockRejectedValue(new Error('Save failed'));
 
 		await expect(
@@ -203,9 +232,11 @@ describe('saveVersionCache', () => {
 		).resolves.not.toThrow();
 	});
 
-	it('should handle ReserveCacheError gracefully', async () => {
+	it('should handle ReserveCacheError gracefully as fallback', async () => {
 		vi.mocked(platformUtils.getPlatform).mockReturnValue('linux');
 		vi.mocked(platformUtils.getArchitecture).mockReturnValue('x64');
+		// Mock versionCacheExists to return false (lookup might fail or miss)
+		vi.mocked(cache.restoreCache).mockResolvedValueOnce(undefined);
 		vi.mocked(cache.saveCache).mockRejectedValue(
 			new Error('ReserveCacheError: Cache already exists'),
 		);
