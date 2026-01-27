@@ -30,6 +30,15 @@ export interface InstallResult {
 	source: InstallSource;
 }
 
+export interface PreparedInstallation {
+	version: string;
+	type: DotnetType;
+	extractedPath: string;
+	cacheHit: boolean;
+	source: InstallSource;
+	alreadyInstalled: boolean;
+}
+
 function validateDownloadedFile(downloadPath: string, prefix: string): void {
 	const stats = fs.statSync(downloadPath);
 	if (stats.size === 0) {
@@ -114,12 +123,12 @@ function validateExtractedBinary(
 	return dotnetPath;
 }
 
-async function copyToInstallDir(
+async function copySdkToInstallDir(
 	extractedPath: string,
 	installDir: string,
 	prefix: string,
 ): Promise<void> {
-	core.debug(`${prefix} Installing...`);
+	core.debug(`${prefix} Copying SDK to install directory...`);
 	await io.mkdirP(installDir);
 	try {
 		await io.cp(extractedPath, installDir, {
@@ -128,7 +137,90 @@ async function copyToInstallDir(
 		});
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error);
-		throw new Error(`Failed to copy files to ${installDir}: ${errorMessage}`);
+		throw new Error(
+			`Failed to copy SDK files to ${installDir}: ${errorMessage}`,
+		);
+	}
+}
+
+async function copyRuntimeToInstallDir(
+	extractedPath: string,
+	installDir: string,
+	prefix: string,
+): Promise<void> {
+	core.debug(
+		`${prefix} Copying runtime (host and shared folders) to install directory...`,
+	);
+	await io.mkdirP(installDir);
+
+	const hostSource = path.join(extractedPath, 'host');
+	const sharedSource = path.join(extractedPath, 'shared');
+	const hostDest = path.join(installDir, 'host');
+	const sharedDest = path.join(installDir, 'shared');
+
+	const copyTasks: Promise<void>[] = [];
+
+	if (fs.existsSync(hostSource)) {
+		copyTasks.push(
+			io.cp(hostSource, hostDest, {
+				recursive: true,
+				copySourceDirectory: false,
+			}),
+		);
+	}
+
+	if (fs.existsSync(sharedSource)) {
+		copyTasks.push(
+			io.cp(sharedSource, sharedDest, {
+				recursive: true,
+				copySourceDirectory: false,
+			}),
+		);
+	}
+
+	if (copyTasks.length === 0) {
+		core.warning(`${prefix} No host or shared folders found in extracted path`);
+		return;
+	}
+
+	try {
+		await Promise.all(copyTasks);
+	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		throw new Error(
+			`Failed to copy runtime files to ${installDir}: ${errorMessage}`,
+		);
+	}
+}
+
+export async function copyDotnetBinary(
+	extractedPath: string,
+	installDir: string,
+	platform: string,
+	prefix: string,
+): Promise<void> {
+	const dotnetBinary = platform === 'win' ? 'dotnet.exe' : 'dotnet';
+	const sourcePath = path.join(extractedPath, dotnetBinary);
+	const destPath = path.join(installDir, dotnetBinary);
+
+	if (!fs.existsSync(sourcePath)) {
+		throw new Error(`dotnet binary not found in extracted path: ${sourcePath}`);
+	}
+
+	if (fs.existsSync(destPath)) {
+		core.debug(`${prefix} dotnet binary already exists, skipping copy`);
+		return;
+	}
+
+	core.debug(`${prefix} Copying dotnet binary to install directory...`);
+	await io.mkdirP(installDir);
+	try {
+		await io.cp(sourcePath, destPath, { recursive: false });
+	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		throw new Error(
+			`Failed to copy dotnet binary to ${installDir}: ${errorMessage}`,
+		);
 	}
 }
 
@@ -203,9 +295,9 @@ async function isVersionInstalledInDirectory(
 	}
 }
 
-export async function installDotNet(
+export async function prepareInstallation(
 	options: InstallOptions,
-): Promise<InstallResult> {
+): Promise<PreparedInstallation> {
 	const { version, type, cacheEnabled } = options;
 	const prefix = `[${type.toUpperCase()}]`;
 	const platform = getPlatform();
@@ -218,13 +310,13 @@ export async function installDotNet(
 		core.debug(
 			`${prefix} Version ${version} already installed in installation directory: ${installDir}`,
 		);
-		configureEnvironment(installDir);
 		return {
 			version,
 			type,
-			path: installDir,
+			extractedPath: installDir,
 			cacheHit: true,
 			source: 'installation-directory',
+			alreadyInstalled: true,
 		};
 	}
 	core.debug(`${prefix} Not found in installation directory`);
@@ -233,14 +325,14 @@ export async function installDotNet(
 	core.debug(`${prefix} Checking local version cache: ${versionCachePath}`);
 	if (isVersionCachedLocally(version, type)) {
 		core.info(`${prefix} Found in local version cache: ${versionCachePath}`);
-		await copyToInstallDir(versionCachePath, installDir, prefix);
-		configureEnvironment(installDir);
+		validateExtractedBinary(versionCachePath, platform);
 		return {
 			version,
 			type,
-			path: installDir,
+			extractedPath: versionCachePath,
 			cacheHit: true,
 			source: 'local-cache',
+			alreadyInstalled: false,
 		};
 	}
 	core.debug(`${prefix} Not found in local version cache`);
@@ -258,14 +350,13 @@ export async function installDotNet(
 				`${prefix} Restored from GitHub Actions cache: ${versionCachePath}`,
 			);
 			validateExtractedBinary(versionCachePath, platform);
-			await copyToInstallDir(versionCachePath, installDir, prefix);
-			configureEnvironment(installDir);
 			return {
 				version,
 				type,
-				path: installDir,
+				extractedPath: versionCachePath,
 				cacheHit: true,
 				source: 'github-cache',
+				alreadyInstalled: false,
 			};
 		}
 		core.debug(`${prefix} Not found in GitHub Actions cache`);
@@ -295,10 +386,6 @@ export async function installDotNet(
 	validateExtractedBinary(extractedPath, platform);
 	core.debug(`${prefix} Extracted to local version cache`);
 
-	// Copy to install directory
-	await copyToInstallDir(versionCachePath, installDir, prefix);
-	configureEnvironment(installDir);
-
 	// Save to GitHub cache if enabled
 	if (cacheEnabled) {
 		core.debug(`${prefix} Saving to GitHub Actions cache`);
@@ -310,9 +397,49 @@ export async function installDotNet(
 	return {
 		version,
 		type,
-		path: installDir,
+		extractedPath: versionCachePath,
 		cacheHit: false,
 		source: 'download',
+		alreadyInstalled: false,
+	};
+}
+
+export async function copyInstallation(
+	prepared: PreparedInstallation,
+	installDir: string,
+): Promise<InstallResult> {
+	const { version, type, extractedPath, cacheHit, source, alreadyInstalled } =
+		prepared;
+	const prefix = `[${type.toUpperCase()}]`;
+
+	// If already installed, just configure environment and return
+	if (alreadyInstalled) {
+		configureEnvironment(installDir);
+		return {
+			version,
+			type,
+			path: installDir,
+			cacheHit,
+			source,
+		};
+	}
+
+	// Copy based on type
+	if (type === 'sdk') {
+		await copySdkToInstallDir(extractedPath, installDir, prefix);
+	} else {
+		// For runtime and aspnetcore, only copy host and shared folders
+		await copyRuntimeToInstallDir(extractedPath, installDir, prefix);
+	}
+
+	configureEnvironment(installDir);
+
+	return {
+		version,
+		type,
+		path: installDir,
+		cacheHit,
+		source,
 	};
 }
 

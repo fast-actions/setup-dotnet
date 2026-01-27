@@ -3,8 +3,10 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {
 	configureEnvironment,
+	copyDotnetBinary,
+	copyInstallation,
 	getDotNetInstallDirectory,
-	installDotNet,
+	prepareInstallation,
 } from './installer';
 import { getPlatform } from './utils/platform-utils';
 import type {
@@ -198,20 +200,86 @@ async function executeInstallPlan(
 	plan: InstallPlanItem[],
 	cacheEnabled: boolean,
 ): Promise<InstallationResult[]> {
-	const installTasks = plan.map((item) =>
-		installDotNet({
+	const installStartTime = Date.now();
+
+	// Phase 1: Parallel download/extract for ALL versions
+	core.debug(
+		'Phase 1: Preparing installations (download/extract) in parallel...',
+	);
+	const prepareTasks = plan.map((item) =>
+		prepareInstallation({
 			version: item.version,
 			type: item.type,
 			cacheEnabled,
 		}),
 	);
 
-	const installStartTime = Date.now();
-	const installations = await Promise.all(installTasks);
+	const prepared = await Promise.all(prepareTasks);
+	core.debug(`Phase 1 complete: ${prepared.length} installations prepared`);
+
+	// Phase 2: Sequential copy by type to avoid file locking
+	const installDir = getDotNetInstallDirectory();
+	const results: InstallationResult[] = [];
+
+	// Copy SDKs first
+	const sdks = prepared.filter((p) => p.type === 'sdk');
+	if (sdks.length > 0) {
+		core.debug(`Phase 2: Copying ${sdks.length} SDK(s) sequentially...`);
+		for (const prep of sdks) {
+			const result = await copyInstallation(prep, installDir);
+			results.push(result);
+		}
+	}
+
+	// Copy ASP.NET Core runtimes second
+	const aspnetcores = prepared.filter((p) => p.type === 'aspnetcore');
+	if (aspnetcores.length > 0) {
+		core.debug(
+			`Phase 2: Copying ${aspnetcores.length} ASP.NET Core runtime(s) sequentially...`,
+		);
+		for (const prep of aspnetcores) {
+			const result = await copyInstallation(prep, installDir);
+			results.push(result);
+		}
+	}
+
+	// Copy runtimes last
+	const runtimes = prepared.filter((p) => p.type === 'runtime');
+	if (runtimes.length > 0) {
+		core.debug(
+			`Phase 2: Copying ${runtimes.length} runtime(s) sequentially...`,
+		);
+		for (const prep of runtimes) {
+			const result = await copyInstallation(prep, installDir);
+			results.push(result);
+		}
+	}
+
+	// Check if we need dotnet binary (no SDK installed)
+	const hasSdk = prepared.some((p) => p.type === 'sdk');
+	if (!hasSdk) {
+		const firstRuntime = prepared.find(
+			(p) => p.type === 'runtime' || p.type === 'aspnetcore',
+		);
+		if (firstRuntime && !firstRuntime.alreadyInstalled) {
+			const platform = getPlatform();
+			const prefix = `[${firstRuntime.type.toUpperCase()}]`;
+			core.debug(
+				`No SDK found, copying dotnet binary from ${firstRuntime.type}...`,
+			);
+			await copyDotnetBinary(
+				firstRuntime.extractedPath,
+				installDir,
+				platform,
+				prefix,
+			);
+		}
+	}
+
 	const installDuration = ((Date.now() - installStartTime) / 1000).toFixed(2);
 	core.info(`✅ Installation complete in ${installDuration}s`);
 
-	return installations;
+	return results;
 }
 
 function getCacheHitStatusFromResults(
