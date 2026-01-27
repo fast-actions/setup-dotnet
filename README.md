@@ -58,8 +58,10 @@ Parallel downloads, automatic caching, and smart version resolution.
 ## Caching
 
 - Enabled by default (`cache: true`)
+- Uses three-tier caching: installation directory (persistent), local cache (temporary), and GitHub Actions cache (remote)
 - Cache keys include OS + architecture + _resolved_ versions (not the input patterns)
 - If `10.x` resolves to a newer patch later, the cache key changes and the action downloads the newer version
+- When installing multiple versions, `cache-hit` can be `true` (all cached), `false` (none cached), or `partial` (some cached)
 
 ## Performance
 
@@ -93,11 +95,11 @@ Check out the [Migration Guide](https://github.com/fast-actions/setup-dotnet/blo
 
 ## Outputs
 
-| Output           | Description                                                   |
-| ---------------- | ------------------------------------------------------------- |
-| `dotnet-version` | Installed .NET versions (e.g., `sdk:9.0.100, runtime:8.0.0`)  |
-| `dotnet-path`    | Path to .NET installation directory                           |
-| `cache-hit`      | Whether installation was restored from cache (`true`/`false`) |
+| Output           | Description                                                                                        |
+| ---------------- | -------------------------------------------------------------------------------------------------- |
+| `dotnet-version` | Installed .NET versions (e.g., `sdk:9.0.100, runtime:8.0.0`)                                       |
+| `dotnet-path`    | Path to .NET installation directory                                                                |
+| `cache-hit`      | Whether installation was restored from cache (`true`, `false`, or `partial` for multiple versions) |
 
 ## Motivation behind `fast-actions/setup-dotnet`
 
