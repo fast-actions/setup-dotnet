@@ -232,25 +232,12 @@ export function getDotNetInstallDirectory(): string {
 	return dotnetInstallDir;
 }
 
-// Uses RUNNER_TEMP instead of TOOL_CACHE because @actions/cache needs access to the path
-// Format: $RUNNER_TEMP/dotnet-cache/{type}/{version}
 function getVersionCachePath(version: string, type: DotnetType): string {
 	const runnerTemp = process.env.RUNNER_TEMP;
 	if (!runnerTemp) {
 		throw new Error('RUNNER_TEMP environment variable is not set.');
 	}
-
-	// return the parent folder of the current executable
-	const currentExecpath = process.cwd();
-	const currentExecpathParent = path.dirname(currentExecpath);
-	const cachePath = path.join(
-		currentExecpathParent,
-		'dotnet-cache',
-		type,
-		version,
-	);
-	core.info(`Version cache path: ${cachePath}`);
-	return cachePath;
+	return path.join(runnerTemp, 'dotnet-cache', type, version);
 }
 
 function isVersionCachedLocally(version: string, type: DotnetType): boolean {
@@ -381,7 +368,11 @@ export async function prepareInstallation(
 	// Save to GitHub cache if enabled
 	if (cacheEnabled) {
 		core.debug(`${prefix} Saving to GitHub Actions cache`);
-		await saveVersionCache(version, type, versionCachePath);
+		if (platform === 'win') {
+			core.info('Caching is currently not supported on Windows');
+		} else {
+			await saveVersionCache(version, type, versionCachePath);
+		}
 	} else {
 		core.debug(`${prefix} Cache disabled, skipping GitHub Actions cache save`);
 	}
