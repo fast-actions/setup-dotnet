@@ -272,8 +272,6 @@ The `cache-hit` output can be:
 - `false` - no versions found in cache (all downloaded)
 - `partial` - some versions cached, others downloaded
 
-**Single version:**
-
 ```yaml
 - uses: fast-actions/setup-dotnet@v1
   id: dotnet
@@ -284,23 +282,6 @@ The `cache-hit` output can be:
   run: |
     echo "Cache hit: ${{ steps.dotnet.outputs.cache-hit }}"
     echo "Installed: ${{ steps.dotnet.outputs.dotnet-version }}"
-```
-
-**Multiple versions (partial cache hit):**
-
-```yaml
-- uses: fast-actions/setup-dotnet@v1
-  id: dotnet
-  with:
-    sdk-version: |
-      9.0.100
-      8.0.400
-
-- name: Handle partial cache
-  run: |
-    if [ "${{ steps.dotnet.outputs.cache-hit }}" = "partial" ]; then
-      echo "Some versions were cached, others downloaded"
-    fi
 ```
 
 ---
