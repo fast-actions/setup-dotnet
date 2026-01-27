@@ -239,7 +239,18 @@ function getVersionCachePath(version: string, type: DotnetType): string {
 	if (!runnerTemp) {
 		throw new Error('RUNNER_TEMP environment variable is not set.');
 	}
-	return path.join('~', 'dotnet-cache', type, version);
+
+	// return the parent folder of the current executable
+	const currentExecpath = process.cwd();
+	const currentExecpathParent = path.dirname(currentExecpath);
+	const cachePath = path.join(
+		currentExecpathParent,
+		'dotnet-cache',
+		type,
+		version,
+	);
+	core.info(`Version cache path: ${cachePath}`);
+	return cachePath;
 }
 
 function isVersionCachedLocally(version: string, type: DotnetType): boolean {
