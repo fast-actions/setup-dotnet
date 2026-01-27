@@ -91,24 +91,6 @@ async function downloadDotnetArchive(
 	}
 }
 
-async function extractDotnetArchive(
-	downloadPath: string,
-	platform: string,
-	prefix: string,
-	destination: string,
-): Promise<string> {
-	core.debug(`${prefix} Extracting...`);
-	try {
-		if (platform === 'win') {
-			return await toolCache.extractZip(downloadPath, destination);
-		}
-		return await toolCache.extractTar(downloadPath, destination);
-	} catch (error) {
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		throw new Error(`Failed to extract archive: ${errorMessage}`);
-	}
-}
-
 function validateExtractedBinary(
 	extractedPath: string,
 	platform: string,
@@ -367,8 +349,8 @@ export async function prepareInstallation(
 	}
 
 	// Download and extract
-	const { url: downloadUrl, hash } = await getDotNetDownloadInfo(version, type);
-	const downloadPath = await downloadDotnetArchive(downloadUrl, hash, prefix);
+	const { url, hash } = await getDotNetDownloadInfo(version, type);
+	const downloadPath = await downloadDotnetArchive(url, hash, prefix);
 
 	// Ensure parent directory exists before extraction
 	await io.mkdirP(path.dirname(versionCachePath));
@@ -377,12 +359,11 @@ export async function prepareInstallation(
 	core.debug(
 		`${prefix} Extracting to local version cache: ${versionCachePath}`,
 	);
-	const extractedPath = await extractDotnetArchive(
-		downloadPath,
-		platform,
-		prefix,
-		versionCachePath,
-	);
+
+	const extractedPath =
+		platform === 'win'
+			? await toolCache.extractZip(downloadPath, versionCachePath)
+			: await toolCache.extractTar(downloadPath, versionCachePath);
 	validateExtractedBinary(extractedPath, platform);
 	core.debug(`${prefix} Extracted to local version cache`);
 
