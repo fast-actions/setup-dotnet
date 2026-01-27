@@ -7,6 +7,10 @@ import * as path from 'node:path';
 import type { DotnetType, FileInfo, Release } from './types';
 import { extractArchive } from './utils/archive-utils';
 import { restoreVersionCache, saveVersionCache } from './utils/cache-utils';
+import {
+	getInstalledVersions,
+	isVersionInstalled,
+} from './utils/dotnet-detector';
 import { getArchitecture, getPlatform } from './utils/platform-utils';
 import { fetchReleaseManifest } from './utils/versioning/release-cache';
 
@@ -188,6 +192,37 @@ function isVersionCachedLocally(version: string, type: DotnetType): boolean {
 }
 
 /**
+ * Check if a version is already installed in the installation directory
+ * Uses dotnet --list-sdks/runtimes to check if the version is installed
+ */
+async function isVersionInstalledInDirectory(
+	installDir: string,
+	version: string,
+	type: DotnetType,
+): Promise<boolean> {
+	const platform = getPlatform();
+	const dotnetBinary = platform === 'win' ? 'dotnet.exe' : 'dotnet';
+	const dotnetPath = path.join(installDir, dotnetBinary);
+
+	// First check if dotnet binary exists in install directory
+	if (!fs.existsSync(dotnetPath)) {
+		return false;
+	}
+
+	// Use dotnet-detector to check installed versions
+	try {
+		const installed = await getInstalledVersions(dotnetPath);
+		return isVersionInstalled(version, type, installed);
+	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		core.debug(
+			`Error checking installed versions in ${installDir}: ${errorMessage}`,
+		);
+		return false;
+	}
+}
+
+/**
  * Install .NET SDK or Runtime with caching support
  */
 export async function installDotNet(
@@ -198,6 +233,17 @@ export async function installDotNet(
 	const platform = getPlatform();
 	const installDir = getDotNetInstallDirectory();
 	const versionCachePath = getVersionCachePath(version, type);
+
+	// Check if already installed in installation directory (from previous run)
+	core.debug(`${prefix} Checking if already installed in: ${installDir}`);
+	if (await isVersionInstalledInDirectory(installDir, version, type)) {
+		core.info(
+			`${prefix} Already installed in installation directory: ${installDir}`,
+		);
+		configureEnvironment(installDir);
+		return { version, type, path: installDir, cacheHit: true };
+	}
+	core.debug(`${prefix} Not found in installation directory`);
 
 	// Check if already cached locally in per-version cache
 	core.debug(`${prefix} Checking local version cache: ${versionCachePath}`);
