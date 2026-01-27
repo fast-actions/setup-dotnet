@@ -53,4 +53,38 @@ describe('extractArchive', () => {
 
 		expect(toolCache.extractTar).toHaveBeenCalled();
 	});
+
+	it('should extract zip files to destination directory', async () => {
+		const mockPath = '/custom/destination';
+		vi.mocked(toolCache.extractZip).mockResolvedValue(mockPath);
+
+		const result = await extractArchive(
+			'/path/to/downloaded-file',
+			'zip',
+			'/custom/destination',
+		);
+
+		expect(toolCache.extractZip).toHaveBeenCalledWith(
+			'/path/to/downloaded-file',
+			'/custom/destination',
+		);
+		expect(result).toBe(mockPath);
+	});
+
+	it('should extract tar.gz files to destination directory', async () => {
+		const mockPath = '/custom/destination';
+		vi.mocked(toolCache.extractTar).mockResolvedValue(mockPath);
+
+		const result = await extractArchive(
+			'/path/to/downloaded-file',
+			'tar.gz',
+			'/custom/destination',
+		);
+
+		expect(toolCache.extractTar).toHaveBeenCalledWith(
+			'/path/to/downloaded-file',
+			'/custom/destination',
+		);
+		expect(result).toBe(mockPath);
+	});
 });

@@ -87,11 +87,12 @@ async function extractDotnetArchive(
 	downloadPath: string,
 	platform: string,
 	prefix: string,
+	destination?: string,
 ): Promise<string> {
 	core.debug(`${prefix} Extracting...`);
 	const extensions = platform === 'win' ? 'zip' : 'tar.gz';
 	try {
-		return await extractArchive(downloadPath, extensions);
+		return await extractArchive(downloadPath, extensions, destination);
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error);
 		throw new Error(`Failed to extract archive: ${errorMessage}`);
@@ -276,21 +277,22 @@ export async function installDotNet(
 	// Download and extract
 	const { url: downloadUrl, hash } = await getDotNetDownloadInfo(version, type);
 	const downloadPath = await downloadDotnetArchive(downloadUrl, hash, prefix);
+
+	// Ensure parent directory exists before extraction
+	await io.mkdirP(path.dirname(versionCachePath));
+
+	// Extract directly to version cache directory
+	core.debug(
+		`${prefix} Extracting to local version cache: ${versionCachePath}`,
+	);
 	const extractedPath = await extractDotnetArchive(
 		downloadPath,
 		platform,
 		prefix,
+		versionCachePath,
 	);
 	validateExtractedBinary(extractedPath, platform);
-
-	// Copy to per-version cache directory
-	core.debug(`${prefix} Saving to local version cache: ${versionCachePath}`);
-	await io.mkdirP(path.dirname(versionCachePath));
-	await io.cp(extractedPath, versionCachePath, {
-		recursive: true,
-		copySourceDirectory: false,
-	});
-	core.debug(`${prefix} Saved to local version cache`);
+	core.debug(`${prefix} Extracted to local version cache`);
 
 	// Copy to install directory
 	await copyToInstallDir(versionCachePath, installDir, prefix);
