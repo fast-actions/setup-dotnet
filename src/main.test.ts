@@ -51,6 +51,7 @@ describe('main', () => {
 			type: 'sdk',
 			path: '/path/to/sdk',
 			cacheHit: false,
+			source: 'download',
 		} as InstallResult);
 
 		await run();
@@ -77,6 +78,7 @@ describe('main', () => {
 			type: 'runtime',
 			path: '/path/to/runtime',
 			cacheHit: false,
+			source: 'download',
 		} as InstallResult);
 
 		await run();
@@ -114,6 +116,7 @@ describe('main', () => {
 				type: 'runtime',
 				path: '/path/to/runtime',
 				cacheHit: false,
+				source: 'download',
 			} as InstallResult);
 
 		await run();
@@ -188,6 +191,7 @@ describe('main', () => {
 				type: 'runtime',
 				path: '/path/to/runtime',
 				cacheHit: false,
+				source: 'download',
 			} as InstallResult);
 
 		await run();
@@ -222,6 +226,7 @@ describe('main', () => {
 			type: 'sdk',
 			path: '/path/to/sdk',
 			cacheHit: false,
+			source: 'download',
 		} as InstallResult);
 
 		await run();
@@ -252,6 +257,7 @@ describe('main', () => {
 			type: 'sdk',
 			path: '/path/to/sdk',
 			cacheHit: false,
+			source: 'download',
 		} as InstallResult);
 
 		await run();
@@ -281,6 +287,7 @@ describe('main', () => {
 			type: 'sdk',
 			path: '/path/to/sdk',
 			cacheHit: false,
+			source: 'download',
 		} as InstallResult);
 
 		await run();
@@ -320,6 +327,7 @@ describe('main', () => {
 				type: 'runtime',
 				path: '/path/to/runtime',
 				cacheHit: false,
+				source: 'download',
 			} as InstallResult);
 
 		await run();
@@ -402,6 +410,7 @@ describe('main', () => {
 				type: 'sdk',
 				path: '/path/to/sdk',
 				cacheHit: false,
+				source: 'download',
 			} as InstallResult);
 
 		await run();
@@ -458,6 +467,7 @@ describe('main', () => {
 			type: 'sdk',
 			path: '/path/to/sdk',
 			cacheHit: true,
+			source: 'download',
 		} as InstallResult);
 
 		await run();
@@ -480,6 +490,7 @@ describe('main', () => {
 			type: 'sdk',
 			path: '/path/to/sdk',
 			cacheHit: true,
+			source: 'download',
 		} as InstallResult);
 
 		await run();
@@ -500,12 +511,14 @@ describe('main', () => {
 				type: 'sdk',
 				path: '/path/to/sdk',
 				cacheHit: true,
+				source: 'github-cache',
 			} as InstallResult)
 			.mockResolvedValueOnce({
 				version: '8.0.0',
 				type: 'runtime',
 				path: '/path/to/runtime',
 				cacheHit: false,
+				source: 'download',
 			} as InstallResult);
 
 		await run();
@@ -524,6 +537,7 @@ describe('main', () => {
 			type: 'sdk',
 			path: '/path/to/sdk',
 			cacheHit: false,
+			source: 'download',
 		} as InstallResult);
 
 		await run();

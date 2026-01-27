@@ -4,7 +4,7 @@ import * as toolCache from '@actions/tool-cache';
 import * as crypto from 'node:crypto';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import type { DotnetType, FileInfo, Release } from './types';
+import type { DotnetType, FileInfo, InstallSource, Release } from './types';
 import { extractArchive } from './utils/archive-utils';
 import { restoreVersionCache, saveVersionCache } from './utils/cache-utils';
 import {
@@ -28,6 +28,7 @@ export interface InstallResult {
 	type: DotnetType;
 	path: string;
 	cacheHit: boolean;
+	source: InstallSource;
 }
 
 /**
@@ -241,7 +242,13 @@ export async function installDotNet(
 			`${prefix} Already installed in installation directory: ${installDir}`,
 		);
 		configureEnvironment(installDir);
-		return { version, type, path: installDir, cacheHit: true };
+		return {
+			version,
+			type,
+			path: installDir,
+			cacheHit: true,
+			source: 'installation-directory',
+		};
 	}
 	core.debug(`${prefix} Not found in installation directory`);
 
@@ -251,7 +258,13 @@ export async function installDotNet(
 		core.info(`${prefix} Found in local version cache: ${versionCachePath}`);
 		await copyToInstallDir(versionCachePath, installDir, prefix);
 		configureEnvironment(installDir);
-		return { version, type, path: installDir, cacheHit: true };
+		return {
+			version,
+			type,
+			path: installDir,
+			cacheHit: true,
+			source: 'local-cache',
+		};
 	}
 	core.debug(`${prefix} Not found in local version cache`);
 
@@ -270,7 +283,13 @@ export async function installDotNet(
 			validateExtractedBinary(versionCachePath, platform);
 			await copyToInstallDir(versionCachePath, installDir, prefix);
 			configureEnvironment(installDir);
-			return { version, type, path: installDir, cacheHit: true };
+			return {
+				version,
+				type,
+				path: installDir,
+				cacheHit: true,
+				source: 'github-cache',
+			};
 		}
 		core.debug(`${prefix} Not found in GitHub Actions cache`);
 	} else {
@@ -310,7 +329,13 @@ export async function installDotNet(
 		core.debug(`${prefix} Cache disabled, skipping GitHub Actions cache save`);
 	}
 
-	return { version, type, path: installDir, cacheHit: false };
+	return {
+		version,
+		type,
+		path: installDir,
+		cacheHit: false,
+		source: 'download',
+	};
 }
 
 /**
