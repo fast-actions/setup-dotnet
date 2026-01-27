@@ -131,6 +131,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
 
+      - name: print environment variables
+        run: printenv | sort
+
       - name: Setup .NET with caching enabled
         uses: ./
         id: setup-dotnet
