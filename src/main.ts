@@ -1,7 +1,11 @@
 import * as core from '@actions/core';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { getDotNetInstallDirectory, installDotNet } from './installer';
+import { getPlatform } from './utils/platform-utils';
 import type {
 	DotnetType,
+	InstallSource,
 	VersionInfo,
 	VersionSet,
 	VersionSetWithPrerelease,
@@ -24,6 +28,7 @@ interface InstallationResult {
 	type: DotnetType;
 	path: string;
 	cacheHit: boolean;
+	source: InstallSource;
 }
 
 interface ActionInputs {
@@ -72,11 +77,28 @@ function setActionOutputs(
 
 /**
  * Check if ALL requested versions are already installed on the system
+ * Checks both the installation directory (if it exists) and system dotnet
  */
 async function areAllVersionsInstalled(
 	deduplicated: VersionSet,
 ): Promise<boolean> {
-	const installed = await getInstalledVersions();
+	// First check installation directory if it exists
+	const installDir = getDotNetInstallDirectory();
+	const platform = getPlatform();
+	const dotnetBinary = platform === 'win' ? 'dotnet.exe' : 'dotnet';
+	const dotnetPath = path.join(installDir, dotnetBinary);
+
+	let installed: Awaited<ReturnType<typeof getInstalledVersions>>;
+
+	if (fs.existsSync(dotnetPath)) {
+		// Check installation directory first
+		core.debug(`Checking installation directory: ${installDir}`);
+		installed = await getInstalledVersions(dotnetPath);
+	} else {
+		// Fall back to system dotnet
+		core.debug('Installation directory not found, checking system dotnet');
+		installed = await getInstalledVersions();
+	}
 
 	const allSdkInstalled = deduplicated.sdk.every((version) =>
 		isVersionInstalled(version, 'sdk', installed),
@@ -216,6 +238,29 @@ function getCacheHitStatusFromResults(
 	return 'false';
 }
 
+/**
+ * Sort installations by type order: SDK, Runtime, ASP.NET Core
+ */
+function sortByType(installations: InstallationResult[]): InstallationResult[] {
+	const typeOrder: Record<DotnetType, number> = {
+		sdk: 0,
+		runtime: 1,
+		aspnetcore: 2,
+	};
+	return [...installations].sort(
+		(a, b) => typeOrder[a.type] - typeOrder[b.type],
+	);
+}
+
+/**
+ * Format version for display
+ */
+function formatVersion(type: DotnetType, version: string): string {
+	const typeLabel =
+		type === 'sdk' ? 'SDK' : type === 'runtime' ? 'Runtime' : 'ASP.NET Core';
+	return `${typeLabel} ${version}`;
+}
+
 function setOutputsFromInstallations(
 	installations: InstallationResult[],
 ): void {
@@ -227,19 +272,45 @@ function setOutputsFromInstallations(
 
 	setActionOutputs(versions, installDir, cacheHit);
 
-	// Log cache status summary
-	const cachedVersions = installations.filter((i) => i.cacheHit);
-	const downloadedVersions = installations.filter((i) => !i.cacheHit);
+	// Group installations by source
+	const alreadyInstalled = installations.filter(
+		(i) => i.source === 'installation-directory',
+	);
+	const localCache = installations.filter((i) => i.source === 'local-cache');
+	const githubCache = installations.filter((i) => i.source === 'github-cache');
+	const downloaded = installations.filter((i) => i.source === 'download');
 
-	if (cachedVersions.length > 0) {
-		core.info(
-			`📦 Restored from cache: ${cachedVersions.map((i) => `${i.type}:${i.version}`).join(', ')}`,
-		);
+	// Log in order: already installed, cached (local + github), downloaded
+	if (alreadyInstalled.length > 0) {
+		const sorted = sortByType(alreadyInstalled);
+		const versionsList = sorted
+			.map((i) => formatVersion(i.type, i.version))
+			.join(' | ');
+		core.info(`✅ Already installed: ${versionsList}`);
 	}
-	if (downloadedVersions.length > 0) {
-		core.info(
-			`⬇️ Downloaded: ${downloadedVersions.map((i) => `${i.type}:${i.version}`).join(', ')}`,
-		);
+
+	if (localCache.length > 0) {
+		const sorted = sortByType(localCache);
+		const versionsList = sorted
+			.map((i) => formatVersion(i.type, i.version))
+			.join(' | ');
+		core.info(`📦 Restored from local cache: ${versionsList}`);
+	}
+
+	if (githubCache.length > 0) {
+		const sorted = sortByType(githubCache);
+		const versionsList = sorted
+			.map((i) => formatVersion(i.type, i.version))
+			.join(' | ');
+		core.info(`📦 Restored from GitHub Actions cache: ${versionsList}`);
+	}
+
+	if (downloaded.length > 0) {
+		const sorted = sortByType(downloaded);
+		const versionsList = sorted
+			.map((i) => formatVersion(i.type, i.version))
+			.join(' | ');
+		core.info(`⬇️ Downloaded: ${versionsList}`);
 	}
 }
 
