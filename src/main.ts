@@ -25,7 +25,10 @@ import {
 } from './utils/global-json-reader';
 import { parseVersions } from './utils/input-parser';
 import { deduplicateVersions } from './utils/versioning/version-deduplicator';
-import { fetchAndCacheReleaseInfo } from './utils/versioning/version-resolver';
+import {
+	fetchAndCacheReleaseInfo,
+	formatTypeLabel,
+} from './utils/versioning/version-resolver';
 
 interface InstallationResult {
 	version: string;
@@ -241,8 +244,7 @@ function sortByType(installations: InstallationResult[]): InstallationResult[] {
 }
 
 function formatVersion(type: DotnetType, version: string): string {
-	const typeLabel =
-		type === 'sdk' ? 'SDK' : type === 'runtime' ? 'Runtime' : 'ASP.NET Core';
+	const typeLabel = formatTypeLabel(type);
 	return `${typeLabel} ${version}`;
 }
 

@@ -62,7 +62,7 @@ export async function fetchAndCacheReleaseInfo(): Promise<void> {
 	cachedReleases = releases;
 }
 
-function formatTypeLabel(type: DotnetType): string {
+export function formatTypeLabel(type: DotnetType): string {
 	switch (type) {
 		case 'sdk':
 			return 'SDK';
