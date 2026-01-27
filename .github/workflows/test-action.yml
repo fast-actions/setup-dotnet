@@ -139,7 +139,7 @@ jobs:
         id: setup-dotnet
         with:
           sdk-version: '10.x'
-          runtime-version: '9.x'
+          runtime-version: '9.x, 6.0.0'
           aspnetcore-version: '9.0.0'
 
       - name: Verify installation
