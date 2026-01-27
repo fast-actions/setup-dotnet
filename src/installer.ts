@@ -239,7 +239,7 @@ function getVersionCachePath(version: string, type: DotnetType): string {
 	if (!runnerTemp) {
 		throw new Error('RUNNER_TEMP environment variable is not set.');
 	}
-	return path.join(runnerTemp, 'dotnet-cache', type, version);
+	return path.join('~', 'dotnet-cache', type, version);
 }
 
 function isVersionCachedLocally(version: string, type: DotnetType): boolean {
