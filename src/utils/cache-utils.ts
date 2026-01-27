@@ -1,106 +1,115 @@
 import * as cache from '@actions/cache';
 import * as core from '@actions/core';
-import * as crypto from 'node:crypto';
-import { getDotNetInstallDirectory } from '../installer';
+import type { DotnetType } from '../types';
 import { getArchitecture, getPlatform } from './platform-utils';
 
-export interface CacheVersions {
-	sdk: string[];
-	runtime: string[];
-	aspnetcore: string[];
-}
-
 /**
- * Generate a cache key from resolved versions
- * Format: dotnet-{platform}-{arch}-{hash}
+ * Generate a cache key for a specific .NET version
+ * Format: dotnet-{platform}-{arch}-{type}-{version}
  */
-export function generateCacheKey(versions: CacheVersions): string {
+export function generateVersionCacheKey(
+	version: string,
+	type: DotnetType,
+): string {
 	const platform = getPlatform();
 	const arch = getArchitecture();
+	return `dotnet-${platform}-${arch}-${type}-${version}`;
+}
 
-	// Create deterministic string from all versions
-	const versionString = [
-		...versions.sdk.map((v) => `sdk:${v}`),
-		...versions.runtime.map((v) => `runtime:${v}`),
-		...versions.aspnetcore.map((v) => `aspnetcore:${v}`),
-	]
-		.sort((a, b) => a.localeCompare(b))
-		.join(',');
-
-	// Generate hash from version string
-	const hash = crypto.createHash('sha256').update(versionString).digest('hex');
-
-	// Use first 12 characters of hash for readability
-	const shortHash = hash.substring(0, 12);
-
-	return `dotnet-${platform}-${arch}-${shortHash}`;
+export interface VersionCacheResult {
+	version: string;
+	type: DotnetType;
+	restored: boolean;
 }
 
 /**
- * Try to restore .NET installation from cache
- * Returns true if cache was restored, false otherwise
+ * Try to restore a single .NET version from cache
+ * @returns Object with version, type, and whether it was restored
  */
-export async function restoreCache(cacheKey: string): Promise<boolean> {
-	const installDir = getDotNetInstallDirectory();
+export async function restoreVersionCache(
+	version: string,
+	type: DotnetType,
+	targetPath: string,
+): Promise<VersionCacheResult> {
+	const cacheKey = generateVersionCacheKey(version, type);
 
 	try {
-		const restoredKey = await cache.restoreCache([installDir], cacheKey);
+		core.debug(`Restoring cache: ${cacheKey} -> ${targetPath}`);
+		const restoredKey = await cache.restoreCache([targetPath], cacheKey);
 
 		if (restoredKey) {
-			return true;
+			core.debug(`Cache restored: ${cacheKey}`);
+			return { version, type, restored: true };
 		}
 
-		core.debug('Cache not found');
-		return false;
+		core.debug(`Cache not found: ${cacheKey}`);
+		return { version, type, restored: false };
 	} catch (error) {
-		const errorMsg = error instanceof Error ? error.message : String(error);
-		core.warning(`Cache restore failed: ${errorMsg}`);
-		return false;
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		core.warning(
+			`Cache restore failed for ${type} ${version}: ${errorMessage}`,
+		);
+		return { version, type, restored: false };
 	}
 }
 
 /**
- * Save .NET installation to cache
+ * Restore multiple .NET versions from cache in parallel
+ * @returns Array of results indicating which versions were restored
  */
-export async function saveCache(cacheKey: string): Promise<void> {
-	const platform = getPlatform();
+export async function restoreVersionCaches(
+	versions: Array<{ version: string; type: DotnetType; targetPath: string }>,
+): Promise<VersionCacheResult[]> {
+	const restorePromises = versions.map((v) =>
+		restoreVersionCache(v.version, v.type, v.targetPath),
+	);
+	return Promise.all(restorePromises);
+}
 
-	// Temporarily disable cache save on Windows
-	if (platform === 'win') {
-		core.info(
-			'Cache save is disabled on Windows. Checkout https://github.com/fast-actions/setup-dotnet/issues/28 for more details.',
-		);
-		return;
-	}
+/**
+ * Save a single .NET version to cache
+ */
+export async function saveVersionCache(
+	version: string,
+	type: DotnetType,
+	sourcePath: string,
+): Promise<void> {
+	const cacheKey = generateVersionCacheKey(version, type);
 
-	const installDir = getDotNetInstallDirectory();
-
-	core.debug(`Saving cache: ${cacheKey}`);
-	core.debug(`Cache path: ${installDir}`);
+	core.debug(`Saving cache: ${cacheKey} <- ${sourcePath}`);
 
 	try {
-		await cache.saveCache([installDir], cacheKey);
+		await cache.saveCache([sourcePath], cacheKey);
+		core.debug(`Cache saved: ${cacheKey}`);
 	} catch (error) {
-		const errorMsg = error instanceof Error ? error.message : String(error);
+		const errorMessage = error instanceof Error ? error.message : String(error);
 
 		// Cache save failures are not critical - log as warning
-		if (errorMsg.includes('ReserveCacheError')) {
-			core.warning('Cache already exists for this key');
+		if (errorMessage.includes('ReserveCacheError')) {
+			core.debug(`Cache already exists: ${cacheKey}`);
 		} else {
-			core.warning(`Failed to save cache: ${errorMsg}`);
+			core.warning(
+				`Failed to save cache for ${type} ${version}: ${errorMessage}`,
+			);
 		}
 	}
 }
 
 /**
- * Check if a cache entry exists for the given key without restoring it
+ * Check if a cache entry exists for a specific version without restoring it
  */
-export async function cacheExists(cacheKey: string): Promise<boolean> {
+export async function versionCacheExists(
+	version: string,
+	type: DotnetType,
+): Promise<boolean> {
+	const cacheKey = generateVersionCacheKey(version, type);
+	// Use a dummy path for lookup-only check
+	const dummyPath = `/tmp/dotnet-cache-check-${Date.now()}`;
+
 	try {
 		core.debug(`Checking if cache exists: ${cacheKey}`);
-		const installDir = getDotNetInstallDirectory();
 		const restoredKey = await cache.restoreCache(
-			[installDir],
+			[dummyPath],
 			cacheKey,
 			undefined,
 			{
@@ -109,8 +118,31 @@ export async function cacheExists(cacheKey: string): Promise<boolean> {
 		);
 		return restoredKey !== undefined;
 	} catch (error) {
-		const errorMsg = error instanceof Error ? error.message : String(error);
-		core.warning(`Error checking cache existence: ${errorMsg}`);
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		core.debug(`Error checking cache existence: ${errorMessage}`);
 		return false;
 	}
+}
+
+export type CacheHitStatus = 'true' | 'false' | 'partial';
+
+/**
+ * Determine cache hit status from restore results
+ */
+export function getCacheHitStatus(
+	results: VersionCacheResult[],
+): CacheHitStatus {
+	if (results.length === 0) {
+		return 'false';
+	}
+
+	const restoredCount = results.filter((r) => r.restored).length;
+
+	if (restoredCount === results.length) {
+		return 'true';
+	}
+	if (restoredCount > 0) {
+		return 'partial';
+	}
+	return 'false';
 }
