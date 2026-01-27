@@ -165,11 +165,15 @@ export function getDotNetInstallDirectory(): string {
 
 /**
  * Get cache path for a specific version (used for per-version caching)
- * Format: $RUNNER_TOOL_CACHE/dotnet-versions/{type}/{version}
+ * Uses RUNNER_TEMP instead of TOOL_CACHE because @actions/cache needs access to the path
+ * Format: $RUNNER_TEMP/dotnet-cache/{type}/{version}
  */
 function getVersionCachePath(version: string, type: DotnetType): string {
-	const toolCacheDir = getToolCacheDirectory();
-	return path.join(toolCacheDir, 'dotnet-versions', type, version);
+	const runnerTemp = process.env.RUNNER_TEMP;
+	if (!runnerTemp) {
+		throw new Error('RUNNER_TEMP environment variable is not set.');
+	}
+	return path.join(runnerTemp, 'dotnet-cache', type, version);
 }
 
 /**
