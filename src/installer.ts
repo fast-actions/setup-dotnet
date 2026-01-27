@@ -277,7 +277,7 @@ export async function installDotNet(
 			versionCachePath,
 		);
 		if (cacheResult.restored) {
-			core.info(
+			core.debug(
 				`${prefix} Restored from GitHub Actions cache: ${versionCachePath}`,
 			);
 			validateExtractedBinary(versionCachePath, platform);
