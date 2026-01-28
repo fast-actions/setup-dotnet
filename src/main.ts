@@ -217,42 +217,59 @@ async function executeInstallPlan(
 	const prepared = await Promise.all(prepareTasks);
 	core.debug(`Phase 1 complete: ${prepared.length} installations prepared`);
 
-	// Phase 2: Sequential copy by type to avoid file locking
+	// Phase 2: Copy prepared installations into shared install directory.
+	// Windows stays sequential to avoid file locking issues.
 	const installDir = getDotNetInstallDirectory();
-	const results: InstallationResult[] = [];
+	const platform = getPlatform();
 
-	// Copy SDKs first
-	const sdks = prepared.filter((p) => p.type === 'sdk');
-	if (sdks.length > 0) {
-		core.debug(`Phase 2: Copying ${sdks.length} SDK(s) sequentially...`);
-		for (const prep of sdks) {
-			const result = await copyInstallation(prep, installDir);
-			results.push(result);
+	let results: InstallationResult[];
+	if (platform === 'win') {
+		// Sequential copy by type to avoid file locking
+		const sequentialResults: InstallationResult[] = [];
+
+		// Copy SDKs first
+		const sdks = prepared.filter((p) => p.type === 'sdk');
+		if (sdks.length > 0) {
+			core.debug(`Phase 2: Copying ${sdks.length} SDK(s) sequentially...`);
+			for (const prep of sdks) {
+				const result = await copyInstallation(prep, installDir);
+				sequentialResults.push(result);
+			}
 		}
-	}
 
-	// Copy ASP.NET Core runtimes second
-	const aspnetcores = prepared.filter((p) => p.type === 'aspnetcore');
-	if (aspnetcores.length > 0) {
+		// Copy ASP.NET Core runtimes second
+		const aspnetcores = prepared.filter((p) => p.type === 'aspnetcore');
+		if (aspnetcores.length > 0) {
+			core.debug(
+				`Phase 2: Copying ${aspnetcores.length} ASP.NET Core runtime(s) sequentially...`,
+			);
+			for (const prep of aspnetcores) {
+				const result = await copyInstallation(prep, installDir);
+				sequentialResults.push(result);
+			}
+		}
+
+		// Copy runtimes last
+		const runtimes = prepared.filter((p) => p.type === 'runtime');
+		if (runtimes.length > 0) {
+			core.debug(
+				`Phase 2: Copying ${runtimes.length} runtime(s) sequentially...`,
+			);
+			for (const prep of runtimes) {
+				const result = await copyInstallation(prep, installDir);
+				sequentialResults.push(result);
+			}
+		}
+
+		results = sequentialResults;
+	} else {
 		core.debug(
-			`Phase 2: Copying ${aspnetcores.length} ASP.NET Core runtime(s) sequentially...`,
+			`Phase 2: Copying ${prepared.length} installation(s) in parallel (non-Windows)...`,
 		);
-		for (const prep of aspnetcores) {
-			const result = await copyInstallation(prep, installDir);
-			results.push(result);
-		}
-	}
-
-	// Copy runtimes last
-	const runtimes = prepared.filter((p) => p.type === 'runtime');
-	if (runtimes.length > 0) {
-		core.debug(
-			`Phase 2: Copying ${runtimes.length} runtime(s) sequentially...`,
+		const copyTasks = prepared.map((prep) =>
+			copyInstallation(prep, installDir),
 		);
-		for (const prep of runtimes) {
-			const result = await copyInstallation(prep, installDir);
-			results.push(result);
-		}
+		results = await Promise.all(copyTasks);
 	}
 
 	// Check if we need dotnet binary (no SDK installed)
@@ -262,7 +279,6 @@ async function executeInstallPlan(
 			(p) => p.type === 'runtime' || p.type === 'aspnetcore',
 		);
 		if (firstRuntime && !firstRuntime.alreadyInstalled) {
-			const platform = getPlatform();
 			const prefix = `[${firstRuntime.type.toUpperCase()}]`;
 			core.debug(
 				`No SDK found, copying dotnet binary from ${firstRuntime.type}...`,
