@@ -30,11 +30,11 @@
 		"validate": "pnpm format && pnpm lint && pnpm knip && pnpm build && pnpm test"
 	},
 	"dependencies": {
-		"@actions/cache": "5.0.3",
-		"@actions/core": "2.0.2",
+		"@actions/cache": "5.0.5",
+		"@actions/core": "2.0.3",
 		"@actions/exec": "2.0.0",
 		"@actions/io": "2.0.0",
-		"@actions/tool-cache": "3.0.0",
+		"@actions/tool-cache": "3.0.1",
 		"jsonc-parser": "3.3.1"
 	},
 	"devDependencies": {
