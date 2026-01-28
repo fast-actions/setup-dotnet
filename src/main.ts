@@ -292,6 +292,9 @@ async function executeInstallPlan(
 		}
 	}
 
+	// Configure environment once per run (PATH + DOTNET_ROOT).
+	configureEnvironment(installDir);
+
 	const installDuration = ((Date.now() - installStartTime) / 1000).toFixed(2);
 	core.info(`✅ Installation complete in ${installDuration}s`);
 

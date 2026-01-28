@@ -395,9 +395,8 @@ export async function copyInstallation(
 		prepared;
 	const prefix = `[${type.toUpperCase()}]`;
 
-	// If already installed, just configure environment and return
+	// If already installed, nothing to copy.
 	if (alreadyInstalled) {
-		configureEnvironment(installDir);
 		return {
 			version,
 			type,
@@ -414,8 +413,6 @@ export async function copyInstallation(
 		// For runtime and aspnetcore, only copy host and shared folders
 		await copyRuntimeToInstallDir(extractedPath, installDir, prefix);
 	}
-
-	configureEnvironment(installDir);
 
 	return {
 		version,
