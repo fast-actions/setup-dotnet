@@ -81,37 +81,24 @@ function setActionOutputs(
 async function areAllVersionsInstalled(
 	deduplicated: VersionSet,
 ): Promise<boolean> {
-	// First check installation directory if it exists
 	const installDir = getDotNetInstallDirectory();
 	const platform = getPlatform();
 	const dotnetBinary = platform === 'win' ? 'dotnet.exe' : 'dotnet';
 	const dotnetPath = path.join(installDir, dotnetBinary);
 
-	let installed: Awaited<ReturnType<typeof getInstalledVersions>>;
+	const installed = fs.existsSync(dotnetPath)
+		? await getInstalledVersions(dotnetPath)
+		: await getInstalledVersions();
 
-	if (fs.existsSync(dotnetPath)) {
-		// Check installation directory first
-		core.debug(`Checking installation directory: ${installDir}`);
-		installed = await getInstalledVersions(dotnetPath);
-	} else {
-		// Fall back to system dotnet
-		core.debug('Installation directory not found, checking system dotnet');
-		installed = await getInstalledVersions();
-	}
-
-	const allSdkInstalled = deduplicated.sdk.every((version) =>
-		isVersionInstalled(version, 'sdk', installed),
+	return (
+		deduplicated.sdk.every((v) => isVersionInstalled(v, 'sdk', installed)) &&
+		deduplicated.runtime.every((v) =>
+			isVersionInstalled(v, 'runtime', installed),
+		) &&
+		deduplicated.aspnetcore.every((v) =>
+			isVersionInstalled(v, 'aspnetcore', installed),
+		)
 	);
-
-	const allRuntimeInstalled = deduplicated.runtime.every((version) =>
-		isVersionInstalled(version, 'runtime', installed),
-	);
-
-	const allAspnetcoreInstalled = deduplicated.aspnetcore.every((version) =>
-		isVersionInstalled(version, 'aspnetcore', installed),
-	);
-
-	return allSdkInstalled && allRuntimeInstalled && allAspnetcoreInstalled;
 }
 
 function readInputs(): ActionInputs {
@@ -132,9 +119,8 @@ async function resolveSdkVersions(inputs: ActionInputs): Promise<VersionInfo> {
 	}
 
 	const globalJsonPath = inputs.globalJsonInput || getDefaultGlobalJsonPath();
-	core.debug(`Looking for global.json at: ${globalJsonPath}`);
-
 	const globalJsonInfo = await readGlobalJson(globalJsonPath);
+
 	if (globalJsonInfo) {
 		core.info(`Using SDK version from global.json: ${globalJsonInfo.version}`);
 		return {
@@ -196,107 +182,125 @@ function buildInstallPlan(deduplicated: VersionSet): InstallPlanItem[] {
 	return plan;
 }
 
-async function executeInstallPlan(
+interface PreparedInstallation {
+	version: string;
+	type: DotnetType;
+	extractedPath: string;
+	alreadyInstalled: boolean;
+	cacheHit: boolean;
+	source: InstallSource;
+}
+
+async function prepareAllInstallations(
 	plan: InstallPlanItem[],
 	cacheEnabled: boolean,
-): Promise<InstallationResult[]> {
-	const installStartTime = Date.now();
-
-	// Phase 1: Parallel download/extract for ALL versions
-	core.debug(
-		'Phase 1: Preparing installations (download/extract) in parallel...',
-	);
-	const prepareTasks = plan.map((item) =>
+): Promise<PreparedInstallation[]> {
+	const tasks = plan.map((item) =>
 		prepareInstallation({
 			version: item.version,
 			type: item.type,
 			cacheEnabled,
 		}),
 	);
+	return Promise.all(tasks);
+}
 
-	const prepared = await Promise.all(prepareTasks);
-	core.debug(`Phase 1 complete: ${prepared.length} installations prepared`);
+async function copyInstallationsSequentially(
+	prepared: PreparedInstallation[],
+	installDir: string,
+	type: DotnetType,
+): Promise<InstallationResult[]> {
+	const filtered = prepared.filter((p) => p.type === type);
+	const results: InstallationResult[] = [];
 
-	// Phase 2: Copy prepared installations into shared install directory.
-	// Windows stays sequential to avoid file locking issues.
-	const installDir = getDotNetInstallDirectory();
+	for (const prep of filtered) {
+		const result = await copyInstallation(prep, installDir);
+		results.push(result);
+	}
+
+	return results;
+}
+
+async function copyWindowsInstallations(
+	prepared: PreparedInstallation[],
+	installDir: string,
+): Promise<InstallationResult[]> {
+	const sdkResults = await copyInstallationsSequentially(
+		prepared,
+		installDir,
+		'sdk',
+	);
+	const aspnetcoreResults = await copyInstallationsSequentially(
+		prepared,
+		installDir,
+		'aspnetcore',
+	);
+	const runtimeResults = await copyInstallationsSequentially(
+		prepared,
+		installDir,
+		'runtime',
+	);
+
+	return [...sdkResults, ...aspnetcoreResults, ...runtimeResults];
+}
+
+async function copyNonWindowsInstallations(
+	prepared: PreparedInstallation[],
+	installDir: string,
+): Promise<InstallationResult[]> {
+	const tasks = prepared.map((prep) => copyInstallation(prep, installDir));
+	return Promise.all(tasks);
+}
+
+async function copyInstallationsToDirectory(
+	prepared: PreparedInstallation[],
+	installDir: string,
+): Promise<InstallationResult[]> {
 	const platform = getPlatform();
 
-	let results: InstallationResult[];
-	if (platform === 'win') {
-		// Sequential copy by type to avoid file locking
-		const sequentialResults: InstallationResult[] = [];
+	return platform === 'win'
+		? copyWindowsInstallations(prepared, installDir)
+		: copyNonWindowsInstallations(prepared, installDir);
+}
 
-		// Copy SDKs first
-		const sdks = prepared.filter((p) => p.type === 'sdk');
-		if (sdks.length > 0) {
-			core.debug(`Phase 2: Copying ${sdks.length} SDK(s) sequentially...`);
-			for (const prep of sdks) {
-				const result = await copyInstallation(prep, installDir);
-				sequentialResults.push(result);
-			}
-		}
-
-		// Copy ASP.NET Core runtimes second
-		const aspnetcores = prepared.filter((p) => p.type === 'aspnetcore');
-		if (aspnetcores.length > 0) {
-			core.debug(
-				`Phase 2: Copying ${aspnetcores.length} ASP.NET Core runtime(s) sequentially...`,
-			);
-			for (const prep of aspnetcores) {
-				const result = await copyInstallation(prep, installDir);
-				sequentialResults.push(result);
-			}
-		}
-
-		// Copy runtimes last
-		const runtimes = prepared.filter((p) => p.type === 'runtime');
-		if (runtimes.length > 0) {
-			core.debug(
-				`Phase 2: Copying ${runtimes.length} runtime(s) sequentially...`,
-			);
-			for (const prep of runtimes) {
-				const result = await copyInstallation(prep, installDir);
-				sequentialResults.push(result);
-			}
-		}
-
-		results = sequentialResults;
-	} else {
-		core.debug(
-			`Phase 2: Copying ${prepared.length} installation(s) in parallel (non-Windows)...`,
-		);
-		const copyTasks = prepared.map((prep) =>
-			copyInstallation(prep, installDir),
-		);
-		results = await Promise.all(copyTasks);
-	}
-
-	// Check if we need dotnet binary (no SDK installed)
+async function ensureDotnetBinary(
+	prepared: PreparedInstallation[],
+	installDir: string,
+): Promise<void> {
 	const hasSdk = prepared.some((p) => p.type === 'sdk');
-	if (!hasSdk) {
-		const firstRuntime = prepared.find(
-			(p) => p.type === 'runtime' || p.type === 'aspnetcore',
-		);
-		if (firstRuntime && !firstRuntime.alreadyInstalled) {
-			const prefix = `[${firstRuntime.type.toUpperCase()}]`;
-			core.debug(
-				`No SDK found, copying dotnet binary from ${firstRuntime.type}...`,
-			);
-			await copyDotnetBinary(
-				firstRuntime.extractedPath,
-				installDir,
-				platform,
-				prefix,
-			);
-		}
-	}
+	if (hasSdk) return;
 
-	// Configure environment once per run (PATH + DOTNET_ROOT).
+	const firstRuntime = prepared.find(
+		(p) => p.type === 'runtime' || p.type === 'aspnetcore',
+	);
+
+	if (firstRuntime && !firstRuntime.alreadyInstalled) {
+		const platform = getPlatform();
+		const prefix = `[${firstRuntime.type.toUpperCase()}]`;
+		await copyDotnetBinary(
+			firstRuntime.extractedPath,
+			installDir,
+			platform,
+			prefix,
+		);
+	}
+}
+
+async function executeInstallPlan(
+	plan: InstallPlanItem[],
+	cacheEnabled: boolean,
+): Promise<InstallationResult[]> {
+	const startTime = Date.now();
+
+	const prepared = await prepareAllInstallations(plan, cacheEnabled);
+	const installDir = getDotNetInstallDirectory();
+	const results = await copyInstallationsToDirectory(prepared, installDir);
+
+	await ensureDotnetBinary(prepared, installDir);
 	configureEnvironment(installDir);
 
-	const installDuration = ((Date.now() - installStartTime) / 1000).toFixed(2);
-	core.info(`✅ Installation complete in ${installDuration}s`);
+	const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+	core.info(`✅ Installation complete in ${duration}s`);
 
 	return results;
 }
@@ -335,6 +339,47 @@ function formatVersion(type: DotnetType, version: string): string {
 	return `${typeLabel} ${version}`;
 }
 
+interface InstallationsBySource {
+	alreadyInstalled: InstallationResult[];
+	localCache: InstallationResult[];
+	githubCache: InstallationResult[];
+	downloaded: InstallationResult[];
+}
+
+function groupInstallationsBySource(
+	installations: InstallationResult[],
+): InstallationsBySource {
+	return {
+		alreadyInstalled: installations.filter(
+			(i) => i.source === 'installation-directory',
+		),
+		localCache: installations.filter((i) => i.source === 'local-cache'),
+		githubCache: installations.filter((i) => i.source === 'github-cache'),
+		downloaded: installations.filter((i) => i.source === 'download'),
+	};
+}
+
+function formatVersionsList(installations: InstallationResult[]): string {
+	return sortByType(installations)
+		.map((i) => formatVersion(i.type, i.version))
+		.join(' | ');
+}
+
+function logInstallationsBySource(grouped: InstallationsBySource): void {
+	const sources: Array<[string, InstallationResult[]]> = [
+		['Already installed', grouped.alreadyInstalled],
+		['Restored from local cache', grouped.localCache],
+		['Restored from GitHub Actions cache', grouped.githubCache],
+		['Downloaded', grouped.downloaded],
+	];
+
+	for (const [label, installations] of sources) {
+		if (installations.length > 0) {
+			core.info(`${label}: ${formatVersionsList(installations)}`);
+		}
+	}
+}
+
 function setOutputsFromInstallations(
 	installations: InstallationResult[],
 ): void {
@@ -346,46 +391,8 @@ function setOutputsFromInstallations(
 
 	setActionOutputs(versions, installDir, cacheHit);
 
-	// Group installations by source
-	const alreadyInstalled = installations.filter(
-		(i) => i.source === 'installation-directory',
-	);
-	const localCache = installations.filter((i) => i.source === 'local-cache');
-	const githubCache = installations.filter((i) => i.source === 'github-cache');
-	const downloaded = installations.filter((i) => i.source === 'download');
-
-	// Log in order: already installed, cached (local + github), downloaded
-	if (alreadyInstalled.length > 0) {
-		const sorted = sortByType(alreadyInstalled);
-		const versionsList = sorted
-			.map((i) => formatVersion(i.type, i.version))
-			.join(' | ');
-		core.info(`Already installed: ${versionsList}`);
-	}
-
-	if (localCache.length > 0) {
-		const sorted = sortByType(localCache);
-		const versionsList = sorted
-			.map((i) => formatVersion(i.type, i.version))
-			.join(' | ');
-		core.info(`Restored from local cache: ${versionsList}`);
-	}
-
-	if (githubCache.length > 0) {
-		const sorted = sortByType(githubCache);
-		const versionsList = sorted
-			.map((i) => formatVersion(i.type, i.version))
-			.join(' | ');
-		core.info(`Restored from GitHub Actions cache: ${versionsList}`);
-	}
-
-	if (downloaded.length > 0) {
-		const sorted = sortByType(downloaded);
-		const versionsList = sorted
-			.map((i) => formatVersion(i.type, i.version))
-			.join(' | ');
-		core.info(`Downloaded: ${versionsList}`);
-	}
+	const grouped = groupInstallationsBySource(installations);
+	logInstallationsBySource(grouped);
 }
 
 export async function run(): Promise<void> {
@@ -402,13 +409,11 @@ export async function run(): Promise<void> {
 			core.info(
 				'✅ All requested versions are already installed on the system',
 			);
-			// Still configure environment to ensure DOTNET_ROOT is set
 			const installDir = getDotNetInstallDirectory();
 			configureEnvironment(installDir);
 			return;
 		}
 
-		// At least one version is missing, so we install the required versions
 		core.info('At least one requested version is not installed on the system');
 
 		const plan = buildInstallPlan(deduplicated);
@@ -425,5 +430,4 @@ export async function run(): Promise<void> {
 	}
 }
 
-// Run the action
 await run();
