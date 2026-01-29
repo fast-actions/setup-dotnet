@@ -25,7 +25,7 @@ inputs:
     default: ''
 
   cache:
-    description: 'Enable caching of .NET installations to speed up subsequent runs. Set to false to disable the caching.'
+    description: 'Enable unified caching of .NET installations. Speeds up subsequent runs when the same versions are requested. Set to false to disable.'
     required: false
     default: 'true'
 
@@ -42,7 +42,7 @@ outputs:
     description: 'Path to the installed .NET directory'
 
   cache-hit:
-    description: 'Whether the .NET installation was restored from cache (true/false)'
+    description: 'Whether all requested versions were restored from the unified cache (true) or any were downloaded (false)'
 
 runs:
   using: 'node24'

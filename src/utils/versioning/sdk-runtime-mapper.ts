@@ -1,9 +1,6 @@
 import * as core from '@actions/core';
 import { fetchReleaseManifest } from './release-cache';
 
-/**
- * Get the runtime and aspnetcore versions included in an SDK
- */
 export async function getSdkIncludedVersions(sdkVersion: string): Promise<{
 	runtime: string | null;
 	aspnetcore: string | null;

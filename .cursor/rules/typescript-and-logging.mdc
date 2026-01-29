@@ -11,7 +11,12 @@ alwaysApply: false
 - **Tabs** (not spaces), **single quotes**, LF line endings
 - **Variable names must be written out in full** – no abbreviations: `versionNumber` not `versionNum`, `installationDirectory` not `instDir`, `platform` not `plat`
 - **Never use `any` or `unknown`** – always provide explicit types
-- **Avoid over-commenting** – code should be self-explanatory; comments only for "why", not "what"
+- **Avoid over-commenting** – code should be self-explanatory
+- **No JSDoc comments** – remove `/** ... */` blocks that only describe what functions do
+- **No @param/@returns tags** – parameter and return value descriptions are unnecessary
+- **No comments that repeat function names** – if the comment just restates the function name, remove it
+- **Keep concise comments for "why"** – short, crisp comments explaining non-obvious context or important decisions are OK
+- **Format descriptions are OK** – brief format examples for parsing functions are acceptable
 - Keep functions focused and single-purpose; prefer early returns over nested conditions
 - Biome organizes imports on save
 

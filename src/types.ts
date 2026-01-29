@@ -33,3 +33,8 @@ export interface Release {
 export interface ReleaseManifest {
 	releases: Release[];
 }
+
+export type InstallSource =
+	| 'installation-directory'
+	| 'github-cache'
+	| 'download';

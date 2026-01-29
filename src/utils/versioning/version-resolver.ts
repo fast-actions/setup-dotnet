@@ -13,16 +13,10 @@ interface ReleaseInfo {
 
 let cachedReleases: ReleaseInfo[] | null = null;
 
-/**
- * Reset the cached releases (for testing purposes)
- */
 export function resetCache(): void {
 	cachedReleases = null;
 }
 
-/**
- * Set cached releases directly (for testing purposes)
- */
 export function setCachedReleases(releases: ReleaseInfo[]): void {
 	cachedReleases = releases;
 }
@@ -36,10 +30,6 @@ function getCachedReleasesOrThrow(): ReleaseInfo[] {
 	return cachedReleases;
 }
 
-/**
- * Initialize the releases cache by fetching from .NET releases API
- * Should be called once at the start before any resolveVersion calls
- */
 export async function fetchAndCacheReleaseInfo(): Promise<void> {
 	if (cachedReleases) {
 		return;
@@ -72,10 +62,7 @@ export async function fetchAndCacheReleaseInfo(): Promise<void> {
 	cachedReleases = releases;
 }
 
-/**
- * Format type label for display in logs
- */
-function formatTypeLabel(type: DotnetType): string {
+export function formatTypeLabel(type: DotnetType): string {
 	switch (type) {
 		case 'sdk':
 			return 'SDK';
@@ -86,10 +73,7 @@ function formatTypeLabel(type: DotnetType): string {
 	}
 }
 
-/**
- * Normalize version pattern to 3-part format
- * Examples: 10.x -> 10.x.x, 10.0 -> 10.0.x
- */
+// Examples: 10.x -> 10.x.x, 10.0 -> 10.0.x
 function normalizeVersionPattern(version: string): string {
 	const parts = version.split('.');
 	while (parts.length < 3) {
@@ -98,10 +82,6 @@ function normalizeVersionPattern(version: string): string {
 	return parts.join('.');
 }
 
-/**
- * Resolve wildcard versions (10.x, 10.x.x), 'lts', or 'sts' to concrete versions
- * Cache must be initialized with initializeCache() before calling this function
- */
 export function resolveVersion(
 	version: string,
 	type: DotnetType,
@@ -151,10 +131,6 @@ export function resolveVersion(
 	return resolved;
 }
 
-/**
- * Resolve LATEST to the newest available version within provided releases
- * Excludes preview releases (support-phase: 'preview') unless allowPreview is true
- */
 function resolveLatestFromReleases(
 	releases: ReleaseInfo[],
 	type: DotnetType,
@@ -182,10 +158,6 @@ function resolveLatestFromReleases(
 	};
 }
 
-/**
- * Resolve LTS or STS to the latest version of that support tier within provided releases
- * Excludes preview releases (support-phase: 'preview') unless allowPreview is true
- */
 function resolveSupportTierFromReleases(
 	releases: ReleaseInfo[],
 	tier: 'lts' | 'sts',
@@ -215,9 +187,6 @@ function resolveSupportTierFromReleases(
 	};
 }
 
-/**
- * Resolves a version pattern (e.g., 10.x, 10.0.x)
- */
 function resolveVersionPatternFromReleases(
 	releases: ReleaseInfo[],
 	version: string,
@@ -256,9 +225,6 @@ function pickVersion(
 		: release['latest-release'];
 }
 
-/**
- * Compare two semantic versions
- */
 export function compareVersions(a: string, b: string): number {
 	const aParts = a.split('.').map(Number);
 	const bParts = b.split('.').map(Number);

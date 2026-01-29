@@ -220,19 +220,17 @@ Caching is enabled by default and dramatically speeds up subsequent workflow run
 
 ### How Caching Works
 
-1. **Version Resolution:** Wildcards and keywords are resolved to concrete versions (e.g., `9.x.x` → `9.0.105`)
-2. **Cache Key Generation:** Cache key is created from platform, architecture, and **resolved versions**
-3. **Cache Check:** If a matching cache exists, .NET is restored
-4. **Fresh Download:** If no cache or version changed, .NET is downloaded and cached
+The action uses a **unified cache**: one GitHub Actions cache entry per run, keyed by platform, architecture, and a hash of all resolved versions.
 
-**Important:** The cache key uses the **resolved version**, not the input pattern. If you specify `10.x.x` and a new patch `10.0.106` is released, the action will:
+**Installation flow:**
 
-- Resolve `10.x.x` → `10.0.106` (new version)
-- Generate new cache key for `10.0.106`
-- Miss the old cache (was for `10.0.105`)
-- Download and cache `10.0.106`
+1. **Version resolution:** Wildcards and keywords are resolved to concrete versions (e.g., `9.x.x` → `9.0.105`).
+2. **Cache key:** A single key is generated from platform, architecture, and a hash of all resolved versions (e.g., `dotnet-linux-x64-a1b2c3d4`).
+3. **Restore unified cache (if enabled):** The `dotnet-cache` directory is restored from GitHub Actions cache. It contains extracted archives per version (`sdk/8.0.100/`, `runtime/8.0.0/`, etc.).
+4. **Per-version install:** For each requested version, the action checks the installation directory, then the restored cache; if missing, it downloads and extracts into the cache, then copies into the installation directory.
+5. **Save unified cache (if enabled):** The `dotnet-cache` directory is saved to GitHub Actions cache for future runs.
 
-This ensures you always get the latest matching version without stale caches.
+**Important:** The cache key uses **all resolved versions** in one hash. Same set of versions → same key → cache hit. If you add a version or one resolves differently (e.g. `10.x` → `10.0.106` instead of `10.0.105`), the key changes and the action will download and cache the new set. There is no partial cache hit: either all requested versions are served from cache (`cache-hit: true`) or not (`cache-hit: false`).
 
 ### Cache Example
 
@@ -255,6 +253,11 @@ For scenarios where you always want fresh downloads:
 ```
 
 ### Check Cache Hit
+
+The `cache-hit` output is:
+
+- `true` – all requested versions were restored from the unified cache
+- `false` – at least one version was downloaded (cache miss or cache disabled)
 
 ```yaml
 - uses: fast-actions/setup-dotnet@v1

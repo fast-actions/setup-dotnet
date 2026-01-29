@@ -1,8 +1,5 @@
 import * as os from 'node:os';
 
-/**
- * Get platform identifier for .NET downloads
- */
 export function getPlatform(): string {
 	const platform = os.platform();
 	switch (platform) {
@@ -17,9 +14,6 @@ export function getPlatform(): string {
 	}
 }
 
-/**
- * Get architecture identifier for .NET downloads
- */
 export function getArchitecture(): string {
 	const arch = os.arch();
 	switch (arch) {

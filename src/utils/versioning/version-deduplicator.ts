@@ -3,10 +3,7 @@ import type { VersionSet, VersionSetWithPrerelease } from '../../types';
 import { getSdkIncludedVersions } from './sdk-runtime-mapper';
 import { resolveVersion } from './version-resolver';
 
-/**
- * Remove redundant versions based on .NET hierarchy:
- * SDK > ASP.NET Core Runtime > .NET Runtime
- */
+// Remove redundant versions based on .NET hierarchy: SDK > ASP.NET Core Runtime > .NET Runtime
 export async function deduplicateVersions(
 	versions: VersionSetWithPrerelease,
 ): Promise<VersionSet> {
@@ -100,9 +97,6 @@ export async function deduplicateVersions(
 	};
 }
 
-/**
- * Remove duplicate resolved versions within same type
- */
 function removeDuplicatesWithinType(
 	versions: Array<{ original: string; resolved: string }>,
 	type: string,

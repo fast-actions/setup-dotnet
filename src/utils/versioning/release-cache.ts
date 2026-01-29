@@ -4,10 +4,7 @@ import type { ReleaseManifest } from '../../types';
 // Cache for releases.json API responses (promise-based for parallel-safe access)
 const releasesCache = new Map<string, Promise<ReleaseManifest>>();
 
-/**
- * Fetch releases.json for a specific version channel
- * Uses promise-based caching to prevent concurrent duplicate requests
- */
+// Uses promise-based caching to prevent concurrent duplicate requests
 export async function fetchReleaseManifest(
 	version: string,
 ): Promise<ReleaseManifest> {
@@ -55,9 +52,6 @@ export async function fetchReleaseManifest(
 	return fetchPromise;
 }
 
-/**
- * Clear the release cache (for testing purposes)
- */
 export function clearReleaseCache(): void {
 	releasesCache.clear();
 }

@@ -16,9 +16,6 @@ export interface SdkInfo {
 	allowPrerelease: boolean;
 }
 
-/**
- * Read and parse global.json file
- */
 export async function readGlobalJson(
 	filePath: string,
 ): Promise<SdkInfo | null> {
@@ -97,16 +94,11 @@ export async function readGlobalJson(
 	}
 }
 
-/**
- * Apply rollForward policy to SDK version
- *
- * In official .NET SDK behavior, rollForward policies select from installed SDKs.
- * In our GitHub Action context, we're downloading SDKs, so we transform the version
- * into a wildcard pattern that our version-resolver can use to find the latest matching version.
- *
- * This approach is semantically equivalent for CI/CD: instead of "pick from installed",
- * we "download the latest matching".
- */
+// In official .NET SDK behavior, rollForward policies select from installed SDKs.
+// In our GitHub Action context, we're downloading SDKs, so we transform the version
+// into a wildcard pattern that our version-resolver can use to find the latest matching version.
+// This approach is semantically equivalent for CI/CD: instead of "pick from installed",
+// we "download the latest matching".
 function applyRollForward(version: string, rollForward?: string): string {
 	// Default behavior (no rollForward specified) or explicit disable: use exact version
 	if (!rollForward || rollForward === 'disable') {
@@ -158,9 +150,6 @@ function applyRollForward(version: string, rollForward?: string): string {
 	}
 }
 
-/**
- * Get the default global.json path in the workspace
- */
 export function getDefaultGlobalJsonPath(): string {
 	const workspaceRoot = process.env.GITHUB_WORKSPACE || process.cwd();
 	return path.join(workspaceRoot, 'global.json');

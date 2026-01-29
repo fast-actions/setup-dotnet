@@ -58,8 +58,10 @@ Parallel downloads, automatic caching, and smart version resolution.
 ## Caching
 
 - Enabled by default (`cache: true`)
-- Cache keys include OS + architecture + _resolved_ versions (not the input patterns)
-- If `10.x` resolves to a newer patch later, the cache key changes and the action downloads the newer version
+- **Unified cache**: One GitHub Actions cache entry per run, keyed by platform, architecture, and a hash of all _resolved_ versions
+- Installation directory is checked first; if versions are missing, the unified cache is restored (if present), then each version is installed from cache or downloaded
+- Cache key uses resolved versions (not input patterns): if `10.x` resolves to a newer patch later, the key changes and the action downloads the new set
+- `cache-hit` is `true` when all requested versions came from cache, `false` otherwise
 
 ## Performance
 
@@ -93,11 +95,11 @@ Check out the [Migration Guide](https://github.com/fast-actions/setup-dotnet/blo
 
 ## Outputs
 
-| Output           | Description                                                   |
-| ---------------- | ------------------------------------------------------------- |
-| `dotnet-version` | Installed .NET versions (e.g., `sdk:9.0.100, runtime:8.0.0`)  |
-| `dotnet-path`    | Path to .NET installation directory                           |
-| `cache-hit`      | Whether installation was restored from cache (`true`/`false`) |
+| Output           | Description                                                                                       |
+| ---------------- | ------------------------------------------------------------------------------------------------- |
+| `dotnet-version` | Installed .NET versions (e.g., `sdk:9.0.100, runtime:8.0.0`)                                      |
+| `dotnet-path`    | Path to .NET installation directory                                                               |
+| `cache-hit`      | Whether all requested versions were restored from cache (`true`) or any were downloaded (`false`) |
 
 ## Motivation behind `fast-actions/setup-dotnet`
 

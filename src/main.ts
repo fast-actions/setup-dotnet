@@ -1,5 +1,15 @@
 import * as core from '@actions/core';
-import { getDotNetInstallDirectory, installDotNet } from './installer';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import {
+	configureEnvironment,
+	copyDotnetBinary,
+	getDotNetInstallDirectory,
+	installVersion,
+	isVersionInCache,
+	type InstallResult,
+} from './installer';
+import { getPlatform } from './utils/platform-utils';
 import type {
 	DotnetType,
 	VersionInfo,
@@ -7,10 +17,9 @@ import type {
 	VersionSetWithPrerelease,
 } from './types';
 import {
-	cacheExists,
-	generateCacheKey,
-	restoreCache,
-	saveCache,
+	restoreUnifiedCache,
+	saveUnifiedCache,
+	type VersionEntry,
 } from './utils/cache-utils';
 import {
 	getInstalledVersions,
@@ -22,13 +31,10 @@ import {
 } from './utils/global-json-reader';
 import { parseVersions } from './utils/input-parser';
 import { deduplicateVersions } from './utils/versioning/version-deduplicator';
-import { fetchAndCacheReleaseInfo } from './utils/versioning/version-resolver';
-
-interface InstallationResult {
-	version: string;
-	type: DotnetType;
-	path: string;
-}
+import {
+	fetchAndCacheReleaseInfo,
+	formatTypeLabel,
+} from './utils/versioning/version-resolver';
 
 interface ActionInputs {
 	sdkInput: string;
@@ -39,14 +45,6 @@ interface ActionInputs {
 	allowPreview: boolean;
 }
 
-interface InstallPlanItem {
-	version: string;
-	type: DotnetType;
-}
-
-/**
- * Format version plan for display
- */
 function formatVersionPlan(deduplicated: VersionSet): string {
 	const parts: string[] = [];
 	if (deduplicated.sdk.length > 0) {
@@ -61,9 +59,6 @@ function formatVersionPlan(deduplicated: VersionSet): string {
 	return parts.join(' | ');
 }
 
-/**
- * Set GitHub Action outputs
- */
 function setActionOutputs(
 	versions: string,
 	installDir: string,
@@ -74,73 +69,35 @@ function setActionOutputs(
 	core.setOutput('cache-hit', cacheHit);
 }
 
-/**
- * Check if ALL requested versions are already installed on the system
- */
+interface AllVersionsInstalledResult {
+	allInstalled: boolean;
+	inToolCacheTarget?: boolean;
+}
+
 async function areAllVersionsInstalled(
 	deduplicated: VersionSet,
-): Promise<boolean> {
-	const installed = await getInstalledVersions();
+): Promise<AllVersionsInstalledResult> {
+	const installDir = getDotNetInstallDirectory();
+	const platform = getPlatform();
+	const dotnetBinary = platform === 'win' ? 'dotnet.exe' : 'dotnet';
+	const dotnetPath = path.join(installDir, dotnetBinary);
 
-	const allSdkInstalled = deduplicated.sdk.every((version) =>
-		isVersionInstalled(version, 'sdk', installed),
-	);
+	const inToolCacheTarget = fs.existsSync(dotnetPath);
+	const installed = inToolCacheTarget
+		? await getInstalledVersions(dotnetPath)
+		: await getInstalledVersions();
 
-	const allRuntimeInstalled = deduplicated.runtime.every((version) =>
-		isVersionInstalled(version, 'runtime', installed),
-	);
+	const allInstalled =
+		deduplicated.sdk.every((v) => isVersionInstalled(v, 'sdk', installed)) &&
+		deduplicated.runtime.every((v) =>
+			isVersionInstalled(v, 'runtime', installed),
+		) &&
+		deduplicated.aspnetcore.every((v) =>
+			isVersionInstalled(v, 'aspnetcore', installed),
+		);
 
-	const allAspnetcoreInstalled = deduplicated.aspnetcore.every((version) =>
-		isVersionInstalled(version, 'aspnetcore', installed),
-	);
-
-	return allSdkInstalled && allRuntimeInstalled && allAspnetcoreInstalled;
-}
-
-/**
- * Try to restore .NET installations from cache
- * @returns true if cache was restored successfully, false otherwise
- */
-async function tryRestoreFromCache(deduplicated: VersionSet): Promise<boolean> {
-	const cacheKey = generateCacheKey(deduplicated);
-	const cacheRestored = await restoreCache(cacheKey);
-
-	if (cacheRestored) {
-		const installDir = getDotNetInstallDirectory();
-
-		if (!process.env.PATH?.includes(installDir)) {
-			core.addPath(installDir);
-		}
-
-		core.exportVariable('DOTNET_ROOT', installDir);
-
-		const versions = [
-			...deduplicated.sdk.map((v) => `sdk:${v}`),
-			...deduplicated.runtime.map((v) => `runtime:${v}`),
-			...deduplicated.aspnetcore.map((v) => `aspnetcore:${v}`),
-		].join(', ');
-
-		setActionOutputs(versions, installDir, true);
-		core.info(`✅ Restored from cache: ${formatVersionPlan(deduplicated)}`);
-		return true;
-	}
-
-	return false;
-}
-
-/**
- * Save .NET installations to cache
- */
-async function tryToSaveCache(deduplicated: VersionSet): Promise<void> {
-	const cacheKey = generateCacheKey(deduplicated);
-
-	const alreadyCached = await cacheExists(cacheKey);
-	if (alreadyCached) {
-		core.debug(`Cache already exists: ${cacheKey}`);
-		return;
-	}
-
-	await saveCache(cacheKey);
+	if (!allInstalled) return { allInstalled: false };
+	return { allInstalled: true, inToolCacheTarget };
 }
 
 function readInputs(): ActionInputs {
@@ -161,9 +118,8 @@ async function resolveSdkVersions(inputs: ActionInputs): Promise<VersionInfo> {
 	}
 
 	const globalJsonPath = inputs.globalJsonInput || getDefaultGlobalJsonPath();
-	core.debug(`Looking for global.json at: ${globalJsonPath}`);
-
 	const globalJsonInfo = await readGlobalJson(globalJsonPath);
+
 	if (globalJsonInfo) {
 		core.info(`Using SDK version from global.json: ${globalJsonInfo.version}`);
 		return {
@@ -207,57 +163,198 @@ function ensureRequestedVersions(versionSet: VersionSetWithPrerelease): void {
 	}
 }
 
-function buildInstallPlan(deduplicated: VersionSet): InstallPlanItem[] {
-	const plan: InstallPlanItem[] = [];
+function buildVersionEntries(deduplicated: VersionSet): VersionEntry[] {
+	const entries: VersionEntry[] = [];
 
 	for (const version of deduplicated.sdk) {
-		plan.push({ version, type: 'sdk' });
+		entries.push({ version, type: 'sdk' });
 	}
 
 	for (const version of deduplicated.runtime) {
-		plan.push({ version, type: 'runtime' });
+		entries.push({ version, type: 'runtime' });
 	}
 
 	for (const version of deduplicated.aspnetcore) {
-		plan.push({ version, type: 'aspnetcore' });
+		entries.push({ version, type: 'aspnetcore' });
 	}
 
-	return plan;
+	return entries;
+}
+
+async function installVersionsSequentially(
+	entries: VersionEntry[],
+	type: DotnetType,
+): Promise<InstallResult[]> {
+	const filtered = entries.filter((e) => e.type === type);
+	const results: InstallResult[] = [];
+
+	for (const entry of filtered) {
+		const result = await installVersion(entry);
+		results.push(result);
+	}
+
+	return results;
+}
+
+async function installWindowsVersions(
+	entries: VersionEntry[],
+): Promise<InstallResult[]> {
+	const sdkResults = await installVersionsSequentially(entries, 'sdk');
+	const aspnetcoreResults = await installVersionsSequentially(
+		entries,
+		'aspnetcore',
+	);
+	const runtimeResults = await installVersionsSequentially(entries, 'runtime');
+
+	return [...sdkResults, ...aspnetcoreResults, ...runtimeResults];
+}
+
+async function installNonWindowsVersions(
+	entries: VersionEntry[],
+): Promise<InstallResult[]> {
+	const tasks = entries.map((entry) => installVersion(entry));
+	return Promise.all(tasks);
+}
+
+async function installAllVersions(
+	entries: VersionEntry[],
+): Promise<InstallResult[]> {
+	const platform = getPlatform();
+
+	return platform === 'win'
+		? installWindowsVersions(entries)
+		: installNonWindowsVersions(entries);
+}
+
+async function ensureDotnetBinary(results: InstallResult[]): Promise<void> {
+	const hasSdk = results.some((r) => r.type === 'sdk');
+	if (hasSdk) return;
+
+	const firstRuntimeFromCache = results.find(
+		(r) =>
+			(r.type === 'runtime' || r.type === 'aspnetcore') &&
+			r.source === 'github-cache' &&
+			isVersionInCache(r.version, r.type),
+	);
+
+	if (firstRuntimeFromCache) {
+		const platform = getPlatform();
+		const installDir = getDotNetInstallDirectory();
+		const prefix = `[${firstRuntimeFromCache.type.toUpperCase()}]`;
+		const cachePath = firstRuntimeFromCache.path;
+		await copyDotnetBinary(cachePath, installDir, platform, prefix);
+	}
 }
 
 async function executeInstallPlan(
-	plan: InstallPlanItem[],
-): Promise<InstallationResult[]> {
-	const installTasks = plan.map((item) =>
-		installDotNet({
-			version: item.version,
-			type: item.type,
-		}),
-	);
+	entries: VersionEntry[],
+	cacheEnabled: boolean,
+): Promise<InstallResult[]> {
+	const startTime = Date.now();
+	const platform = getPlatform();
 
-	const installStartTime = Date.now();
-	const installations = await Promise.all(installTasks);
-	const installDuration = ((Date.now() - installStartTime) / 1000).toFixed(2);
-	core.info(`✅ Installation complete in ${installDuration}s`);
+	let cacheRestored = false;
+	if (cacheEnabled) {
+		core.debug('Attempting to restore unified cache');
+		cacheRestored = await restoreUnifiedCache(entries);
+		if (cacheRestored) {
+			core.debug('Unified cache restored');
+		}
+	}
 
-	return installations;
+	const results = await installAllVersions(entries);
+
+	await ensureDotnetBinary(results);
+
+	const installDir = getDotNetInstallDirectory();
+	configureEnvironment(installDir);
+
+	if (cacheEnabled && !cacheRestored && platform !== 'win') {
+		core.debug('Saving unified cache');
+		await saveUnifiedCache(entries);
+	}
+
+	const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+	core.info(`✅ Installation complete in ${duration}s`);
+
+	return results;
 }
 
-function setOutputsFromInstallations(
-	installations: InstallationResult[],
-	cacheHit: boolean,
-): void {
-	const versions = installations
-		.map((i) => `${i.type}:${i.version}`)
-		.join(', ');
-	const paths = installations.map((i) => i.path).join(':');
+function getCacheHitStatusFromResults(results: InstallResult[]): boolean {
+	if (results.length === 0) {
+		return false;
+	}
 
-	setActionOutputs(versions, paths, cacheHit);
+	const githubCacheCount = results.filter(
+		(r) => r.source === 'github-cache',
+	).length;
+
+	return githubCacheCount === results.length;
 }
 
-/**
- * Main entry point for the GitHub Action
- */
+function sortByType(results: InstallResult[]): InstallResult[] {
+	const typeOrder: Record<DotnetType, number> = {
+		sdk: 0,
+		runtime: 1,
+		aspnetcore: 2,
+	};
+	return [...results].sort((a, b) => typeOrder[a.type] - typeOrder[b.type]);
+}
+
+function formatVersion(type: DotnetType, version: string): string {
+	const typeLabel = formatTypeLabel(type);
+	return `${typeLabel} ${version}`;
+}
+
+interface InstallationsBySource {
+	alreadyInstalled: InstallResult[];
+	githubCache: InstallResult[];
+	downloaded: InstallResult[];
+}
+
+function groupInstallationsBySource(
+	results: InstallResult[],
+): InstallationsBySource {
+	return {
+		alreadyInstalled: results.filter(
+			(r) => r.source === 'installation-directory',
+		),
+		githubCache: results.filter((r) => r.source === 'github-cache'),
+		downloaded: results.filter((r) => r.source === 'download'),
+	};
+}
+
+function formatVersionsList(results: InstallResult[]): string {
+	return sortByType(results)
+		.map((r) => formatVersion(r.type, r.version))
+		.join(' | ');
+}
+
+function logInstallationsBySource(grouped: InstallationsBySource): void {
+	const sources: Array<[string, InstallResult[]]> = [
+		['Already installed', grouped.alreadyInstalled],
+		['Restored from cache', grouped.githubCache],
+		['Downloaded', grouped.downloaded],
+	];
+
+	for (const [label, results] of sources) {
+		if (results.length > 0) {
+			core.info(`${label}: ${formatVersionsList(results)}`);
+		}
+	}
+}
+
+function setOutputsFromInstallations(results: InstallResult[]): void {
+	const versions = results.map((r) => `${r.type}:${r.version}`).join(', ');
+	const installDir = getDotNetInstallDirectory();
+	const cacheHit = getCacheHitStatusFromResults(results);
+
+	setActionOutputs(versions, installDir, cacheHit);
+
+	const grouped = groupInstallationsBySource(results);
+	logInstallationsBySource(grouped);
+}
+
 export async function run(): Promise<void> {
 	try {
 		const inputs = readInputs();
@@ -268,30 +365,25 @@ export async function run(): Promise<void> {
 
 		const deduplicated = await deduplicateVersions(requestedVersions);
 
-		if (await areAllVersionsInstalled(deduplicated)) {
+		const allInstalledCheck = await areAllVersionsInstalled(deduplicated);
+		if (allInstalledCheck.allInstalled) {
 			core.info(
 				'✅ All requested versions are already installed on the system',
 			);
+			if (allInstalledCheck.inToolCacheTarget) {
+				configureEnvironment(getDotNetInstallDirectory());
+			}
 			return;
 		}
 
-		// At least one version is missing, so we install ALL versions ourselves
-		core.info('At least one requested version is not installed on the system');
-
-		// Try to restore from cache if enabled
-		if (inputs.cacheEnabled && (await tryRestoreFromCache(deduplicated))) {
-			return;
-		}
-
-		const plan = buildInstallPlan(deduplicated);
+		const versionEntries = buildVersionEntries(deduplicated);
 		core.info(`Installing: ${formatVersionPlan(deduplicated)}`);
-		const installations = await executeInstallPlan(plan);
 
-		// Save to cache if enabled
-		if (inputs.cacheEnabled) {
-			await tryToSaveCache(deduplicated);
-		}
-		setOutputsFromInstallations(installations, false);
+		const results = await executeInstallPlan(
+			versionEntries,
+			inputs.cacheEnabled,
+		);
+		setOutputsFromInstallations(results);
 	} catch (error) {
 		if (error instanceof Error) {
 			core.setFailed(error.message);
@@ -301,5 +393,4 @@ export async function run(): Promise<void> {
 	}
 }
 
-// Run the action
 await run();

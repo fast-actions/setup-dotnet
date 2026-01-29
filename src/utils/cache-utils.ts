@@ -1,116 +1,87 @@
 import * as cache from '@actions/cache';
 import * as core from '@actions/core';
+import * as io from '@actions/io';
 import * as crypto from 'node:crypto';
-import { getDotNetInstallDirectory } from '../installer';
+import * as path from 'node:path';
+import type { DotnetType } from '../types';
 import { getArchitecture, getPlatform } from './platform-utils';
 
-export interface CacheVersions {
-	sdk: string[];
-	runtime: string[];
-	aspnetcore: string[];
+export interface VersionEntry {
+	version: string;
+	type: DotnetType;
 }
 
-/**
- * Generate a cache key from resolved versions
- * Format: dotnet-{platform}-{arch}-{hash}
- */
-export function generateCacheKey(versions: CacheVersions): string {
+export function getDotnetCacheDirectory(): string {
+	const runnerTemp = process.env.RUNNER_TEMP;
+	if (!runnerTemp) {
+		throw new Error('RUNNER_TEMP environment variable is not set.');
+	}
+	return path.join(runnerTemp, 'dotnet-cache');
+}
+
+export function getVersionCachePath(version: string, type: DotnetType): string {
+	return path.join(getDotnetCacheDirectory(), type, version);
+}
+
+export function generateVersionsHash(versions: VersionEntry[]): string {
+	const sorted = [...versions].sort(
+		(a, b) =>
+			a.type.localeCompare(b.type) || a.version.localeCompare(b.version),
+	);
+	const data = sorted.map((v) => `${v.type}:${v.version}`).join('|');
+	return crypto.createHash('sha256').update(data).digest('hex').slice(0, 8);
+}
+
+export function generateUnifiedCacheKey(versions: VersionEntry[]): string {
 	const platform = getPlatform();
 	const arch = getArchitecture();
-
-	// Create deterministic string from all versions
-	const versionString = [
-		...versions.sdk.map((v) => `sdk:${v}`),
-		...versions.runtime.map((v) => `runtime:${v}`),
-		...versions.aspnetcore.map((v) => `aspnetcore:${v}`),
-	]
-		.sort((a, b) => a.localeCompare(b))
-		.join(',');
-
-	// Generate hash from version string
-	const hash = crypto.createHash('sha256').update(versionString).digest('hex');
-
-	// Use first 12 characters of hash for readability
-	const shortHash = hash.substring(0, 12);
-
-	return `dotnet-${platform}-${arch}-${shortHash}`;
+	const hash = generateVersionsHash(versions);
+	return `dotnet-${platform}-${arch}-${hash}`;
 }
 
-/**
- * Try to restore .NET installation from cache
- * Returns true if cache was restored, false otherwise
- */
-export async function restoreCache(cacheKey: string): Promise<boolean> {
-	const installDir = getDotNetInstallDirectory();
+export async function restoreUnifiedCache(
+	versions: VersionEntry[],
+): Promise<boolean> {
+	const cacheKey = generateUnifiedCacheKey(versions);
+	const cachePath = getDotnetCacheDirectory();
 
 	try {
-		const restoredKey = await cache.restoreCache([installDir], cacheKey);
+		await io.mkdirP(cachePath);
+		core.debug(`Restoring unified cache: ${cacheKey}`);
+		const restoredKey = await cache.restoreCache([cachePath], cacheKey);
 
 		if (restoredKey) {
+			core.debug(`Unified cache restored: ${cacheKey}`);
 			return true;
 		}
 
-		core.debug('Cache not found');
+		core.debug(`Unified cache not found: ${cacheKey}`);
 		return false;
 	} catch (error) {
-		const errorMsg = error instanceof Error ? error.message : String(error);
-		core.warning(`Cache restore failed: ${errorMsg}`);
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		core.warning(`Cache restore failed: ${errorMessage}`);
 		return false;
 	}
 }
 
-/**
- * Save .NET installation to cache
- */
-export async function saveCache(cacheKey: string): Promise<void> {
-	const platform = getPlatform();
+export async function saveUnifiedCache(
+	versions: VersionEntry[],
+): Promise<void> {
+	const cacheKey = generateUnifiedCacheKey(versions);
+	const cachePath = getDotnetCacheDirectory();
 
-	// Temporarily disable cache save on Windows
-	if (platform === 'win') {
-		core.info(
-			'Cache save is disabled on Windows. Checkout https://github.com/fast-actions/setup-dotnet/issues/28 for more details.',
-		);
-		return;
-	}
-
-	const installDir = getDotNetInstallDirectory();
-
-	core.debug(`Saving cache: ${cacheKey}`);
-	core.debug(`Cache path: ${installDir}`);
+	core.debug(`Saving unified cache: ${cacheKey}`);
 
 	try {
-		await cache.saveCache([installDir], cacheKey);
+		await cache.saveCache([cachePath], cacheKey);
+		core.debug(`Unified cache saved: ${cacheKey}`);
 	} catch (error) {
-		const errorMsg = error instanceof Error ? error.message : String(error);
+		const errorMessage = error instanceof Error ? error.message : String(error);
 
-		// Cache save failures are not critical - log as warning
-		if (errorMsg.includes('ReserveCacheError')) {
-			core.warning('Cache already exists for this key');
+		if (errorMessage.includes('ReserveCacheError')) {
+			core.debug(`Cache already exists (skipped): ${cacheKey}`);
 		} else {
-			core.warning(`Failed to save cache: ${errorMsg}`);
+			core.warning(`Failed to save cache: ${errorMessage}`);
 		}
-	}
-}
-
-/**
- * Check if a cache entry exists for the given key without restoring it
- */
-export async function cacheExists(cacheKey: string): Promise<boolean> {
-	try {
-		core.debug(`Checking if cache exists: ${cacheKey}`);
-		const installDir = getDotNetInstallDirectory();
-		const restoredKey = await cache.restoreCache(
-			[installDir],
-			cacheKey,
-			undefined,
-			{
-				lookupOnly: true,
-			},
-		);
-		return restoredKey !== undefined;
-	} catch (error) {
-		const errorMsg = error instanceof Error ? error.message : String(error);
-		core.warning(`Error checking cache existence: ${errorMsg}`);
-		return false;
 	}
 }
