@@ -312,7 +312,13 @@ jobs:
           aspnetcore-version: ${{ matrix.scenario.aspnetcore }}
           cache: false
 
-      - name: Verify installation (second run)
+      - name: Setup .NET - ${{ matrix.scenario.name }} (third run)
+        uses: ./
+        with:
+          aspnetcore-version: '6.0.0'
+          cache: false
+
+      - name: Verify installation (third run)
         run: |
           dotnet --list-sdks
           dotnet --list-runtimes
