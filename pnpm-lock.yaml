@@ -18,8 +18,8 @@ importers:
         specifier: 2.0.0
         version: 2.0.0
       '@actions/io':
-        specifier: 2.0.0
-        version: 2.0.0
+        specifier: 3.0.2
+        version: 3.0.2
       '@actions/tool-cache':
         specifier: 3.0.1
         version: 3.0.1
@@ -68,6 +68,9 @@ packages:
 
   '@actions/io@2.0.0':
     resolution: {integrity: sha512-Jv33IN09XLO+0HS79aaODsvIRyduiF7NY/F6LYeK5oeUmrsz7aFdRphQjFoESF4jS7lMauDOttKALcpapVDIAg==}
+
+  '@actions/io@3.0.2':
+    resolution: {integrity: sha512-nRBchcMM+QK1pdjO7/idu86rbJI5YHUKCvKs0KxnSYbVe3F51UfGxuZX4Qy/fWlp6l7gWFwIkrOzN+oUK03kfw==}
 
   '@actions/tool-cache@3.0.1':
     resolution: {integrity: sha512-euK7sID37jMg1yWGkdXkLPI5Te7x/+2QMUPeHXogcpzUZ81mqlDZ+CgYhQo3LtB8LpVnnQyjs+hTTU0Ir4Y0RQ==}
@@ -1065,6 +1068,8 @@ snapshots:
       undici: 6.23.0
 
   '@actions/io@2.0.0': {}
+
+  '@actions/io@3.0.2': {}
 
   '@actions/tool-cache@3.0.1':
     dependencies:
