@@ -450,7 +450,7 @@ describe('main', () => {
 
 		await run();
 
-		expect(core.setOutput).toHaveBeenCalledWith('cache-hit', 'true');
+		expect(core.setOutput).toHaveBeenCalledWith('cache-hit', true);
 	});
 
 	it('should set cache-hit output to "false" when mixed sources', async () => {
@@ -476,7 +476,7 @@ describe('main', () => {
 
 		await run();
 
-		expect(core.setOutput).toHaveBeenCalledWith('cache-hit', 'false');
+		expect(core.setOutput).toHaveBeenCalledWith('cache-hit', false);
 	});
 
 	it('should set cache-hit output to "false" when no cache hits', async () => {
@@ -494,6 +494,6 @@ describe('main', () => {
 
 		await run();
 
-		expect(core.setOutput).toHaveBeenCalledWith('cache-hit', 'false');
+		expect(core.setOutput).toHaveBeenCalledWith('cache-hit', false);
 	});
 });

@@ -11,8 +11,6 @@ export interface VersionEntry {
 	type: DotnetType;
 }
 
-export type CacheHitStatus = 'true' | 'false';
-
 export function getDotnetCacheDirectory(): string {
 	const runnerTemp = process.env.RUNNER_TEMP;
 	if (!runnerTemp) {

@@ -19,7 +19,6 @@ import type {
 import {
 	restoreUnifiedCache,
 	saveUnifiedCache,
-	type CacheHitStatus,
 	type VersionEntry,
 } from './utils/cache-utils';
 import {
@@ -63,7 +62,7 @@ function formatVersionPlan(deduplicated: VersionSet): string {
 function setActionOutputs(
 	versions: string,
 	installDir: string,
-	cacheHit: CacheHitStatus,
+	cacheHit: boolean,
 ): void {
 	core.setOutput('dotnet-version', versions);
 	core.setOutput('dotnet-path', installDir);
@@ -273,18 +272,16 @@ async function executeInstallPlan(
 	return results;
 }
 
-function getCacheHitStatusFromResults(
-	results: InstallResult[],
-): CacheHitStatus {
+function getCacheHitStatusFromResults(results: InstallResult[]): boolean {
 	if (results.length === 0) {
-		return 'false';
+		return false;
 	}
 
 	const githubCacheCount = results.filter(
 		(r) => r.source === 'github-cache',
 	).length;
 
-	return githubCacheCount === results.length ? 'true' : 'false';
+	return githubCacheCount === results.length;
 }
 
 function sortByType(results: InstallResult[]): InstallResult[] {
