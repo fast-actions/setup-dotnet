@@ -28,6 +28,11 @@
 		},
 		{
 			"matchDatasources": ["npm"],
+			"matchDepNames": ["@actions/**"],
+			"groupName": "all actions dependencies"
+		},
+		{
+			"matchDatasources": ["npm"],
 			"matchDepNames": ["@node/types"],
 			"matchUpdateTypes": "major",
 			"enabled": false
