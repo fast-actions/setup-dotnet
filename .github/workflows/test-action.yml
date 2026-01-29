@@ -147,6 +147,18 @@ jobs:
           dotnet --list-sdks
           dotnet --list-runtimes
 
+      - name: Setup .NET with caching enabled (second run)
+        uses: ./
+        with:
+          sdk-version: '10.x'
+          runtime-version: '9.x, 6.0.0'
+          aspnetcore-version: '9.0.0'
+
+      - name: Verify installation (second run)
+        run: |
+          dotnet --list-sdks
+          dotnet --list-runtimes
+
       - name: Check outputs
         shell: bash
         run: |
@@ -288,6 +300,19 @@ jobs:
           cache: false
 
       - name: Verify installation
+        run: |
+          dotnet --list-sdks
+          dotnet --list-runtimes
+
+      - name: Setup .NET - ${{ matrix.scenario.name }} (second run)
+        uses: ./
+        with:
+          sdk-version: ${{ matrix.scenario.sdk }}
+          runtime-version: ${{ matrix.scenario.runtime }}
+          aspnetcore-version: ${{ matrix.scenario.aspnetcore }}
+          cache: false
+
+      - name: Verify installation (second run)
         run: |
           dotnet --list-sdks
           dotnet --list-runtimes
