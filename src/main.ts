@@ -242,8 +242,7 @@ async function executeInstallPlan(
 
 	await ensureDotnetBinary(results);
 
-	const installDir = getDotNetInstallDirectory();
-	configureEnvironment(installDir);
+	configureEnvironment(true);
 
 	if (cacheEnabled && !cacheRestored && platform !== 'win') {
 		core.debug('Saving unified cache');
@@ -294,9 +293,7 @@ export async function run(): Promise<void> {
 			core.info(
 				'✅ All requested versions are already installed on the system',
 			);
-			if (allInstalledCheck.inToolCacheTarget) {
-				configureEnvironment(getDotNetInstallDirectory());
-			}
+			configureEnvironment(allInstalledCheck.inToolCacheTarget === true);
 			return;
 		}
 

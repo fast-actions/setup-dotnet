@@ -211,6 +211,7 @@ jobs:
 
       - name: Verify installation
         run: |
+          dotnet --info
           dotnet --list-sdks
           dotnet --list-runtimes
 
@@ -218,6 +219,9 @@ jobs:
         run: |
           dotnet tool install --global dotnet-ef
           dotnet tool list --global
+
+      - name: Verify tool installation
+        run: dotnet-ef --version
 
   test-global-json-override:
     name: Test global.json Override
