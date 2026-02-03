@@ -215,7 +215,9 @@ jobs:
           dotnet --list-runtimes
 
       - name: Install tools
-        run: dotnet tool install --global dotnet-ef
+        run: |
+          dotnet tool install --global dotnet-ef
+          dotnet tool list --global
 
   test-global-json-override:
     name: Test global.json Override

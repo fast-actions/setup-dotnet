@@ -198,6 +198,14 @@ export function configureEnvironment(installDir: string): void {
 	if (!process.env.DOTNET_ROOT?.includes(installDir)) {
 		core.exportVariable('DOTNET_ROOT', installDir);
 	}
+
+	if (!process.env.DOTNET_SKIP_FIRST_TIME_EXPERIENCE) {
+		core.exportVariable('DOTNET_SKIP_FIRST_TIME_EXPERIENCE', '1');
+	}
+
+	if (!process.env.DOTNET_NOLOGO) {
+		core.exportVariable('DOTNET_NOLOGO', '1');
+	}
 }
 
 function getToolCacheDirectory(): string {
