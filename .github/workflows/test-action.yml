@@ -211,6 +211,7 @@ jobs:
 
       - name: Verify installation
         run: |
+          dotnet --info
           dotnet --list-sdks
           dotnet --list-runtimes
 
