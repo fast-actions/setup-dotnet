@@ -190,12 +190,35 @@ export async function copyDotnetBinary(
 	}
 }
 
-export function configureEnvironment(installDir: string): void {
+function getSystemDotnetPath(): string {
+	const platform = getPlatform();
+	switch (platform) {
+		case 'win':
+			return path.join('C:', 'Program Files', 'dotnet');
+		case 'osx': {
+			const home = process.env.HOME;
+			if (!home) {
+				throw new Error('HOME environment variable is not set.');
+			}
+			return path.join(home, '.dotnet');
+		}
+		case 'linux':
+			return '/usr/share/dotnet';
+		default:
+			throw new Error(`Unsupported platform: ${platform}`);
+	}
+}
+
+export function configureEnvironment(useToolCache: boolean): void {
+	const installDir = useToolCache
+		? getDotNetInstallDirectory()
+		: getSystemDotnetPath();
+
 	if (!process.env.PATH?.includes(installDir)) {
 		core.addPath(installDir);
 	}
 
-	if (!process.env.DOTNET_ROOT?.includes(installDir)) {
+	if (!process.env.DOTNET_ROOT) {
 		core.exportVariable('DOTNET_ROOT', installDir);
 	}
 

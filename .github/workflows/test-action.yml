@@ -200,17 +200,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
 
-      - uses: actions/setup-dotnet@baa11fbfe1d6520db94683bd5c7a3818018e4309 # v5
+      - name: Setup .NET - ${{ matrix.scenario.name }}
+        uses: ./
+        id: setup-dotnet
         with:
-          dotnet-version: 10.x
-      # - name: Setup .NET - ${{ matrix.scenario.name }}
-      #   uses: ./
-      #   id: setup-dotnet
-      #   with:
-      #     sdk-version: ${{ matrix.scenario.sdk }}
-      #     runtime-version: ${{ matrix.scenario.runtime }}
-      #     aspnetcore-version: ${{ matrix.scenario.aspnetcore }}
-      #     cache: false
+          sdk-version: ${{ matrix.scenario.sdk }}
+          runtime-version: ${{ matrix.scenario.runtime }}
+          aspnetcore-version: ${{ matrix.scenario.aspnetcore }}
+          cache: false
 
       - name: Verify installation
         run: |
