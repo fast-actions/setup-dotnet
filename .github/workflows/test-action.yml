@@ -219,6 +219,9 @@ jobs:
           dotnet tool install --global dotnet-ef
           dotnet tool list --global
 
+      - name: Verify tool installation
+        run: dotnet-ef --version
+
   test-global-json-override:
     name: Test global.json Override
     runs-on: ubuntu-latest
