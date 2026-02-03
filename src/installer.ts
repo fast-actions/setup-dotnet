@@ -206,6 +206,22 @@ export function configureEnvironment(installDir: string): void {
 	if (!process.env.DOTNET_NOLOGO) {
 		core.exportVariable('DOTNET_NOLOGO', '1');
 	}
+
+	addDotnetToolToPath();
+}
+
+function addDotnetToolToPath(): void {
+	const platform = getPlatform();
+	const home = platform === 'win' ? process.env.USERPROFILE : process.env.HOME;
+	if (!home) {
+		throw new Error('HOME or USERPROFILE environment variable is not set.');
+	}
+
+	const toolsPath = path.join(home, '.dotnet', 'tools');
+
+	if (!process.env.PATH?.includes(toolsPath)) {
+		core.addPath(toolsPath);
+	}
 }
 
 function getToolCacheDirectory(): string {
