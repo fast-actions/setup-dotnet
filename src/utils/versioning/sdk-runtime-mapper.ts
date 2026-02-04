@@ -10,7 +10,6 @@ export async function getSdkIncludedVersions(
 
 		const data = await fetchReleaseManifest(sdkVersion);
 
-		// Find the SDK release
 		const release = data.releases.find((r) =>
 			r.sdks?.some((s) => s.version === sdkVersion),
 		);

@@ -282,12 +282,10 @@ async function isVersionInstalledInDirectory(
 	const dotnetBinary = platform === 'win' ? 'dotnet.exe' : 'dotnet';
 	const dotnetPath = path.join(installDir, dotnetBinary);
 
-	// First check if dotnet binary exists in install directory
 	if (!fs.existsSync(dotnetPath)) {
 		return false;
 	}
 
-	// Use dotnet-detector to check installed versions
 	try {
 		const installed = await getInstalledVersions(dotnetPath);
 		return isVersionInstalled(version, type, installed);
@@ -375,13 +373,10 @@ export async function getDotNetDownloadInfo(
 	const architecture = getArchitecture();
 	const extension = platform === 'win' ? 'zip' : 'tar.gz';
 
-	// Build RID (Runtime Identifier)
 	const rid = `${platform}-${architecture}`;
 
-	// Fetch manifest
 	const manifest = await fetchReleaseManifest(version);
 
-	// Find the release matching our version
 	const release = manifest.releases.find((r) => {
 		if (type === 'sdk') {
 			return r.sdks?.some((s) => s.version === version);
@@ -398,17 +393,14 @@ export async function getDotNetDownloadInfo(
 		);
 	}
 
-	// Get the appropriate section
 	const section = getSectionFromRelease(release, version, type);
 
 	if (!section?.files) {
 		throw new Error(`No files found for ${type} version ${version}`);
 	}
 
-	// Build expected filename pattern
 	const filePattern = getExpectedFileName(type, rid, extension);
 
-	// Find matching file
 	const file = section.files.find(
 		(f) => f.name === filePattern && f.rid === rid,
 	);

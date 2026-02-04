@@ -64,7 +64,6 @@ export async function readGlobalJson(
 			core.debug(`rollForward policy: ${rollForward}`);
 		}
 
-		// Apply rollForward policy by converting to wildcards
 		const resolvedVersion = applyRollForward(version, rollForward);
 		if (resolvedVersion !== version) {
 			core.debug(

@@ -7,7 +7,6 @@ import { resolveVersion } from './version-resolver';
 export async function deduplicateVersions(
 	versions: VersionSetWithPrerelease,
 ): Promise<VersionSet> {
-	// Resolve all wildcards to concrete versions
 	const resolvedSdk = versions.sdk.versions.map((v) => ({
 		original: v,
 		resolved: resolveVersion(v, 'sdk', versions.sdk.allowPrerelease),
@@ -27,11 +26,9 @@ export async function deduplicateVersions(
 		),
 	}));
 
-	// Extract resolved versions as sets for fast lookup
 	const sdkSet = new Set(resolvedSdk.map((v) => v.resolved));
 	const aspnetcoreSet = new Set(resolvedAspnetcore.map((v) => v.resolved));
 
-	// Get runtime/aspnetcore versions included in SDKs
 	const sdkIncludedVersions = await Promise.all(
 		resolvedSdk.map(async (sdk) => ({
 			sdk: sdk.resolved,
@@ -39,7 +36,6 @@ export async function deduplicateVersions(
 		})),
 	);
 
-	// Build set of runtime versions covered by SDKs
 	const sdkIncludedRuntimes = new Set<string>();
 	for (const { sdk, included } of sdkIncludedVersions) {
 		if (included.runtime) {
@@ -48,9 +44,7 @@ export async function deduplicateVersions(
 		}
 	}
 
-	// Filter runtime: remove if included in SDK, same version in aspnetcore, or same version in sdk
 	const filteredRuntime = resolvedRuntime.filter((v) => {
-		// Check SDK-included first (most specific)
 		if (sdkIncludedRuntimes.has(v.resolved)) {
 			core.info(`Skipping redundant Runtime ${v.original} (included in SDK)`);
 			return false;
@@ -64,9 +58,7 @@ export async function deduplicateVersions(
 		return true;
 	});
 
-	// Filter aspnetcore: remove if included in SDK (check runtime version) or same version in sdk
 	const filteredAspnetcore = resolvedAspnetcore.filter((v) => {
-		// Check SDK-included runtime first (ASP.NET Core uses same version as runtime)
 		if (sdkIncludedRuntimes.has(v.resolved)) {
 			core.info(
 				`Skipping redundant ASP.NET Core ${v.original} (included in SDK)`,
@@ -82,7 +74,6 @@ export async function deduplicateVersions(
 		return true;
 	});
 
-	// Remove duplicates within same type (e.g., 8.0.23 and 8.0.x both resolve to 8.0.23)
 	const uniqueSdk = removeDuplicatesWithinType(resolvedSdk, 'SDK');
 	const uniqueRuntime = removeDuplicatesWithinType(filteredRuntime, 'Runtime');
 	const uniqueAspnetcore = removeDuplicatesWithinType(
