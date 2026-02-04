@@ -107,3 +107,116 @@ When writing documentation:
   - Use headings, bullet points, and code blocks for readability
   - Follow a logical flow: concept → explanation → example → expected behavior
   - Keep related information grouped together
+
+## Error Handling
+
+- **GitHub Actions errors**: Use `core.setFailed(error.message)` at the top level to fail the action with a descriptive message
+- **Throwing errors**: Throw descriptive `Error` objects with clear messages explaining what went wrong and why
+- **Error context**: Include relevant context in error messages (e.g., file paths, version numbers, platform details)
+- **Type checking**: Always check `error instanceof Error` before accessing `error.message`
+- **Fallback**: Provide fallback error messages for unknown errors: `'An unknown error occurred'`
+- **Early validation**: Validate inputs and preconditions early, throw errors immediately if invalid
+- **No silent failures**: Never catch and ignore errors - either handle them properly or let them propagate
+
+Example error handling pattern:
+
+```typescript
+try {
+  const result = await someOperation();
+  return result;
+} catch (error) {
+  if (error instanceof Error) {
+    core.setFailed(error.message);
+  } else {
+    core.setFailed('An unknown error occurred');
+  }
+}
+```
+
+## Security Considerations
+
+- **File integrity**: Always validate downloaded file hashes using SHA-512 before extraction
+- **Hash verification**: Use `crypto.createHash('sha512')` for file validation, compare with official .NET release manifests
+- **Cryptographic operations**: Use Node's built-in `crypto` module for all hashing operations
+- **No hardcoded secrets**: Never commit API keys, tokens, or sensitive data - use GitHub Actions secrets
+- **Dependency security**: Keep dependencies updated, review security advisories via Renovate
+- **Input validation**: Validate and sanitize all user inputs before use
+- **Path traversal**: Use `path.join()` to safely construct file paths, never concatenate strings
+- **Minimal permissions**: Request only necessary GitHub Actions permissions in workflows
+
+## Performance Considerations
+
+- **Parallel downloads**: Use `Promise.all()` to download multiple .NET versions concurrently
+- **Caching strategy**: Implement unified caching with a single cache entry per run (keyed by platform, architecture, and version hash)
+- **Smart deduplication**: Skip redundant runtime installations when already included in SDK (use SDK-to-runtime mapping)
+- **Conditional installation**: Check if versions are already installed before downloading (system-wide or in tool cache)
+- **Vite bundling**: All dependencies are bundled into a single `dist/index.js` file to minimize startup overhead
+- **Avoid excessive I/O**: Minimize file system operations, cache results when possible
+- **Efficient logging**: Use `core.debug()` for verbose output, `core.info()` for essential messages
+- **Stream processing**: Process large files in chunks when possible to reduce memory usage
+
+## CI/CD
+
+### Continuous Integration
+
+The CI workflow (`.github/workflows/ci.yml`) runs on every pull request:
+
+1. **Format check**: `pnpm format:ci` - Validates code formatting (Prettier + Biome)
+2. **Lint check**: `pnpm lint:ci` - Checks code quality and style violations
+3. **Dependency analysis**: `pnpm knip` - Detects unused dependencies and exports
+4. **Tests**: `pnpm test` - Runs all Vitest unit tests
+5. **Build**: `pnpm build` - Compiles TypeScript and bundles with Vite
+
+All checks must pass before merging.
+
+### Release Process
+
+- **Tagging**: Create a version tag (e.g., `v1.5.0`) to trigger a release
+- **Major tag**: The release workflow automatically updates/creates a major version tag (e.g., `v1`) pointing to the latest release
+- **dist/ directory**: Always commit the built `dist/index.js` file with code changes (required for GitHub Actions)
+
+### Other Workflows
+
+- **rebuild-dist.yml**: Automatically rebuilds `dist/` if changes are detected but not committed
+- **test-action.yml**: Integration tests that run the action with various configurations
+- **benchmark.yml**: Performance benchmarks comparing against the official action
+- **renovate-validation.yml**: Validates Renovate configuration
+
+## Dependencies
+
+### Production Dependencies
+
+All production dependencies are from the official `@actions/*` organization:
+
+- `@actions/cache` - GitHub Actions cache integration
+- `@actions/core` - Core GitHub Actions functionality (inputs, outputs, logging)
+- `@actions/exec` - Execute commands
+- `@actions/io` - File system operations
+- `@actions/tool-cache` - Tool installation and caching
+- `jsonc-parser` - Parse JSON with comments (for `global.json`)
+
+### Development Dependencies
+
+- **Biome**: Fast linter and formatter (replaces ESLint/Prettier for code)
+- **Prettier**: Additional formatting for Markdown and JSON
+- **Vite**: Bundler for creating single-file output (`dist/index.js`)
+- **Vitest**: Test framework
+- **TypeScript**: Type checking and compilation
+- **Knip**: Finds unused dependencies and exports
+
+### Adding Dependencies
+
+- **Minimize additions**: Only add dependencies when absolutely necessary
+- **Prefer `@actions/*`**: Use official GitHub Actions packages when available
+- **Bundle size matters**: Remember all deps are bundled into `dist/index.js` - keep it lean
+- **Security review**: Check for known vulnerabilities before adding
+- **Renovate**: Dependencies are auto-updated via Renovate - review and test updates promptly
+
+### Updating Dependencies
+
+Run `pnpm update` to update dependencies, then:
+
+1. Run `pnpm validate` to ensure everything works
+2. Check `dist/index.js` size - significant increases need investigation
+3. Test the action with integration tests
+4. Commit both `package.json`, `pnpm-lock.yaml`, and updated `dist/index.js`
