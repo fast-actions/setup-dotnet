@@ -8,14 +8,12 @@ const releasesCache = new Map<string, Promise<ReleaseManifest>>();
 export async function fetchReleaseManifest(
 	version: string,
 ): Promise<ReleaseManifest> {
-	// Extract channel version (e.g., "8.0.100" -> "8.0")
 	const versionParts = version.split('.');
 	if (versionParts.length < 2) {
 		throw new Error(`Invalid version format: ${version}`);
 	}
 	const channel = `${versionParts[0]}.${versionParts[1]}`;
 
-	// Check cache first
 	const cacheKey = channel;
 	const cached = releasesCache.get(cacheKey);
 	if (cached) {

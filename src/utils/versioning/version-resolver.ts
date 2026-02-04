@@ -69,7 +69,6 @@ export function resolveVersion(
 ): string {
 	const versionLower = version.toLowerCase();
 
-	// If version has no wildcards or keywords, return as-is
 	if (
 		!versionLower.includes('x') &&
 		versionLower !== 'lts' &&
@@ -117,7 +116,6 @@ function resolveLatestFromReleases(
 	core.debug(`Resolving LATEST version for ${type}`);
 	const versionType = type === 'sdk' ? 'sdk' : 'runtime';
 
-	// Filter out preview releases unless explicitly allowed
 	const filteredReleases = allowPreview
 		? releases
 		: releases.filter((r) => r['support-phase'] !== 'preview');
@@ -126,7 +124,6 @@ function resolveLatestFromReleases(
 		throw new Error('No available releases found');
 	}
 
-	// First entry is the latest
 	const latestRelease = filteredReleases[0];
 	const resolvedVersion = pickVersion(latestRelease, versionType);
 
@@ -154,7 +151,6 @@ function resolveSupportTierFromReleases(
 		throw new Error(`No ${tier.toUpperCase()} releases found`);
 	}
 
-	// First entry is the latest
 	const latestRelease = supportedReleases[0];
 	const versionType = type === 'sdk' ? 'sdk' : 'runtime';
 	const resolvedVersion = pickVersion(latestRelease, versionType);
