@@ -4,12 +4,14 @@ import * as toolCache from '@actions/tool-cache';
 import * as crypto from 'node:crypto';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import type { DotnetType, FileInfo, Release } from './types';
 import type {
+	DotnetType,
 	DownloadInfo,
+	FileInfo,
 	InstallOptions,
 	InstallResult,
-} from './installer.types';
+	Release,
+} from './types';
 
 export type { InstallResult };
 import { getVersionCachePath } from './utils/cache-utils';

@@ -1,5 +1,5 @@
 import * as core from '@actions/core';
-import type { SdkIncludedVersions } from './versioning.types';
+import type { SdkIncludedVersions } from '../../types';
 import { fetchReleaseManifest } from './release-cache';
 
 export async function getSdkIncludedVersions(

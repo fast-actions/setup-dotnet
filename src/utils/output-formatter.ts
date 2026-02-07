@@ -1,6 +1,5 @@
 import * as core from '@actions/core';
-import type { DotnetType, VersionSet } from '../types';
-import type { InstallResult } from '../installer';
+import type { DotnetType, InstallResult, VersionSet } from '../types';
 
 interface InstallationsBySource {
 	alreadyInstalled: InstallResult[];

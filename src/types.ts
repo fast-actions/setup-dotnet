@@ -38,3 +38,61 @@ export type InstallSource =
 	| 'installation-directory'
 	| 'github-cache'
 	| 'download';
+
+// From installer.types.ts
+export interface InstallOptions {
+	version: string;
+	type: DotnetType;
+}
+
+export interface InstallResult {
+	version: string;
+	type: DotnetType;
+	path: string;
+	source: InstallSource;
+}
+
+export interface DownloadInfo {
+	url: string;
+	hash: string;
+}
+
+// From utils/global-json.types.ts
+export interface GlobalJson {
+	sdk?: {
+		version?: string;
+		rollForward?: string;
+		allowPrerelease?: boolean;
+	};
+}
+
+export interface SdkInfo {
+	version: string;
+	allowPrerelease: boolean;
+}
+
+// From utils/cache.types.ts
+export interface VersionEntry {
+	version: string;
+	type: DotnetType;
+}
+
+// From utils/versioning/versioning.types.ts
+export interface ReleaseInfo {
+	'channel-version': string;
+	'latest-sdk': string;
+	'latest-release': string;
+	'latest-runtime'?: string;
+	'release-type': 'sts' | 'lts';
+	'support-phase': string;
+}
+
+export interface ResolvedVersion {
+	value: string;
+	channel: string;
+}
+
+export interface SdkIncludedVersions {
+	runtime: string | null;
+	aspnetcore: string | null;
+}

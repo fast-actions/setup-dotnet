@@ -8,16 +8,16 @@ import {
 	installVersion,
 	isVersionInCache,
 } from './installer';
-import type { InstallResult } from './installer.types';
 import { getPlatform } from './utils/platform-utils';
 import type {
 	DotnetType,
+	InstallResult,
+	VersionEntry,
 	VersionInfo,
 	VersionSet,
 	VersionSetWithPrerelease,
 } from './types';
 import { restoreUnifiedCache, saveUnifiedCache } from './utils/cache-utils';
-import type { VersionEntry } from './utils/cache.types';
 import {
 	getInstalledVersions,
 	isVersionInstalled,

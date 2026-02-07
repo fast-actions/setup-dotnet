@@ -1,6 +1,5 @@
 import * as core from '@actions/core';
-import type { DotnetType } from '../../types';
-import type { ReleaseInfo, ResolvedVersion } from './versioning.types';
+import type { DotnetType, ReleaseInfo, ResolvedVersion } from '../../types';
 
 let cachedReleases: ReleaseInfo[] | null = null;
 
