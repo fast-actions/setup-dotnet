@@ -3,8 +3,7 @@ import * as core from '@actions/core';
 import * as io from '@actions/io';
 import * as crypto from 'node:crypto';
 import * as path from 'node:path';
-import type { DotnetType } from '../types';
-import type { VersionEntry } from './cache.types';
+import type { DotnetType, VersionEntry } from '../types';
 import { getArchitecture, getPlatform } from './platform-utils';
 
 export type { VersionEntry };
