@@ -344,7 +344,7 @@ jobs:
         id: setup-dotnet
         with:
           sdk-version: 'latest'
-          allow-prerelease: true
+          allow-preview: true
           cache: false
 
       - name: Verify installation
