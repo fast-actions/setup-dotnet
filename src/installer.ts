@@ -232,6 +232,10 @@ export function configureEnvironment(useToolCache: boolean): void {
 		core.exportVariable('DOTNET_NOLOGO', '1');
 	}
 
+	if (!process.env.DOTNET_CLI_TELEMETRY_OPTOUT) {
+		core.exportVariable('DOTNET_CLI_TELEMETRY_OPTOUT', '1');
+	}
+
 	addDotnetToolToPath();
 }
 
