@@ -38,7 +38,7 @@
 		"jsonc-parser": "3.3.1"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "2.3.15",
+		"@biomejs/biome": "2.4.0",
 		"@types/node": "24.10.13",
 		"knip": "5.83.1",
 		"prettier": "3.8.1",
