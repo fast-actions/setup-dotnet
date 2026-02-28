@@ -17,7 +17,7 @@
 		"type": "git",
 		"url": "https://github.com/fast-actions/setup-dotnet"
 	},
-	"packageManager": "pnpm@10.30.2",
+	"packageManager": "pnpm@10.30.3",
 	"scripts": {
 		"build": "tsc && vite build",
 		"test": "vitest run",
@@ -39,7 +39,7 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.4.4",
-		"@types/node": "24.10.13",
+		"@types/node": "24.10.14",
 		"knip": "5.85.0",
 		"prettier": "3.8.1",
 		"typescript": "5.9.3",
