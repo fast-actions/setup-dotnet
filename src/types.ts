@@ -34,10 +34,7 @@ export interface ReleaseManifest {
 	releases: Release[];
 }
 
-export type InstallSource =
-	| 'installation-directory'
-	| 'github-cache'
-	| 'download';
+type InstallSource = 'installation-directory' | 'github-cache' | 'download';
 
 export interface InstallResult {
 	version: string;
