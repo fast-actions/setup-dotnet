@@ -21,7 +21,7 @@ describe('fetchWithRetry', () => {
 
 		const response = await fetchWithRetry('https://example.com', {
 			retries: 3,
-			backoffMs: 0,
+			backoffMilliseconds: 0,
 		});
 
 		expect(response.ok).toBe(true);
@@ -33,7 +33,10 @@ describe('fetchWithRetry', () => {
 		globalThis.fetch = fetchMock;
 
 		await expect(
-			fetchWithRetry('https://example.com', { retries: 3, backoffMs: 0 }),
+			fetchWithRetry('https://example.com', {
+				retries: 3,
+				backoffMilliseconds: 0,
+			}),
 		).rejects.toThrow('network down');
 		expect(fetchMock).toHaveBeenCalledTimes(3);
 	});
@@ -47,7 +50,7 @@ describe('fetchWithRetry', () => {
 
 		const response = await fetchWithRetry('https://example.com', {
 			retries: 3,
-			backoffMs: 0,
+			backoffMilliseconds: 0,
 		});
 
 		expect(response.status).toBe(200);
@@ -63,7 +66,7 @@ describe('fetchWithRetry', () => {
 
 		const response = await fetchWithRetry('https://example.com', {
 			retries: 3,
-			backoffMs: 0,
+			backoffMilliseconds: 0,
 		});
 
 		expect(response.status).toBe(200);
@@ -76,7 +79,7 @@ describe('fetchWithRetry', () => {
 
 		const response = await fetchWithRetry('https://example.com', {
 			retries: 3,
-			backoffMs: 0,
+			backoffMilliseconds: 0,
 		});
 
 		expect(response.status).toBe(404);
@@ -99,8 +102,8 @@ describe('fetchWithRetry', () => {
 
 		const promise = fetchWithRetry('https://example.com', {
 			retries: 1,
-			timeoutMs: 1000,
-			backoffMs: 0,
+			timeoutMilliseconds: 1000,
+			backoffMilliseconds: 0,
 		});
 		const expectation = expect(promise).rejects.toThrow();
 		await vi.advanceTimersByTimeAsync(1000);

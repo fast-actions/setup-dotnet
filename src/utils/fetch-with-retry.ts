@@ -2,13 +2,13 @@ import * as core from '@actions/core';
 
 interface FetchWithRetryOptions {
 	retries?: number;
-	timeoutMs?: number;
-	backoffMs?: number;
+	timeoutMilliseconds?: number;
+	backoffMilliseconds?: number;
 }
 
 const DEFAULT_RETRIES = 3;
-const DEFAULT_TIMEOUT_MS = 30000;
-const DEFAULT_BACKOFF_MS = 1000;
+const DEFAULT_TIMEOUT_MILLISECONDS = 30000;
+const DEFAULT_BACKOFF_MILLISECONDS = 1000;
 
 function isRetriableStatus(status: number): boolean {
 	return status === 429 || status >= 500;
@@ -25,14 +25,16 @@ export async function fetchWithRetry(
 	options: FetchWithRetryOptions = {},
 ): Promise<Response> {
 	const retries = options.retries ?? DEFAULT_RETRIES;
-	const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-	const backoffMs = options.backoffMs ?? DEFAULT_BACKOFF_MS;
+	const timeoutMilliseconds =
+		options.timeoutMilliseconds ?? DEFAULT_TIMEOUT_MILLISECONDS;
+	const backoffMilliseconds =
+		options.backoffMilliseconds ?? DEFAULT_BACKOFF_MILLISECONDS;
 
 	let lastError: Error | undefined;
 
 	for (let attempt = 1; attempt <= retries; attempt++) {
 		const controller = new AbortController();
-		const timeout = setTimeout(() => controller.abort(), timeoutMs);
+		const timeout = setTimeout(() => controller.abort(), timeoutMilliseconds);
 
 		try {
 			const response = await fetch(url, { signal: controller.signal });
@@ -41,7 +43,7 @@ export async function fetchWithRetry(
 				core.warning(
 					`Request to ${url} returned status ${response.status}, retrying...`,
 				);
-				await delay(backoffMs * attempt);
+				await delay(backoffMilliseconds * attempt);
 				continue;
 			}
 
@@ -52,7 +54,7 @@ export async function fetchWithRetry(
 				core.warning(
 					`Request to ${url} failed (${lastError.message}), retrying...`,
 				);
-				await delay(backoffMs * attempt);
+				await delay(backoffMilliseconds * attempt);
 			}
 		} finally {
 			clearTimeout(timeout);
