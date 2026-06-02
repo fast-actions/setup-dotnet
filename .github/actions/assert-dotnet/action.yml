@@ -14,6 +14,10 @@ inputs:
     description: 'Expected Microsoft.AspNetCore.App version prefixes (space/comma separated, e.g. "9.0").'
     required: false
     default: ''
+  min-sdk-major:
+    description: 'Minimum SDK major version that must be installed. Use for dynamic resolutions (e.g. rollForward latestMajor, latest) where the exact major moves over time.'
+    required: false
+    default: ''
 
 runs:
   using: 'composite'
@@ -24,6 +28,7 @@ runs:
         EXPECTED_SDK: ${{ inputs.sdk }}
         EXPECTED_RUNTIME: ${{ inputs.runtime }}
         EXPECTED_ASPNETCORE: ${{ inputs.aspnetcore }}
+        MIN_SDK_MAJOR: ${{ inputs.min-sdk-major }}
       run: |
         set -euo pipefail
 
@@ -72,6 +77,16 @@ runs:
         assert_prefixes "SDK" "" "$sdks" "$EXPECTED_SDK"
         assert_prefixes "Runtime" "Microsoft\.NETCore\.App " "$runtimes" "$EXPECTED_RUNTIME"
         assert_prefixes "ASP.NET Core" "Microsoft\.AspNetCore\.App " "$runtimes" "$EXPECTED_ASPNETCORE"
+
+        if [ -n "$MIN_SDK_MAJOR" ]; then
+          highest_major="$(echo "$sdks" | awk '{print $1}' | cut -d. -f1 | sort -rn | head -1)"
+          if [ "${highest_major:-0}" -ge "$MIN_SDK_MAJOR" ]; then
+            echo "✅ SDK major ${highest_major} >= ${MIN_SDK_MAJOR}"
+          else
+            echo "::error::Expected an SDK with major >= ${MIN_SDK_MAJOR}, highest installed major is ${highest_major:-none}"
+            failed=1
+          fi
+        fi
 
         if [ "$failed" -ne 0 ]; then
           exit 1

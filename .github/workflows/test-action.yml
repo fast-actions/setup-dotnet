@@ -38,7 +38,11 @@ jobs:
             expected-major: '9'
           - name: 'Preview with Latest Major'
             file: 'global.json.preview-latestmajor'
-            expected-major: '10'
+            # latestMajor + allowPrerelease always resolves to the newest major
+            # (a moving target). Assert it rolled forward past base 9 instead of
+            # pinning an exact major.
+            expected-major: ''
+            min-sdk-major: '10'
           - name: 'With Comments'
             file: 'global.json.with-comments'
             expected-major: '8'
@@ -63,6 +67,7 @@ jobs:
         uses: ./.github/actions/assert-dotnet
         with:
           sdk: ${{ matrix.sample.expected-major }}
+          min-sdk-major: ${{ matrix.sample.min-sdk-major }}
 
   test-keywords:
     name: Test LTS/STS/Latest Keywords
