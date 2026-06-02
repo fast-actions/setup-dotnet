@@ -212,9 +212,12 @@ function getSystemDotnetPath(): string {
 }
 
 export function configureEnvironment(useToolCache: boolean): void {
+	// Point DOTNET_ROOT/PATH at the tool-cache install when we installed there,
+	// otherwise at the pre-existing system installation. DOTNET_ROOT must be set
+	// for dotnet tools to resolve the runtime correctly.
 	const installDir = useToolCache
 		? getDotNetInstallDirectory()
-		: getSystemDotnetPath(); // macOS requires DOTNET_ROOT to be set for dotnet tools to work properly. Thats why we point to the system installation here.
+		: getSystemDotnetPath();
 
 	if (!process.env.PATH?.includes(installDir)) {
 		core.addPath(installDir);
@@ -379,7 +382,7 @@ export async function getDotNetDownloadInfo(
 	const architecture = getArchitecture();
 	const extension = platform === 'win' ? 'zip' : 'tar.gz';
 
-	const rid = `${platform}-${architecture}`;
+	const runtimeIdentifier = `${platform}-${architecture}`;
 
 	const manifest = await fetchReleaseManifest(version);
 
@@ -405,21 +408,21 @@ export async function getDotNetDownloadInfo(
 		throw new Error(`No files found for ${type} version ${version}`);
 	}
 
-	const filePattern = getExpectedFileName(type, rid, extension);
+	const filePattern = getExpectedFileName(type, runtimeIdentifier, extension);
 
 	const file = section.files.find(
-		(f) => f.name === filePattern && f.rid === rid,
+		(f) => f.name === filePattern && f.rid === runtimeIdentifier,
 	);
 
 	if (!file) {
 		throw new Error(
-			`Download not found for ${type} ${version} on ${rid}. Expected file: ${filePattern}`,
+			`Download not found for ${type} ${version} on ${runtimeIdentifier}. Expected file: ${filePattern}`,
 		);
 	}
 
 	if (!file.hash) {
 		throw new Error(
-			`Hash missing for ${type} ${version} on ${rid}. Cannot validate download integrity.`,
+			`Hash missing for ${type} ${version} on ${runtimeIdentifier}. Cannot validate download integrity.`,
 		);
 	}
 
@@ -444,16 +447,16 @@ function getSectionFromRelease(
 
 function getExpectedFileName(
 	type: DotnetType,
-	rid: string,
+	runtimeIdentifier: string,
 	extension: string,
 ): string {
 	if (type === 'aspnetcore') {
-		return `aspnetcore-runtime-${rid}.${extension}`;
+		return `aspnetcore-runtime-${runtimeIdentifier}.${extension}`;
 	}
 	if (type === 'sdk') {
-		return `dotnet-sdk-${rid}.${extension}`;
+		return `dotnet-sdk-${runtimeIdentifier}.${extension}`;
 	}
-	return `dotnet-runtime-${rid}.${extension}`;
+	return `dotnet-runtime-${runtimeIdentifier}.${extension}`;
 }
 
 async function downloadWithRetry(

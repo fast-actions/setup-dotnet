@@ -83,4 +83,24 @@ describe('parseVersions', () => {
 	it('should trim versions with extra spaces', () => {
 		expect(parseVersions('  10.x.x  ,  9.0.0  ')).toEqual(['10.x.x', '9.0.0']);
 	});
+
+	it('should return empty array for whitespace-only input', () => {
+		expect(parseVersions('   ')).toEqual([]);
+		expect(parseVersions('\n\n')).toEqual([]);
+		expect(parseVersions('\t')).toEqual([]);
+	});
+
+	it('should return empty array for separators only', () => {
+		expect(parseVersions(',,')).toEqual([]);
+		expect(parseVersions(', \n ,')).toEqual([]);
+	});
+
+	it('should drop empty entries between separators', () => {
+		expect(parseVersions('10.0.0,,9.0.0')).toEqual(['10.0.0', '9.0.0']);
+		expect(parseVersions('10.0.0,\n,9.0.0')).toEqual(['10.0.0', '9.0.0']);
+	});
+
+	it('should trim tab characters around versions', () => {
+		expect(parseVersions('\t10.0.0\t')).toEqual(['10.0.0']);
+	});
 });

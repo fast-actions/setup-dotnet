@@ -52,6 +52,7 @@ describe('getDotNetDownloadInfo', () => {
 		expect(result.hash).toBe('abc123def456');
 		expect(fetch).toHaveBeenCalledWith(
 			'https://builds.dotnet.microsoft.com/dotnet/release-metadata/8.0/releases.json',
+			expect.objectContaining({ signal: expect.anything() }),
 		);
 	});
 
