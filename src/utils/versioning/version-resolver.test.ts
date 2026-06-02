@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
 	compareVersions,
 	fetchAndCacheReleaseInfo,
@@ -36,12 +36,55 @@ describe('compareVersions', () => {
 		expect(compareVersions('1.10.0', '1.9.0')).toBeGreaterThan(0);
 		expect(compareVersions('1.0.100', '1.0.99')).toBeGreaterThan(0);
 	});
+
+	it('should rank a release higher than a prerelease of the same version', () => {
+		expect(compareVersions('10.0.100', '10.0.100-preview.5')).toBeGreaterThan(
+			0,
+		);
+		expect(compareVersions('10.0.100-preview.5', '10.0.100')).toBeLessThan(0);
+	});
+
+	it('should order prereleases by their numeric identifiers', () => {
+		expect(
+			compareVersions('10.0.100-preview.5', '10.0.100-preview.6'),
+		).toBeLessThan(0);
+		expect(
+			compareVersions('10.0.100-preview.6', '10.0.100-preview.5'),
+		).toBeGreaterThan(0);
+	});
+
+	it('should order prerelease identifiers alphabetically (rc > preview)', () => {
+		expect(
+			compareVersions('10.0.100-rc.1', '10.0.100-preview.7'),
+		).toBeGreaterThan(0);
+	});
+
+	it('should rank more prerelease fields higher when the prefix is equal', () => {
+		expect(
+			compareVersions('10.0.100-preview.7', '10.0.100-preview.7.24407.12'),
+		).toBeLessThan(0);
+	});
+
+	it('should rank numeric prerelease identifiers below alphanumeric ones', () => {
+		expect(compareVersions('1.0.0-1', '1.0.0-alpha')).toBeLessThan(0);
+	});
+
+	it('should let a higher release version win over a prerelease', () => {
+		expect(compareVersions('10.0.101', '10.0.100-preview.9')).toBeGreaterThan(
+			0,
+		);
+	});
 });
 
 describe('resolveVersion', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		vi.useRealTimers();
 		resetCache();
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
 	});
 
 	it('should return version as-is when no wildcards', () => {
@@ -253,10 +296,45 @@ describe('resolveVersion', () => {
 		);
 	});
 
+	it('should retry a transient failure when fetching the release index', async () => {
+		vi.useFakeTimers();
+		const mockResponse = {
+			'releases-index': [
+				{
+					'channel-version': '10.0',
+					'latest-sdk': '10.0.402',
+					'latest-release': '10.0.2',
+					'release-type': 'sts',
+					'support-phase': 'active',
+				},
+			],
+		};
+		globalThis.fetch = vi
+			.fn()
+			.mockRejectedValueOnce(new Error('network down'))
+			.mockResolvedValueOnce({
+				ok: true,
+				json: async () => mockResponse,
+			});
+
+		const promise = fetchAndCacheReleaseInfo();
+		await vi.runAllTimersAsync();
+		await promise;
+		vi.useRealTimers();
+
+		expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+		expect(resolveVersion('10.x.x', 'sdk', false)).toBe('10.0.402');
+	});
+
 	it('should throw error when network error occurs', async () => {
+		vi.useFakeTimers();
 		globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
 
-		await expect(fetchAndCacheReleaseInfo()).rejects.toThrow('Network error');
+		const expectation = expect(fetchAndCacheReleaseInfo()).rejects.toThrow(
+			'Network error',
+		);
+		await vi.runAllTimersAsync();
+		await expectation;
 	});
 
 	it('should throw error when API response is malformed', async () => {
@@ -688,5 +766,58 @@ describe('resolveVersion', () => {
 
 		const result = resolveVersion('sts', 'sdk', true);
 		expect(result).toBe('11.0.100-preview.1');
+	});
+
+	it('should resolve a wildcard to a preview version when allow-preview is enabled', () => {
+		setCachedReleases([
+			{
+				'channel-version': '10.0',
+				'latest-sdk': '10.0.100-preview.5',
+				'latest-release': '10.0.0-preview.5',
+				'release-type': 'sts',
+				'support-phase': 'preview',
+			},
+		]);
+
+		const result = resolveVersion('10.x', 'sdk', true);
+		expect(result).toBe('10.0.100-preview.5');
+	});
+
+	it('should not match a preview version for a wildcard when allow-preview is disabled', () => {
+		setCachedReleases([
+			{
+				'channel-version': '10.0',
+				'latest-sdk': '10.0.100-preview.5',
+				'latest-release': '10.0.0-preview.5',
+				'release-type': 'sts',
+				'support-phase': 'preview',
+			},
+		]);
+
+		expect(() => resolveVersion('10.x', 'sdk', false)).toThrow(
+			'No matching version found for pattern: 10.x',
+		);
+	});
+
+	it('should pick the highest version across stable and preview channels for a wildcard', () => {
+		setCachedReleases([
+			{
+				'channel-version': '10.0',
+				'latest-sdk': '10.0.100',
+				'latest-release': '10.0.0',
+				'release-type': 'lts',
+				'support-phase': 'active',
+			},
+			{
+				'channel-version': '10.1',
+				'latest-sdk': '10.1.50-preview.1',
+				'latest-release': '10.1.0-preview.1',
+				'release-type': 'sts',
+				'support-phase': 'preview',
+			},
+		]);
+
+		const result = resolveVersion('10.x', 'sdk', true);
+		expect(result).toBe('10.1.50-preview.1');
 	});
 });

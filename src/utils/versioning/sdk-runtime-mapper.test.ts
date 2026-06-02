@@ -97,6 +97,7 @@ describe('getSdkIncludedVersions', () => {
 
 		expect(globalThis.fetch).toHaveBeenCalledWith(
 			'https://builds.dotnet.microsoft.com/dotnet/release-metadata/8.0/releases.json',
+			expect.objectContaining({ signal: expect.anything() }),
 		);
 	});
 
@@ -122,13 +123,17 @@ describe('getSdkIncludedVersions', () => {
 	});
 
 	it('should handle network errors', async () => {
+		vi.useFakeTimers();
 		globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
 
-		const result = await sdkRuntimeMapper.getSdkIncludedVersions('7.0.100');
+		const promise = sdkRuntimeMapper.getSdkIncludedVersions('7.0.100');
+		await vi.runAllTimersAsync();
+		const result = await promise;
 
 		expect(result).toEqual({
 			runtime: null,
 			aspnetcore: null,
 		});
+		vi.useRealTimers();
 	});
 });

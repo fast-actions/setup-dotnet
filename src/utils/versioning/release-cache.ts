@@ -1,5 +1,6 @@
 import * as core from '@actions/core';
 import type { ReleaseManifest } from '../../types';
+import { fetchWithRetry } from '../fetch-with-retry';
 
 // Cache for releases.json API responses (promise-based for parallel-safe access)
 const releasesCache = new Map<string, Promise<ReleaseManifest>>();
@@ -26,7 +27,7 @@ export async function fetchReleaseManifest(
 		const releasesUrl = `https://builds.dotnet.microsoft.com/dotnet/release-metadata/${channel}/releases.json`;
 		core.debug(`Fetching release manifest: ${releasesUrl}`);
 
-		const response = await fetch(releasesUrl);
+		const response = await fetchWithRetry(releasesUrl);
 		if (!response.ok) {
 			throw new Error(
 				`Failed to fetch releases for channel ${channel}: ${response.statusText}`,
@@ -47,6 +48,9 @@ export async function fetchReleaseManifest(
 	})();
 
 	releasesCache.set(cacheKey, fetchPromise);
+	// Don't keep a rejected promise cached: a transient failure for one channel
+	// must not break that channel for the rest of the run.
+	void fetchPromise.catch(() => releasesCache.delete(cacheKey));
 	return fetchPromise;
 }
 

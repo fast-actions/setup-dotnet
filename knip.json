@@ -2,5 +2,5 @@
 	"$schema": "https://unpkg.com/knip@5/schema.json",
 	"entry": ["src/main.ts"],
 	"project": ["src/**/*.ts"],
-	"ignoreDependencies": ["supports-color"]
+	"ignoreDependencies": []
 }
