@@ -1,0 +1,93 @@
+name: 'Assert .NET'
+description: 'Verifies that the expected .NET SDK and runtime versions are installed'
+
+inputs:
+  sdk:
+    description: 'Expected SDK version prefixes (space/comma separated, e.g. "10 9.0.100"). Each must match the start of a line from "dotnet --list-sdks".'
+    required: false
+    default: ''
+  runtime:
+    description: 'Expected Microsoft.NETCore.App runtime version prefixes (space/comma separated, e.g. "9.0 6.0").'
+    required: false
+    default: ''
+  aspnetcore:
+    description: 'Expected Microsoft.AspNetCore.App version prefixes (space/comma separated, e.g. "9.0").'
+    required: false
+    default: ''
+  min-sdk-major:
+    description: 'Minimum SDK major version that must be installed. Use for dynamic resolutions (e.g. rollForward latestMajor, latest) where the exact major moves over time.'
+    required: false
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Assert .NET installation
+      shell: bash
+      env:
+        EXPECTED_SDK: ${{ inputs.sdk }}
+        EXPECTED_RUNTIME: ${{ inputs.runtime }}
+        EXPECTED_ASPNETCORE: ${{ inputs.aspnetcore }}
+        MIN_SDK_MAJOR: ${{ inputs.min-sdk-major }}
+      run: |
+        set -euo pipefail
+
+        dotnet --info
+
+        sdks="$(dotnet --list-sdks)"
+        runtimes="$(dotnet --list-runtimes)"
+
+        echo "::group::Installed SDKs"
+        echo "$sdks"
+        echo "::endgroup::"
+        echo "::group::Installed runtimes"
+        echo "$runtimes"
+        echo "::endgroup::"
+
+        if [ -z "$(echo "$sdks" | tr -d '[:space:]')" ]; then
+          echo "::error::No SDK is installed"
+          exit 1
+        fi
+
+        failed=0
+
+        # escape_prefix <version-prefix> -> regex-safe prefix (dots escaped)
+        escape_prefix() {
+          printf '%s' "$1" | sed 's/\./\\./g'
+        }
+
+        # assert_prefixes <label> <line-prefix-regex> <haystack> <expected-list>
+        assert_prefixes() {
+          label="$1"
+          line_prefix="$2"
+          haystack="$3"
+          expected="$4"
+          for prefix in $(echo "$expected" | tr ',' ' '); do
+            [ -n "$prefix" ] || continue
+            pattern="^${line_prefix}$(escape_prefix "$prefix")"
+            if echo "$haystack" | grep -Eq "$pattern"; then
+              echo "✅ ${label} ${prefix} found"
+            else
+              echo "::error::Expected ${label} ${prefix} not found"
+              failed=1
+            fi
+          done
+        }
+
+        assert_prefixes "SDK" "" "$sdks" "$EXPECTED_SDK"
+        assert_prefixes "Runtime" "Microsoft\.NETCore\.App " "$runtimes" "$EXPECTED_RUNTIME"
+        assert_prefixes "ASP.NET Core" "Microsoft\.AspNetCore\.App " "$runtimes" "$EXPECTED_ASPNETCORE"
+
+        if [ -n "$MIN_SDK_MAJOR" ]; then
+          highest_major="$(echo "$sdks" | awk '{print $1}' | cut -d. -f1 | sort -rn | head -1)"
+          if [ "${highest_major:-0}" -ge "$MIN_SDK_MAJOR" ]; then
+            echo "✅ SDK major ${highest_major} >= ${MIN_SDK_MAJOR}"
+          else
+            echo "::error::Expected an SDK with major >= ${MIN_SDK_MAJOR}, highest installed major is ${highest_major:-none}"
+            failed=1
+          fi
+        fi
+
+        if [ "$failed" -ne 0 ]; then
+          exit 1
+        fi

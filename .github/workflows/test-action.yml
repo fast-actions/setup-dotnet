@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - '.github/workflows/test-action.yml'
+      - '.github/actions/assert-dotnet/action.yml'
       - 'src/**'
       - 'dist/index.js'
   workflow_dispatch:
@@ -17,6 +18,7 @@ jobs:
     name: Test global.json Support
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         sample:
           - name: 'Exact Version'
@@ -36,13 +38,21 @@ jobs:
             expected-major: '9'
           - name: 'Preview with Latest Major'
             file: 'global.json.preview-latestmajor'
-            expected-major: '10'
+            # latestMajor + allowPrerelease always resolves to the newest major
+            # (a moving target). Assert it rolled forward past base 9 instead of
+            # pinning an exact major.
+            expected-major: ''
+            min-sdk-major: '10'
+          - name: 'With Comments'
+            file: 'global.json.with-comments'
+            expected-major: '8'
 
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Setup test environment with global.json
+        shell: bash
         run: |
           cp samples/${{ matrix.sample.file }} global.json
           cat global.json
@@ -53,17 +63,20 @@ jobs:
         with:
           cache: false
 
-      - name: Verify SDK installation
-        run: dotnet --list-sdks
+      - name: Assert SDK installation
+        uses: ./.github/actions/assert-dotnet
+        with:
+          sdk: ${{ matrix.sample.expected-major }}
+          min-sdk-major: ${{ matrix.sample.min-sdk-major }}
 
-  test-lts-sts-keywords:
-    name: Test LTS/STS Keywords
+  test-keywords:
+    name: Test LTS/STS/Latest Keywords
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
-      - name: Setup .NET with LTS/STS
+      - name: Setup .NET with keywords
         uses: ./
         id: setup-dotnet
         with:
@@ -72,45 +85,11 @@ jobs:
           aspnetcore-version: sts, 8.0.0
           cache: false
 
-      - name: Verify installation
-        shell: bash
-        run: |
-          dotnet --list-sdks
-          dotnet --list-runtimes
-
-  test-global-json-prerelease:
-    name: Test global.json with Prerelease
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        sample:
-          - name: 'Preview with allowPrerelease'
-            file: 'global.json.preview'
-          - name: 'Preview with Latest Major'
-            file: 'global.json.preview-latestmajor'
-          - name: 'With Comments'
-            file: 'global.json.with-comments'
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-
-      - name: Setup test environment with global.json
-        shell: bash
-        run: |
-          cp samples/${{ matrix.sample.file }} global.json
-          cat global.json
-
-      - name: Setup .NET from global.json
-        uses: ./
-        id: setup-dotnet
+      - name: Assert installation
+        uses: ./.github/actions/assert-dotnet
         with:
-          cache: false
-
-      - name: Verify SDK installation
-        run: |
-          dotnet --list-sdks
+          # lts/sts/latest are dynamic; only the explicit 8.0.0 ASP.NET Core can be pinned.
+          aspnetcore: '8.0'
 
   test-caching:
     name: Test Caching Enabled
@@ -118,21 +97,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os:
-          [
-            ubuntu-latest,
-            ubuntu-slim,
-            windows-latest,
-            macos-latest,
-            self-hosted,
-          ]
+        os: [ubuntu-latest, ubuntu-slim, windows-latest, macos-latest]
 
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-
-      - name: print environment variables
-        run: printenv | sort
 
       - name: Setup .NET with caching enabled
         uses: ./
@@ -142,10 +111,12 @@ jobs:
           runtime-version: '9.x, 6.0.0'
           aspnetcore-version: '9.0.0'
 
-      - name: Verify installation
-        run: |
-          dotnet --list-sdks
-          dotnet --list-runtimes
+      - name: Assert installation
+        uses: ./.github/actions/assert-dotnet
+        with:
+          sdk: '10'
+          runtime: '9.0 6.0'
+          aspnetcore: '9.0'
 
       - name: Setup .NET with caching enabled (second run)
         uses: ./
@@ -154,10 +125,12 @@ jobs:
           runtime-version: '9.x, 6.0.0'
           aspnetcore-version: '9.0.0'
 
-      - name: Verify installation (second run)
-        run: |
-          dotnet --list-sdks
-          dotnet --list-runtimes
+      - name: Assert installation (second run)
+        uses: ./.github/actions/assert-dotnet
+        with:
+          sdk: '10'
+          runtime: '9.0 6.0'
+          aspnetcore: '9.0'
 
       - name: Check outputs
         shell: bash
@@ -170,31 +143,36 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os:
-          [
-            ubuntu-latest,
-            ubuntu-slim,
-            windows-latest,
-            macos-latest,
-            self-hosted,
-          ]
+        os: [ubuntu-latest, ubuntu-slim, windows-latest, macos-latest]
         scenario:
           - name: 'Multiple SDKs'
             sdk: '10.x.x, 9.0.100'
             runtime: ''
             aspnetcore: ''
+            expected-sdk: '10 9.0.100'
+            expected-runtime: ''
+            expected-aspnetcore: ''
           - name: 'SDK + Multiple Runtimes'
             sdk: 'latest'
             runtime: '9.0.0, 8.0.0, 7.0.0'
             aspnetcore: ''
+            expected-sdk: ''
+            expected-runtime: '9.0 8.0 7.0'
+            expected-aspnetcore: ''
           - name: 'All Components Mixed'
             sdk: 'lts, sts'
             runtime: 'latest'
             aspnetcore: '9.x.x, 8.0.0'
+            expected-sdk: ''
+            expected-runtime: ''
+            expected-aspnetcore: '9.0 8.0'
           - name: 'Wildcards Mix'
             sdk: '10.x, 9.x.x'
             runtime: '9.x, 8.x'
             aspnetcore: '9.x'
+            expected-sdk: '10 9'
+            expected-runtime: '9.0 8.0'
+            expected-aspnetcore: '9.0'
 
     steps:
       - name: Checkout
@@ -209,11 +187,12 @@ jobs:
           aspnetcore-version: ${{ matrix.scenario.aspnetcore }}
           cache: false
 
-      - name: Verify installation
-        run: |
-          dotnet --info
-          dotnet --list-sdks
-          dotnet --list-runtimes
+      - name: Assert installation
+        uses: ./.github/actions/assert-dotnet
+        with:
+          sdk: ${{ matrix.scenario.expected-sdk }}
+          runtime: ${{ matrix.scenario.expected-runtime }}
+          aspnetcore: ${{ matrix.scenario.expected-aspnetcore }}
 
       - name: Install tools
         run: |
@@ -235,16 +214,25 @@ jobs:
             sdk: '9.x'
             runtime: ''
             aspnetcore: ''
+            expected-sdk: '9'
+            expected-runtime: ''
+            expected-aspnetcore: ''
           - name: 'Input SDK + Runtime with global.json'
             global-json-file: 'global.json.feature'
             sdk: '10.x'
             runtime: '9.0.0'
             aspnetcore: ''
+            expected-sdk: '10'
+            expected-runtime: '9.0'
+            expected-aspnetcore: ''
           - name: 'Input SDK + ASP.NET Core with global.json'
             global-json-file: 'global.json.patch'
             sdk: 'lts'
             runtime: ''
             aspnetcore: '9.x'
+            expected-sdk: ''
+            expected-runtime: ''
+            expected-aspnetcore: '9.0'
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -265,10 +253,12 @@ jobs:
           aspnetcore-version: ${{ matrix.scenario.aspnetcore }}
           cache: false
 
-      - name: Verify installation
-        run: |
-          dotnet --list-sdks
-          dotnet --list-runtimes
+      - name: Assert installation
+        uses: ./.github/actions/assert-dotnet
+        with:
+          sdk: ${{ matrix.scenario.expected-sdk }}
+          runtime: ${{ matrix.scenario.expected-runtime }}
+          aspnetcore: ${{ matrix.scenario.expected-aspnetcore }}
 
   test-edge-cases:
     name: Test Edge Cases
@@ -282,11 +272,17 @@ jobs:
             sdk: '10.x, 10.x.x, latest'
             runtime: ''
             aspnetcore: ''
+            expected-sdk: '10'
+            expected-runtime: ''
+            expected-aspnetcore: ''
           - name: 'Mixed keywords and versions'
             global-json-file: ''
             sdk: 'lts, 9.0.100, sts'
             runtime: 'latest, 8.0.0'
             aspnetcore: '9.x, sts'
+            expected-sdk: '9.0.100'
+            expected-runtime: '8.0'
+            expected-aspnetcore: '9.0'
 
     steps:
       - name: Checkout
@@ -294,6 +290,7 @@ jobs:
 
       - name: Setup global.json if needed
         if: matrix.scenario.global-json-file != ''
+        shell: bash
         run: |
           cp samples/${{ matrix.scenario.global-json-file }} global.json
           echo "=== global.json content ==="
@@ -308,12 +305,14 @@ jobs:
           aspnetcore-version: ${{ matrix.scenario.aspnetcore }}
           cache: false
 
-      - name: Verify installation
-        run: |
-          dotnet --list-sdks
-          dotnet --list-runtimes
+      - name: Assert installation
+        uses: ./.github/actions/assert-dotnet
+        with:
+          sdk: ${{ matrix.scenario.expected-sdk }}
+          runtime: ${{ matrix.scenario.expected-runtime }}
+          aspnetcore: ${{ matrix.scenario.expected-aspnetcore }}
 
-      - name: Setup .NET - ${{ matrix.scenario.name }} (second run)
+      - name: Setup .NET - ${{ matrix.scenario.name }} (second run, idempotency)
         uses: ./
         with:
           sdk-version: ${{ matrix.scenario.sdk }}
@@ -321,16 +320,16 @@ jobs:
           aspnetcore-version: ${{ matrix.scenario.aspnetcore }}
           cache: false
 
-      - name: Setup .NET - ${{ matrix.scenario.name }} (third run)
+      - name: Setup .NET - ${{ matrix.scenario.name }} (third run, add ASP.NET Core)
         uses: ./
         with:
           aspnetcore-version: '6.0.0'
           cache: false
 
-      - name: Verify installation (third run)
-        run: |
-          dotnet --list-sdks
-          dotnet --list-runtimes
+      - name: Assert installation (third run)
+        uses: ./.github/actions/assert-dotnet
+        with:
+          aspnetcore: '6.0'
 
   test-latest-preview:
     name: Test Preview Versions
@@ -347,7 +346,28 @@ jobs:
           allow-preview: true
           cache: false
 
-      - name: Verify installation
+      - name: Assert installation
+        # 'latest' preview is dynamic; assert a working SDK is present.
+        uses: ./.github/actions/assert-dotnet
+
+  test-invalid-version:
+    name: Test Invalid Version Fails
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Setup .NET with non-existent version
+        uses: ./
+        id: setup-invalid
+        continue-on-error: true
+        with:
+          sdk-version: '99.0.999'
+          cache: false
+
+      - name: Assert action failed
+        if: steps.setup-invalid.outcome != 'failure'
+        shell: bash
         run: |
-          dotnet --list-sdks
-          dotnet --list-runtimes
+          echo "::error::Expected setup to fail for non-existent version 99.0.999, but outcome was '${{ steps.setup-invalid.outcome }}'"
+          exit 1
