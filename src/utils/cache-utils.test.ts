@@ -8,8 +8,8 @@ import {
 	getVersionCachePath,
 	restoreUnifiedCache,
 	saveUnifiedCache,
-	type VersionEntry,
 } from './cache-utils';
+import type { VersionEntry } from '../types';
 import * as platformUtils from './platform-utils';
 
 vi.mock('@actions/cache');

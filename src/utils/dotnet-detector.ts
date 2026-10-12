@@ -2,19 +2,24 @@ import * as core from '@actions/core';
 import * as exec from '@actions/exec';
 import type { DotnetType, VersionSet } from '../types';
 
-// Parse output from `dotnet --list-sdks` or `dotnet --list-runtimes`
-// Expected format: 8.0.100 [/usr/share/dotnet/sdk]
-function parseVersionList(output: string): string[] {
+const VERSION_PATTERN = String.raw`([\d.]+(?:-[a-zA-Z0-9.-]+)?)\s*\[`;
+
+// `dotnet --list-sdks` prints "8.0.100 [/usr/share/dotnet/sdk]"
+const SDK_LINE_PATTERN = new RegExp(`^${VERSION_PATTERN}`);
+
+// `dotnet --list-runtimes` prints "Microsoft.NETCore.App 8.0.0 [/usr/share/dotnet/shared/Microsoft.NETCore.App]"
+const RUNTIME_LINE_PATTERN = new RegExp(
+	String.raw`^Microsoft\.NETCore\.App\s+${VERSION_PATTERN}`,
+);
+const ASPNETCORE_LINE_PATTERN = new RegExp(
+	String.raw`^Microsoft\.AspNetCore\.App\s+${VERSION_PATTERN}`,
+);
+
+function parseVersionList(output: string, linePattern: RegExp): string[] {
 	return output
 		.split('\n')
-		.map((line) => line.trim())
-		.filter((line) => line.length > 0)
-		.map((line) => {
-			// Extract version from "version [path]" format
-			const match = /^([\d.]+(?:-[a-zA-Z0-9.-]+)?)\s*\[/.exec(line);
-			return match ? match[1] : null;
-		})
-		.filter((version): version is string => version !== null);
+		.map((line) => linePattern.exec(line.trim())?.[1])
+		.filter((version): version is string => version !== undefined);
 }
 
 async function executeDotnetCommand(
@@ -53,93 +58,36 @@ async function executeDotnetCommand(
 	return output;
 }
 
-async function getInstalledSdks(dotnetPath?: string): Promise<string[]> {
-	core.debug('Checking for pre-installed SDKs...');
-	const output = await executeDotnetCommand(['--list-sdks'], dotnetPath);
-	const versions = parseVersionList(output);
-	if (versions.length > 0) {
-		core.debug(
-			`Found ${versions.length} pre-installed SDK(s): ${versions.join(', ')}`,
-		);
-	} else {
-		core.debug('No pre-installed SDKs found');
+function logDetectedVersions(label: string, versions: string[]): void {
+	if (versions.length === 0) {
+		core.debug(`No pre-installed ${label}s found`);
+		return;
 	}
-	return versions;
-}
-
-async function getInstalledRuntimes(dotnetPath?: string): Promise<string[]> {
-	core.debug('Checking for pre-installed Runtimes...');
-	const output = await executeDotnetCommand(['--list-runtimes'], dotnetPath);
-	const lines = output
-		.split('\n')
-		.map((line) => line.trim())
-		.filter((line) => line.length > 0);
-
-	const runtimes: string[] = [];
-
-	for (const line of lines) {
-		// Format: "Microsoft.NETCore.App 8.0.0 [/usr/share/dotnet/shared/Microsoft.NETCore.App]"
-		const match =
-			/^Microsoft\.NETCore\.App\s+([\d.]+(?:-[a-zA-Z0-9.-]+)?)\s*\[/.exec(line);
-		if (match) {
-			runtimes.push(match[1]);
-		}
-	}
-
-	if (runtimes.length > 0) {
-		core.debug(
-			`Found ${runtimes.length} pre-installed Runtime(s): ${runtimes.join(', ')}`,
-		);
-	} else {
-		core.debug('No pre-installed Runtimes found');
-	}
-	return runtimes;
-}
-
-async function getInstalledAspNetCoreRuntimes(
-	dotnetPath?: string,
-): Promise<string[]> {
-	core.debug('Checking for pre-installed ASP.NET Core Runtimes...');
-	const output = await executeDotnetCommand(['--list-runtimes'], dotnetPath);
-	const lines = output
-		.split('\n')
-		.map((line) => line.trim())
-		.filter((line) => line.length > 0);
-
-	const aspnetcoreRuntimes: string[] = [];
-
-	for (const line of lines) {
-		// Format: "Microsoft.AspNetCore.App 8.0.0 [/usr/share/dotnet/shared/Microsoft.AspNetCore.App]"
-		const match =
-			/^Microsoft\.AspNetCore\.App\s+([\d.]+(?:-[a-zA-Z0-9.-]+)?)\s*\[/.exec(
-				line,
-			);
-		if (match) {
-			aspnetcoreRuntimes.push(match[1]);
-		}
-	}
-
-	if (aspnetcoreRuntimes.length > 0) {
-		core.debug(
-			`Found ${aspnetcoreRuntimes.length} pre-installed ASP.NET Core Runtime(s): ${aspnetcoreRuntimes.join(', ')}`,
-		);
-	} else {
-		core.debug('No pre-installed ASP.NET Core Runtimes found');
-	}
-	return aspnetcoreRuntimes;
+	core.debug(
+		`Found ${versions.length} pre-installed ${label}(s): ${versions.join(', ')}`,
+	);
 }
 
 export async function getInstalledVersions(
 	dotnetPath?: string,
 ): Promise<VersionSet> {
 	try {
-		const [sdk, runtime, aspnetcore] = await Promise.all([
-			getInstalledSdks(dotnetPath),
-			getInstalledRuntimes(dotnetPath),
-			getInstalledAspNetCoreRuntimes(dotnetPath),
+		const [sdkOutput, runtimeOutput] = await Promise.all([
+			executeDotnetCommand(['--list-sdks'], dotnetPath),
+			executeDotnetCommand(['--list-runtimes'], dotnetPath),
 		]);
 
-		return { sdk, runtime, aspnetcore };
+		const installed: VersionSet = {
+			sdk: parseVersionList(sdkOutput, SDK_LINE_PATTERN),
+			runtime: parseVersionList(runtimeOutput, RUNTIME_LINE_PATTERN),
+			aspnetcore: parseVersionList(runtimeOutput, ASPNETCORE_LINE_PATTERN),
+		};
+
+		logDetectedVersions('SDK', installed.sdk);
+		logDetectedVersions('Runtime', installed.runtime);
+		logDetectedVersions('ASP.NET Core Runtime', installed.aspnetcore);
+
+		return installed;
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error);
 		core.debug(`Error detecting installed versions: ${errorMessage}`);
@@ -153,11 +101,5 @@ export function isVersionInstalled(
 	type: DotnetType,
 	installed: VersionSet,
 ): boolean {
-	if (type === 'sdk') {
-		return installed.sdk.includes(version);
-	}
-	if (type === 'runtime') {
-		return installed.runtime.includes(version);
-	}
-	return installed.aspnetcore.includes(version);
+	return installed[type].includes(version);
 }

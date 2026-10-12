@@ -1,12 +1,15 @@
+import * as fs from 'node:fs/promises';
+import * as os from 'node:os';
+import * as path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getDotNetDownloadInfo } from './installer';
+import { getDotnetDownloadInfo } from './installer';
 import * as platformUtils from './utils/platform-utils';
 import { clearReleaseCache } from './utils/versioning/release-cache';
 
 // Mock fetch globally
 globalThis.fetch = vi.fn();
 
-describe('getDotNetDownloadInfo', () => {
+describe('getDotnetDownloadInfo', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		// Clear releases cache to prevent test interference
@@ -46,7 +49,7 @@ describe('getDotNetDownloadInfo', () => {
 			json: async () => mockResponse,
 		} as Response);
 
-		const result = await getDotNetDownloadInfo('8.0.100', 'sdk');
+		const result = await getDotnetDownloadInfo('8.0.100', 'sdk');
 
 		expect(result.url).toContain('dotnet-sdk-8.0.100');
 		expect(result.hash).toBe('abc123def456');
@@ -80,7 +83,7 @@ describe('getDotNetDownloadInfo', () => {
 			json: async () => mockResponse,
 		} as Response);
 
-		const result = await getDotNetDownloadInfo('7.0.15', 'runtime');
+		const result = await getDotnetDownloadInfo('7.0.15', 'runtime');
 
 		expect(result.url).toContain('dotnet-runtime-7.0.15');
 		expect(result.hash).toBe('xyz789abc123');
@@ -110,7 +113,7 @@ describe('getDotNetDownloadInfo', () => {
 			json: async () => mockResponse,
 		} as Response);
 
-		const result = await getDotNetDownloadInfo('8.0.0', 'aspnetcore');
+		const result = await getDotnetDownloadInfo('8.0.0', 'aspnetcore');
 
 		expect(result.url).toContain('aspnetcore-runtime-8.0.0');
 		expect(result.hash).toBe('def456ghi789');
@@ -126,7 +129,7 @@ describe('getDotNetDownloadInfo', () => {
 			json: async () => mockResponse,
 		} as Response);
 
-		await expect(getDotNetDownloadInfo('99.0.0', 'sdk')).rejects.toThrow(
+		await expect(getDotnetDownloadInfo('99.0.0', 'sdk')).rejects.toThrow(
 			'Version 99.0.0 not found in releases manifest',
 		);
 	});
@@ -157,7 +160,7 @@ describe('getDotNetDownloadInfo', () => {
 			json: async () => mockResponse,
 		} as Response);
 
-		await expect(getDotNetDownloadInfo('8.0.100', 'sdk')).rejects.toThrow(
+		await expect(getDotnetDownloadInfo('8.0.100', 'sdk')).rejects.toThrow(
 			'Hash missing for sdk 8.0.100',
 		);
 	});
@@ -190,9 +193,9 @@ describe('getDotNetDownloadInfo', () => {
 
 		// Make multiple concurrent requests
 		await Promise.all([
-			getDotNetDownloadInfo('8.0.100', 'sdk'),
-			getDotNetDownloadInfo('8.0.100', 'sdk'),
-			getDotNetDownloadInfo('8.0.100', 'sdk'),
+			getDotnetDownloadInfo('8.0.100', 'sdk'),
+			getDotnetDownloadInfo('8.0.100', 'sdk'),
+			getDotnetDownloadInfo('8.0.100', 'sdk'),
 		]);
 
 		// Should only fetch once due to caching
@@ -200,7 +203,7 @@ describe('getDotNetDownloadInfo', () => {
 	});
 });
 
-describe('getDotNetInstallDirectory', () => {
+describe('getDotnetInstallDirectory', () => {
 	let originalEnv: NodeJS.ProcessEnv;
 
 	beforeEach(() => {
@@ -217,8 +220,8 @@ describe('getDotNetInstallDirectory', () => {
 		process.env.RUNNER_TOOL_CACHE = '/custom/toolcache';
 		delete process.env.AGENT_TOOLSDIRECTORY;
 
-		const { getDotNetInstallDirectory } = await import('./installer');
-		const dir = (getDotNetInstallDirectory as () => string)();
+		const { getDotnetInstallDirectory } = await import('./installer');
+		const dir = (getDotnetInstallDirectory as () => string)();
 
 		expect(dir).toBe('/custom/toolcache/dotnet');
 	});
@@ -228,8 +231,8 @@ describe('getDotNetInstallDirectory', () => {
 		delete process.env.RUNNER_TOOL_CACHE;
 
 		vi.resetModules();
-		const { getDotNetInstallDirectory } = await import('./installer');
-		const dir = (getDotNetInstallDirectory as () => string)();
+		const { getDotnetInstallDirectory } = await import('./installer');
+		const dir = (getDotnetInstallDirectory as () => string)();
 
 		expect(dir).toBe('/azure/tools/dotnet');
 	});
@@ -239,10 +242,108 @@ describe('getDotNetInstallDirectory', () => {
 		delete process.env.AGENT_TOOLSDIRECTORY;
 
 		vi.resetModules();
-		const { getDotNetInstallDirectory } = await import('./installer');
+		const { getDotnetInstallDirectory } = await import('./installer');
 
-		expect(() => (getDotNetInstallDirectory as () => string)()).toThrow(
+		expect(() => (getDotnetInstallDirectory as () => string)()).toThrow(
 			'Neither AGENT_TOOLSDIRECTORY nor RUNNER_TOOL_CACHE environment variable is set',
 		);
+	});
+});
+
+describe('ensureDotnetBinary', () => {
+	let originalEnv: NodeJS.ProcessEnv;
+	let testDirectory: string;
+
+	beforeEach(async () => {
+		originalEnv = { ...process.env };
+		testDirectory = await fs.mkdtemp(
+			path.join(os.tmpdir(), 'ensure-dotnet-binary-'),
+		);
+		process.env.RUNNER_TEMP = path.join(testDirectory, 'temp');
+		process.env.RUNNER_TOOL_CACHE = path.join(testDirectory, 'toolcache');
+		delete process.env.AGENT_TOOLSDIRECTORY;
+		vi.resetModules();
+	});
+
+	afterEach(async () => {
+		process.env = originalEnv;
+		await fs.rm(testDirectory, { recursive: true, force: true });
+	});
+
+	async function createCachedRuntime(version: string): Promise<string> {
+		const { getDotnetBinaryName } = await import('./utils/platform-utils');
+		const cachePath = path.join(
+			testDirectory,
+			'temp',
+			'dotnet-cache',
+			'runtime',
+			version,
+		);
+		await fs.mkdir(cachePath, { recursive: true });
+		await fs.writeFile(path.join(cachePath, getDotnetBinaryName()), 'binary');
+		return getDotnetBinaryName();
+	}
+
+	it('should copy the dotnet binary from the cache for a runtime-only cache restore', async () => {
+		const dotnetBinary = await createCachedRuntime('8.0.0');
+		const { ensureDotnetBinary, getDotnetInstallDirectory } = await import(
+			'./installer'
+		);
+
+		await ensureDotnetBinary([
+			{
+				version: '8.0.0',
+				type: 'runtime',
+				path: getDotnetInstallDirectory(),
+				source: 'github-cache',
+			},
+		]);
+
+		const copiedBinary = path.join(getDotnetInstallDirectory(), dotnetBinary);
+		await expect(fs.readFile(copiedBinary, 'utf-8')).resolves.toBe('binary');
+	});
+
+	it('should not copy the dotnet binary when an SDK was installed', async () => {
+		const dotnetBinary = await createCachedRuntime('8.0.0');
+		const { ensureDotnetBinary, getDotnetInstallDirectory } = await import(
+			'./installer'
+		);
+
+		await ensureDotnetBinary([
+			{
+				version: '8.0.100',
+				type: 'sdk',
+				path: getDotnetInstallDirectory(),
+				source: 'download',
+			},
+			{
+				version: '8.0.0',
+				type: 'runtime',
+				path: getDotnetInstallDirectory(),
+				source: 'github-cache',
+			},
+		]);
+
+		const copiedBinary = path.join(getDotnetInstallDirectory(), dotnetBinary);
+		await expect(fs.access(copiedBinary)).rejects.toThrow();
+	});
+
+	it('should not copy the dotnet binary when no runtime came from the cache', async () => {
+		const dotnetBinary = await createCachedRuntime('8.0.0');
+		const { ensureDotnetBinary, getDotnetInstallDirectory } = await import(
+			'./installer'
+		);
+
+		await ensureDotnetBinary([
+			{
+				version: '8.0.0',
+				type: 'runtime',
+				path: getDotnetInstallDirectory(),
+				source: 'download',
+			},
+		]);
+
+		const copiedBinary = path.join(getDotnetInstallDirectory(), dotnetBinary);
+		await expect(fs.access(copiedBinary)).rejects.toThrow();
 	});
 });

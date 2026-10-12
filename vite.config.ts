@@ -10,7 +10,7 @@ export default defineConfig({
 		ssr: true,
 		outDir: 'dist',
 		rollupOptions: {
-			input: resolve(__dirname, 'src/main.ts'),
+			input: resolve(import.meta.dirname, 'src/main.ts'),
 			output: {
 				entryFileNames: 'index.js',
 				format: 'es',

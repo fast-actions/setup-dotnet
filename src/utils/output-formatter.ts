@@ -7,53 +7,28 @@ interface InstallationsBySource {
 	downloaded: InstallResult[];
 }
 
-function formatTypeLabel(type: DotnetType): string {
-	switch (type) {
-		case 'sdk':
-			return 'SDK';
-		case 'runtime':
-			return 'Runtime';
-		case 'aspnetcore':
-			return 'ASP.NET Core';
-	}
-}
+const TYPE_LABELS: Record<DotnetType, string> = {
+	sdk: 'SDK',
+	runtime: 'Runtime',
+	aspnetcore: 'ASP.NET Core',
+};
+
+const TYPE_ORDER: DotnetType[] = ['sdk', 'runtime', 'aspnetcore'];
 
 export function formatVersionPlan(deduplicated: VersionSet): string {
-	const parts: string[] = [];
-	if (deduplicated.sdk.length > 0) {
-		parts.push(`SDK ${deduplicated.sdk.join(', ')}`);
-	}
-	if (deduplicated.runtime.length > 0) {
-		parts.push(`Runtime ${deduplicated.runtime.join(', ')}`);
-	}
-	if (deduplicated.aspnetcore.length > 0) {
-		parts.push(`ASP.NET Core ${deduplicated.aspnetcore.join(', ')}`);
-	}
-	return parts.join(' | ');
+	return TYPE_ORDER.filter((type) => deduplicated[type].length > 0)
+		.map((type) => `${TYPE_LABELS[type]} ${deduplicated[type].join(', ')}`)
+		.join(' | ');
 }
 
 export function setActionOutputs(
 	versions: string,
-	installDir: string,
+	installDirectory: string,
 	cacheHit: boolean,
 ): void {
 	core.setOutput('dotnet-version', versions);
-	core.setOutput('dotnet-path', installDir);
+	core.setOutput('dotnet-path', installDirectory);
 	core.setOutput('cache-hit', cacheHit);
-}
-
-function sortByType(results: InstallResult[]): InstallResult[] {
-	const typeOrder: Record<DotnetType, number> = {
-		sdk: 0,
-		runtime: 1,
-		aspnetcore: 2,
-	};
-	return [...results].sort((a, b) => typeOrder[a.type] - typeOrder[b.type]);
-}
-
-function formatVersion(type: DotnetType, version: string): string {
-	const typeLabel = formatTypeLabel(type);
-	return `${typeLabel} ${version}`;
 }
 
 export function groupInstallationsBySource(
@@ -61,16 +36,17 @@ export function groupInstallationsBySource(
 ): InstallationsBySource {
 	return {
 		alreadyInstalled: results.filter(
-			(r) => r.source === 'installation-directory',
+			(result) => result.source === 'installation-directory',
 		),
-		githubCache: results.filter((r) => r.source === 'github-cache'),
-		downloaded: results.filter((r) => r.source === 'download'),
+		githubCache: results.filter((result) => result.source === 'github-cache'),
+		downloaded: results.filter((result) => result.source === 'download'),
 	};
 }
 
 function formatVersionsList(results: InstallResult[]): string {
-	return sortByType(results)
-		.map((r) => formatVersion(r.type, r.version))
+	return [...results]
+		.sort((a, b) => TYPE_ORDER.indexOf(a.type) - TYPE_ORDER.indexOf(b.type))
+		.map((result) => `${TYPE_LABELS[result.type]} ${result.version}`)
 		.join(' | ');
 }
 

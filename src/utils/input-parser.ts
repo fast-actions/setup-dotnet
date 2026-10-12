@@ -4,6 +4,6 @@ export function parseVersions(input: string): string[] {
 	if (!input) return [];
 	return input
 		.split(/[\n,]/)
-		.map((v) => v.trim())
-		.filter((v) => v.length > 0 && !v.startsWith('-'));
+		.map((version) => version.trim())
+		.filter((version) => version.length > 0 && !version.startsWith('-'));
 }

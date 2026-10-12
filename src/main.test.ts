@@ -2,12 +2,9 @@ import * as core from '@actions/core';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-	getDotNetInstallDirectory,
-	installVersion,
-	type InstallResult,
-} from './installer';
+import { getDotnetInstallDirectory, installVersion } from './installer';
 import { run } from './main';
+import type { InstallResult } from './types';
 import * as dotnetDetector from './utils/dotnet-detector';
 
 vi.mock('@actions/core');
@@ -22,8 +19,8 @@ describe('main', () => {
 		vi.clearAllMocks();
 		await fs.mkdir(testDir, { recursive: true });
 
-		// Mock getDotNetInstallDirectory
-		vi.mocked(getDotNetInstallDirectory).mockReturnValue('/path/to/dotnet');
+		// Mock getDotnetInstallDirectory
+		vi.mocked(getDotnetInstallDirectory).mockReturnValue('/path/to/dotnet');
 
 		// Mock getBooleanInput - default to false for cache and allow-preview
 		vi.mocked(core.getBooleanInput).mockReturnValue(false);

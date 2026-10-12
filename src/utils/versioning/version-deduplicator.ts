@@ -1,33 +1,40 @@
 import * as core from '@actions/core';
-import type { VersionSet, VersionSetWithPrerelease } from '../../types';
+import type {
+	DotnetType,
+	VersionInfo,
+	VersionSet,
+	VersionSetWithPrerelease,
+} from '../../types';
 import { getSdkIncludedVersions } from './sdk-runtime-mapper';
 import { resolveVersion } from './version-resolver';
+
+interface ResolvedEntry {
+	original: string;
+	resolved: string;
+}
+
+function resolveAll(
+	versionInfo: VersionInfo,
+	type: DotnetType,
+): ResolvedEntry[] {
+	return versionInfo.versions.map((version) => ({
+		original: version,
+		resolved: resolveVersion(version, type, versionInfo.allowPrerelease),
+	}));
+}
 
 // Remove redundant versions based on .NET hierarchy: SDK > ASP.NET Core Runtime > .NET Runtime
 export async function deduplicateVersions(
 	versions: VersionSetWithPrerelease,
 ): Promise<VersionSet> {
-	const resolvedSdk = versions.sdk.versions.map((v) => ({
-		original: v,
-		resolved: resolveVersion(v, 'sdk', versions.sdk.allowPrerelease),
-	}));
+	const resolvedSdk = resolveAll(versions.sdk, 'sdk');
+	const resolvedRuntime = resolveAll(versions.runtime, 'runtime');
+	const resolvedAspnetcore = resolveAll(versions.aspnetcore, 'aspnetcore');
 
-	const resolvedRuntime = versions.runtime.versions.map((v) => ({
-		original: v,
-		resolved: resolveVersion(v, 'runtime', versions.runtime.allowPrerelease),
-	}));
-
-	const resolvedAspnetcore = versions.aspnetcore.versions.map((v) => ({
-		original: v,
-		resolved: resolveVersion(
-			v,
-			'aspnetcore',
-			versions.aspnetcore.allowPrerelease,
-		),
-	}));
-
-	const sdkSet = new Set(resolvedSdk.map((v) => v.resolved));
-	const aspnetcoreSet = new Set(resolvedAspnetcore.map((v) => v.resolved));
+	const sdkSet = new Set(resolvedSdk.map((entry) => entry.resolved));
+	const aspnetcoreSet = new Set(
+		resolvedAspnetcore.map((entry) => entry.resolved),
+	);
 
 	const sdkIncludedVersions = await Promise.all(
 		resolvedSdk.map(async (sdk) => ({
@@ -44,67 +51,60 @@ export async function deduplicateVersions(
 		}
 	}
 
-	const filteredRuntime = resolvedRuntime.filter((v) => {
-		if (sdkIncludedRuntimes.has(v.resolved)) {
-			core.info(`Skipping redundant Runtime ${v.original} (included in SDK)`);
+	const filteredRuntime = resolvedRuntime.filter((entry) => {
+		if (sdkIncludedRuntimes.has(entry.resolved)) {
+			core.info(
+				`Skipping redundant Runtime ${entry.original} (included in SDK)`,
+			);
 			return false;
 		}
-		if (aspnetcoreSet.has(v.resolved) || sdkSet.has(v.resolved)) {
+		if (aspnetcoreSet.has(entry.resolved) || sdkSet.has(entry.resolved)) {
 			core.info(
-				`Skipping redundant Runtime ${v.original} (covered by ${aspnetcoreSet.has(v.resolved) ? 'ASP.NET Core' : 'SDK'})`,
+				`Skipping redundant Runtime ${entry.original} (covered by ${aspnetcoreSet.has(entry.resolved) ? 'ASP.NET Core' : 'SDK'})`,
 			);
 			return false;
 		}
 		return true;
 	});
 
-	const filteredAspnetcore = resolvedAspnetcore.filter((v) => {
-		if (sdkIncludedRuntimes.has(v.resolved)) {
+	const filteredAspnetcore = resolvedAspnetcore.filter((entry) => {
+		if (sdkIncludedRuntimes.has(entry.resolved)) {
 			core.info(
-				`Skipping redundant ASP.NET Core ${v.original} (included in SDK)`,
+				`Skipping redundant ASP.NET Core ${entry.original} (included in SDK)`,
 			);
 			return false;
 		}
-		if (sdkSet.has(v.resolved)) {
+		if (sdkSet.has(entry.resolved)) {
 			core.info(
-				`Skipping redundant ASP.NET Core ${v.original} (covered by SDK)`,
+				`Skipping redundant ASP.NET Core ${entry.original} (covered by SDK)`,
 			);
 			return false;
 		}
 		return true;
 	});
-
-	const uniqueSdk = removeDuplicatesWithinType(resolvedSdk, 'SDK');
-	const uniqueRuntime = removeDuplicatesWithinType(filteredRuntime, 'Runtime');
-	const uniqueAspnetcore = removeDuplicatesWithinType(
-		filteredAspnetcore,
-		'ASP.NET Core',
-	);
 
 	return {
-		sdk: uniqueSdk,
-		runtime: uniqueRuntime,
-		aspnetcore: uniqueAspnetcore,
+		sdk: removeDuplicatesWithinType(resolvedSdk, 'SDK'),
+		runtime: removeDuplicatesWithinType(filteredRuntime, 'Runtime'),
+		aspnetcore: removeDuplicatesWithinType(filteredAspnetcore, 'ASP.NET Core'),
 	};
 }
 
 function removeDuplicatesWithinType(
-	versions: Array<{ original: string; resolved: string }>,
-	type: string,
+	entries: ResolvedEntry[],
+	typeLabel: string,
 ): string[] {
 	const seen = new Set<string>();
-	const result: string[] = [];
 
-	for (const v of versions) {
-		if (seen.has(v.resolved)) {
+	for (const entry of entries) {
+		if (seen.has(entry.resolved)) {
 			core.info(
-				`Skipping duplicate ${type} ${v.original} (already resolved to ${v.resolved})`,
+				`Skipping duplicate ${typeLabel} ${entry.original} (already resolved to ${entry.resolved})`,
 			);
 			continue;
 		}
-		seen.add(v.resolved);
-		result.push(v.resolved);
+		seen.add(entry.resolved);
 	}
 
-	return result;
+	return [...seen];
 }

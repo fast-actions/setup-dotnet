@@ -1,5 +1,5 @@
 import * as core from '@actions/core';
-import type { DotnetType, ReleaseInfo, ResolvedVersion } from '../../types';
+import type { DotnetType, ReleaseInfo } from '../../types';
 import { fetchWithRetry } from '../fetch-with-retry';
 
 let cachedReleases: ReleaseInfo[] | null = null;
@@ -15,7 +15,7 @@ export function setCachedReleases(releases: ReleaseInfo[]): void {
 function getCachedReleasesOrThrow(): ReleaseInfo[] {
 	if (!cachedReleases) {
 		throw new Error(
-			'Cache not initialized. Call initializeCache() before resolveVersion().',
+			'Cache not initialized. Call fetchAndCacheReleaseInfo() before resolveVersion().',
 		);
 	}
 	return cachedReleases;
@@ -62,41 +62,33 @@ function normalizeVersionPattern(version: string): string {
 	return parts.join('.');
 }
 
+const KEYWORDS = ['lts', 'sts', 'latest'];
+
 export function resolveVersion(
 	version: string,
 	type: DotnetType,
 	allowPreview: boolean,
 ): string {
 	const versionLower = version.toLowerCase();
+	const isKeyword = KEYWORDS.includes(versionLower);
 
-	if (
-		!versionLower.includes('x') &&
-		versionLower !== 'lts' &&
-		versionLower !== 'sts' &&
-		versionLower !== 'latest'
-	) {
+	if (!isKeyword && !versionLower.includes('x')) {
 		return version;
 	}
 
 	const releases = getCachedReleasesOrThrow();
 
-	if (versionLower === 'lts' || versionLower === 'sts') {
-		const resolved = resolveSupportTierFromReleases(
+	if (isKeyword) {
+		const resolved = resolveKeywordFromReleases(
 			releases,
 			versionLower,
 			type,
 			allowPreview,
 		);
 		core.info(
-			`Resolved ${versionLower.toUpperCase()} (${type.toUpperCase()}) -> ${resolved.value}`,
+			`Resolved ${versionLower.toUpperCase()} (${type.toUpperCase()}) -> ${resolved}`,
 		);
-		return resolved.value;
-	}
-
-	if (versionLower === 'latest') {
-		const resolved = resolveLatestFromReleases(releases, type, allowPreview);
-		core.info(`Resolved LATEST (${type.toUpperCase()}) -> ${resolved.value}`);
-		return resolved.value;
+		return resolved;
 	}
 
 	const resolved = resolveVersionPatternFromReleases(
@@ -109,57 +101,30 @@ export function resolveVersion(
 	return resolved;
 }
 
-function resolveLatestFromReleases(
+// The releases index is ordered newest first, so the first match is the latest.
+function resolveKeywordFromReleases(
 	releases: ReleaseInfo[],
+	keyword: string,
 	type: DotnetType,
 	allowPreview: boolean,
-): ResolvedVersion {
-	core.debug(`Resolving LATEST version for ${type}`);
-	const versionType = type === 'sdk' ? 'sdk' : 'runtime';
+): string {
+	core.debug(`Resolving ${keyword.toUpperCase()} version for ${type}`);
 
-	const filteredReleases = allowPreview
-		? releases
-		: releases.filter((r) => r['support-phase'] !== 'preview');
+	const latestRelease = releases.find(
+		(release) =>
+			(keyword === 'latest' || release['release-type'] === keyword) &&
+			(allowPreview || release['support-phase'] !== 'preview'),
+	);
 
-	if (filteredReleases.length === 0) {
-		throw new Error('No available releases found');
+	if (!latestRelease) {
+		throw new Error(
+			keyword === 'latest'
+				? 'No available releases found'
+				: `No ${keyword.toUpperCase()} releases found`,
+		);
 	}
 
-	const latestRelease = filteredReleases[0];
-	const resolvedVersion = pickVersion(latestRelease, versionType);
-
-	return {
-		value: resolvedVersion,
-		channel: latestRelease['channel-version'],
-	};
-}
-
-function resolveSupportTierFromReleases(
-	releases: ReleaseInfo[],
-	tier: 'lts' | 'sts',
-	type: DotnetType,
-	allowPreview: boolean,
-): ResolvedVersion {
-	core.debug(`Resolving ${tier.toUpperCase()} version for ${type}`);
-
-	const supportedReleases = releases.filter((r) => {
-		const matchesTier = r['release-type'] === tier;
-		const isNotPreview = allowPreview || r['support-phase'] !== 'preview';
-		return matchesTier && isNotPreview;
-	});
-
-	if (supportedReleases.length === 0) {
-		throw new Error(`No ${tier.toUpperCase()} releases found`);
-	}
-
-	const latestRelease = supportedReleases[0];
-	const versionType = type === 'sdk' ? 'sdk' : 'runtime';
-	const resolvedVersion = pickVersion(latestRelease, versionType);
-
-	return {
-		value: resolvedVersion,
-		channel: latestRelease['channel-version'],
-	};
+	return pickVersion(latestRelease, type);
 }
 
 function resolveVersionPatternFromReleases(
@@ -168,19 +133,16 @@ function resolveVersionPatternFromReleases(
 	type: DotnetType,
 	allowPreview: boolean,
 ): string {
-	// Normalize pattern to 3 parts (10.x -> 10.x.x)
-	const normalizedVersion = normalizeVersionPattern(version);
-	const versionPattern = normalizedVersion
+	const versionPattern = normalizeVersionPattern(version)
 		.replaceAll('.', '\\.')
 		.replaceAll('x', '\\d+');
 	const prereleaseSuffix = allowPreview ? '(-[0-9A-Za-z.]+)?' : '';
 	const regex = new RegExp(`^${versionPattern}${prereleaseSuffix}$`);
 
-	const versionType = type === 'sdk' ? 'sdk' : 'runtime';
-	const allVersions = releases.map((r) => pickVersion(r, versionType));
+	const allVersions = releases.map((release) => pickVersion(release, type));
 
 	const matchingVersions = allVersions
-		.filter((v) => v && regex.test(v))
+		.filter((candidate) => candidate && regex.test(candidate))
 		.sort((a, b) => compareVersions(b, a));
 
 	if (matchingVersions.length === 0) {
@@ -193,13 +155,8 @@ function resolveVersionPatternFromReleases(
 	return matchingVersions[0];
 }
 
-function pickVersion(
-	release: ReleaseInfo,
-	versionType: 'sdk' | 'runtime',
-): string {
-	return versionType === 'sdk'
-		? release['latest-sdk']
-		: release['latest-release'];
+function pickVersion(release: ReleaseInfo, type: DotnetType): string {
+	return type === 'sdk' ? release['latest-sdk'] : release['latest-release'];
 }
 
 export function compareVersions(a: string, b: string): number {
