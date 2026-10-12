@@ -1,6 +1,10 @@
 import * as os from 'node:os';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getArchitecture, getPlatform } from './platform-utils';
+import {
+	getArchitecture,
+	getDotnetBinaryName,
+	getPlatform,
+} from './platform-utils';
 
 vi.mock('node:os');
 
@@ -53,5 +57,24 @@ describe('getArchitecture', () => {
 	it('should throw error for unsupported architecture', () => {
 		vi.mocked(os.arch).mockReturnValue('ia32');
 		expect(() => getArchitecture()).toThrow('Unsupported architecture: ia32');
+	});
+});
+
+describe('getDotnetBinaryName', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	it('should return dotnet.exe on Windows', () => {
+		vi.mocked(os.platform).mockReturnValue('win32');
+		expect(getDotnetBinaryName()).toBe('dotnet.exe');
+	});
+
+	it('should return dotnet on Linux and macOS', () => {
+		vi.mocked(os.platform).mockReturnValue('linux');
+		expect(getDotnetBinaryName()).toBe('dotnet');
+
+		vi.mocked(os.platform).mockReturnValue('darwin');
+		expect(getDotnetBinaryName()).toBe('dotnet');
 	});
 });

@@ -8,20 +8,18 @@ GitHub Action for .NET SDK/Runtime installation with caching. TypeScript + Vite 
 
 ### Core Modules
 
-- `src/main.ts` - Entry point, orchestrates installer and global.json reading
+- `src/main.ts` - Entry point, orchestrates input parsing, version resolution, installation and outputs
 - `src/installer.ts` - .NET download/installation via `@actions/tool-cache`
-- `src/types.ts` - Core type definitions (DotnetType, VersionSet, ReleaseManifest)
-- `src/installer.types.ts` - Installer-specific types (InstallResult, DownloadInfo)
+- `src/types.ts` - Shared type definitions (DotnetType, VersionSet, ReleaseManifest, InstallResult, ...)
 
 ### Utilities
 
 - `src/utils/global-json-reader.ts` - Reads and parses global.json for SDK version resolution with rollForward support
-- `src/utils/global-json.types.ts` - Type definitions for global.json structure
 - `src/utils/input-parser.ts` - Parses version inputs (comma-separated, multiline, YAML array)
-- `src/utils/platform-utils.ts` - Platform and architecture detection for download URLs
+- `src/utils/platform-utils.ts` - Platform, architecture and dotnet binary name detection
 - `src/utils/dotnet-detector.ts` - Detects installed .NET versions on the system
 - `src/utils/cache-utils.ts` - Unified cache key generation and cache restore/save operations
-- `src/utils/cache.types.ts` - Type definitions for caching (VersionEntry)
+- `src/utils/fetch-with-retry.ts` - `fetch` wrapper with timeout and retries for transient failures
 - `src/utils/output-formatter.ts` - Formats and logs installation results for user output
 
 ### Versioning
@@ -30,7 +28,6 @@ GitHub Action for .NET SDK/Runtime installation with caching. TypeScript + Vite 
 - `src/utils/versioning/version-deduplicator.ts` - Removes redundant SDK/Runtime installations using SDK/Runtime mapping
 - `src/utils/versioning/sdk-runtime-mapper.ts` - Maps SDK versions to included runtimes to prevent duplicate installations
 - `src/utils/versioning/release-cache.ts` - Fetches and caches .NET release manifests
-- `src/utils/versioning/versioning.types.ts` - Type definitions for version resolution (ReleaseInfo, ResolvedVersion)
 
 ### Configuration
 
@@ -78,7 +75,7 @@ describe('functionName', () => {
 
 - **Tabs** (not spaces), **single quotes**, LF line endings
 - **Variable names must always be written out in full** - no abbreviations (e.g., `versionNumber` not `versionNum`, `installationDirectory` not `instDir`, `platform` not `plat`)
-- **Type definitions**: Place related types in `<module>.types.ts` files alongside their modules (e.g., types used by `installer.ts` go in `installer.types.ts`, types for `global-json-reader.ts` go in `global-json.types.ts`)
+- **Type definitions**: Place shared and exported types in `src/types.ts`; types used only inside one module may stay in that module
 - Biome auto-organizes imports on save
 - Write clean, modular, maintainable code
 - **Never use `any` or `unknown`** - always provide explicit types

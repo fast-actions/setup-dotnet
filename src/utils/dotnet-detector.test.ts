@@ -212,6 +212,25 @@ describe('dotnet-detector', () => {
 			expect(result.aspnetcore).toEqual([]);
 		});
 
+		it('should run --list-runtimes only once for Runtime and ASP.NET Core', async () => {
+			const mockExec = vi.mocked(exec.exec);
+			mockExec.mockResolvedValue(0);
+
+			await getInstalledVersions('/custom/dotnet');
+
+			expect(mockExec).toHaveBeenCalledTimes(2);
+			expect(mockExec).toHaveBeenCalledWith(
+				'/custom/dotnet',
+				['--list-sdks'],
+				expect.any(Object),
+			);
+			expect(mockExec).toHaveBeenCalledWith(
+				'/custom/dotnet',
+				['--list-runtimes'],
+				expect.any(Object),
+			);
+		});
+
 		it('should handle exception gracefully', async () => {
 			const mockExec = vi.mocked(exec.exec);
 			mockExec.mockRejectedValue(new Error('Command execution failed'));

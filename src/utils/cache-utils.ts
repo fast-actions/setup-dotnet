@@ -6,8 +6,6 @@ import * as path from 'node:path';
 import type { DotnetType, VersionEntry } from '../types';
 import { getArchitecture, getPlatform } from './platform-utils';
 
-export type { VersionEntry };
-
 export function getDotnetCacheDirectory(): string {
 	const runnerTemp = process.env.RUNNER_TEMP;
 	if (!runnerTemp) {
@@ -25,15 +23,17 @@ export function generateVersionsHash(versions: VersionEntry[]): string {
 		(a, b) =>
 			a.type.localeCompare(b.type) || a.version.localeCompare(b.version),
 	);
-	const data = sorted.map((v) => `${v.type}:${v.version}`).join('|');
+	const data = sorted
+		.map((entry) => `${entry.type}:${entry.version}`)
+		.join('|');
 	return crypto.createHash('sha256').update(data).digest('hex').slice(0, 8);
 }
 
 export function generateUnifiedCacheKey(versions: VersionEntry[]): string {
 	const platform = getPlatform();
-	const arch = getArchitecture();
+	const architecture = getArchitecture();
 	const hash = generateVersionsHash(versions);
-	return `dotnet-${platform}-${arch}-${hash}`;
+	return `dotnet-${platform}-${architecture}-${hash}`;
 }
 
 export async function restoreUnifiedCache(

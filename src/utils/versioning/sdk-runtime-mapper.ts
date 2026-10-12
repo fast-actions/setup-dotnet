@@ -10,8 +10,8 @@ export async function getSdkIncludedVersions(
 
 		const data = await fetchReleaseManifest(sdkVersion);
 
-		const release = data.releases.find((r) =>
-			r.sdks?.some((s) => s.version === sdkVersion),
+		const release = data.releases.find((candidate) =>
+			candidate.sdks?.some((sdk) => sdk.version === sdkVersion),
 		);
 
 		if (!release) {
@@ -19,7 +19,7 @@ export async function getSdkIncludedVersions(
 			return { runtime: null, aspnetcore: null };
 		}
 
-		const result = {
+		const result: SdkIncludedVersions = {
 			runtime: release.runtime?.version || null,
 			aspnetcore: release['aspnetcore-runtime']?.version || null,
 		};
@@ -30,8 +30,9 @@ export async function getSdkIncludedVersions(
 
 		return result;
 	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : String(error);
 		core.debug(
-			`Error fetching SDK-included versions for ${sdkVersion}: ${error}`,
+			`Error fetching SDK-included versions for ${sdkVersion}: ${errorMessage}`,
 		);
 		return { runtime: null, aspnetcore: null };
 	}

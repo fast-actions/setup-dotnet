@@ -7,23 +7,37 @@ import * as path from 'node:path';
 import type {
 	DotnetType,
 	DownloadInfo,
-	FileInfo,
 	InstallResult,
 	Release,
+	ReleaseComponent,
 	VersionEntry,
 } from './types';
-
-export type { InstallResult };
 import { getVersionCachePath } from './utils/cache-utils';
 import {
 	getInstalledVersions,
 	isVersionInstalled,
 } from './utils/dotnet-detector';
-import { getArchitecture, getPlatform } from './utils/platform-utils';
+import {
+	getArchitecture,
+	getDotnetBinaryName,
+	getPlatform,
+} from './utils/platform-utils';
 import { fetchReleaseManifest } from './utils/versioning/release-cache';
 
+const ARCHIVE_NAME_PREFIXES: Record<DotnetType, string> = {
+	sdk: 'dotnet-sdk',
+	runtime: 'dotnet-runtime',
+	aspnetcore: 'aspnetcore-runtime',
+};
+
+const RUNTIME_FOLDERS = ['host', 'shared'];
+
 // Shared installation directory for all .NET installations
-let dotnetInstallDir: string | null = null;
+let dotnetInstallDirectory: string | null = null;
+
+function getLogPrefix(type: DotnetType): string {
+	return `[${type.toUpperCase()}]`;
+}
 
 function validateDownloadedFile(downloadPath: string, prefix: string): void {
 	const stats = fs.statSync(downloadPath);
@@ -31,8 +45,8 @@ function validateDownloadedFile(downloadPath: string, prefix: string): void {
 		throw new Error('Downloaded file is empty');
 	}
 	if (core.isDebug()) {
-		const sizeInMB = (stats.size / 1024 / 1024).toFixed(2);
-		core.debug(`${prefix} Downloaded ${sizeInMB} MB`);
+		const sizeInMegabytes = (stats.size / 1024 / 1024).toFixed(2);
+		core.debug(`${prefix} Downloaded ${sizeInMegabytes} MB`);
 	}
 }
 
@@ -77,119 +91,137 @@ async function downloadDotnetArchive(
 	}
 }
 
-function validateExtractedBinary(
-	extractedPath: string,
-	platform: string,
-): string {
-	const dotnetBinary = platform === 'win' ? 'dotnet.exe' : 'dotnet';
-	const dotnetPath = path.join(extractedPath, dotnetBinary);
-	if (!fs.existsSync(dotnetPath)) {
+function validateExtractedBinary(extractedPath: string): void {
+	const dotnetBinary = getDotnetBinaryName();
+	if (!fs.existsSync(path.join(extractedPath, dotnetBinary))) {
 		throw new Error(
 			`Extracted archive is missing ${dotnetBinary}. Archive may be corrupted.`,
 		);
 	}
-	return dotnetPath;
 }
 
-async function copySdkToInstallDir(
-	extractedPath: string,
-	installDir: string,
+async function copySdkToInstallDirectory(
+	sourcePath: string,
+	installDirectory: string,
 	prefix: string,
 ): Promise<void> {
 	core.debug(`${prefix} Copying SDK to install directory...`);
-	await io.mkdirP(installDir);
 	try {
-		await io.cp(extractedPath, installDir, {
+		await io.cp(sourcePath, installDirectory, {
 			recursive: true,
 			copySourceDirectory: false,
 		});
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error);
 		throw new Error(
-			`Failed to copy SDK files to ${installDir}: ${errorMessage}`,
+			`Failed to copy SDK files to ${installDirectory}: ${errorMessage}`,
 		);
 	}
 }
 
-async function copyRuntimeToInstallDir(
-	extractedPath: string,
-	installDir: string,
+async function copyRuntimeToInstallDirectory(
+	sourcePath: string,
+	installDirectory: string,
 	prefix: string,
 ): Promise<void> {
 	core.debug(
 		`${prefix} Copying runtime (host and shared folders) to install directory...`,
 	);
-	await io.mkdirP(installDir);
 
-	const hostSource = path.join(extractedPath, 'host');
-	const sharedSource = path.join(extractedPath, 'shared');
-	const hostDest = path.join(installDir, 'host');
-	const sharedDest = path.join(installDir, 'shared');
+	const existingFolders = RUNTIME_FOLDERS.filter((folder) =>
+		fs.existsSync(path.join(sourcePath, folder)),
+	);
 
-	const copyTasks: Promise<void>[] = [];
-
-	if (fs.existsSync(hostSource)) {
-		copyTasks.push(
-			io.cp(hostSource, hostDest, {
-				recursive: true,
-				copySourceDirectory: false,
-			}),
-		);
-	}
-
-	if (fs.existsSync(sharedSource)) {
-		copyTasks.push(
-			io.cp(sharedSource, sharedDest, {
-				recursive: true,
-				copySourceDirectory: false,
-			}),
-		);
-	}
-
-	if (copyTasks.length === 0) {
+	if (existingFolders.length === 0) {
 		core.warning(`${prefix} No host or shared folders found in extracted path`);
 		return;
 	}
 
 	try {
-		await Promise.all(copyTasks);
+		await Promise.all(
+			existingFolders.map((folder) =>
+				io.cp(
+					path.join(sourcePath, folder),
+					path.join(installDirectory, folder),
+					{ recursive: true, copySourceDirectory: false },
+				),
+			),
+		);
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error);
 		throw new Error(
-			`Failed to copy runtime files to ${installDir}: ${errorMessage}`,
+			`Failed to copy runtime files to ${installDirectory}: ${errorMessage}`,
 		);
 	}
 }
 
-export async function copyDotnetBinary(
-	extractedPath: string,
-	installDir: string,
-	platform: string,
+async function copyToInstallDirectory(
+	sourcePath: string,
+	installDirectory: string,
+	type: DotnetType,
+): Promise<void> {
+	const prefix = getLogPrefix(type);
+	await io.mkdirP(installDirectory);
+
+	if (type === 'sdk') {
+		await copySdkToInstallDirectory(sourcePath, installDirectory, prefix);
+		return;
+	}
+
+	await copyRuntimeToInstallDirectory(sourcePath, installDirectory, prefix);
+}
+
+async function copyDotnetBinary(
+	sourceDirectory: string,
+	installDirectory: string,
 	prefix: string,
 ): Promise<void> {
-	const dotnetBinary = platform === 'win' ? 'dotnet.exe' : 'dotnet';
-	const sourcePath = path.join(extractedPath, dotnetBinary);
-	const destPath = path.join(installDir, dotnetBinary);
+	const dotnetBinary = getDotnetBinaryName();
+	const sourcePath = path.join(sourceDirectory, dotnetBinary);
+	const destinationPath = path.join(installDirectory, dotnetBinary);
 
 	if (!fs.existsSync(sourcePath)) {
 		throw new Error(`dotnet binary not found in extracted path: ${sourcePath}`);
 	}
 
-	if (fs.existsSync(destPath)) {
+	if (fs.existsSync(destinationPath)) {
 		core.debug(`${prefix} dotnet binary already exists, skipping copy`);
 		return;
 	}
 
 	core.debug(`${prefix} Copying dotnet binary to install directory...`);
-	await io.mkdirP(installDir);
+	await io.mkdirP(installDirectory);
 	try {
-		await io.cp(sourcePath, destPath, { recursive: false });
+		await io.cp(sourcePath, destinationPath, { recursive: false });
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error);
 		throw new Error(
-			`Failed to copy dotnet binary to ${installDir}: ${errorMessage}`,
+			`Failed to copy dotnet binary to ${installDirectory}: ${errorMessage}`,
 		);
 	}
+}
+
+// Runtime installations only copy the host and shared folders, so without an
+// SDK the dotnet binary is taken from the restored runtime in the cache.
+export async function ensureDotnetBinary(
+	results: InstallResult[],
+): Promise<void> {
+	if (results.some((result) => result.type === 'sdk')) {
+		return;
+	}
+
+	const cachedRuntime = results.find(
+		(result) => result.source === 'github-cache',
+	);
+	if (!cachedRuntime) {
+		return;
+	}
+
+	await copyDotnetBinary(
+		getVersionCachePath(cachedRuntime.version, cachedRuntime.type),
+		getDotnetInstallDirectory(),
+		getLogPrefix(cachedRuntime.type),
+	);
 }
 
 function getSystemDotnetPath(): string {
@@ -215,16 +247,16 @@ export function configureEnvironment(useToolCache: boolean): void {
 	// Point DOTNET_ROOT/PATH at the tool-cache install when we installed there,
 	// otherwise at the pre-existing system installation. DOTNET_ROOT must be set
 	// for dotnet tools to resolve the runtime correctly.
-	const installDir = useToolCache
-		? getDotNetInstallDirectory()
+	const installDirectory = useToolCache
+		? getDotnetInstallDirectory()
 		: getSystemDotnetPath();
 
-	if (!process.env.PATH?.includes(installDir)) {
-		core.addPath(installDir);
+	if (!process.env.PATH?.includes(installDirectory)) {
+		core.addPath(installDirectory);
 	}
 
 	if (!process.env.DOTNET_ROOT) {
-		core.exportVariable('DOTNET_ROOT', installDir);
+		core.exportVariable('DOTNET_ROOT', installDirectory);
 	}
 
 	if (!process.env.DOTNET_SKIP_FIRST_TIME_EXPERIENCE) {
@@ -239,12 +271,12 @@ export function configureEnvironment(useToolCache: boolean): void {
 		core.exportVariable('DOTNET_CLI_TELEMETRY_OPTOUT', '1');
 	}
 
-	addDotnetToolToPath();
+	addDotnetToolsToPath();
 }
 
-function addDotnetToolToPath(): void {
-	const platform = getPlatform();
-	const home = platform === 'win' ? process.env.USERPROFILE : process.env.HOME;
+function addDotnetToolsToPath(): void {
+	const home =
+		getPlatform() === 'win' ? process.env.USERPROFILE : process.env.HOME;
 	if (!home) {
 		throw new Error('HOME or USERPROFILE environment variable is not set.');
 	}
@@ -257,166 +289,128 @@ function addDotnetToolToPath(): void {
 }
 
 function getToolCacheDirectory(): string {
-	const toolCacheDir =
+	const toolCacheDirectory =
 		process.env.AGENT_TOOLSDIRECTORY || process.env.RUNNER_TOOL_CACHE;
-	if (!toolCacheDir) {
+	if (!toolCacheDirectory) {
 		throw new Error(
 			'Neither AGENT_TOOLSDIRECTORY nor RUNNER_TOOL_CACHE environment variable is set.',
 		);
 	}
-	return toolCacheDir;
+	return toolCacheDirectory;
 }
 
-export function getDotNetInstallDirectory(): string {
-	if (!dotnetInstallDir) {
-		dotnetInstallDir = path.join(getToolCacheDirectory(), 'dotnet');
+export function getDotnetInstallDirectory(): string {
+	if (!dotnetInstallDirectory) {
+		dotnetInstallDirectory = path.join(getToolCacheDirectory(), 'dotnet');
 	}
-	return dotnetInstallDir;
+	return dotnetInstallDirectory;
 }
 
-export function isVersionInCache(version: string, type: DotnetType): boolean {
+function isVersionInCache(version: string, type: DotnetType): boolean {
 	const cachePath = getVersionCachePath(version, type);
-	const platform = getPlatform();
-	const dotnetBinary = platform === 'win' ? 'dotnet.exe' : 'dotnet';
-	const dotnetPath = path.join(cachePath, dotnetBinary);
-	return fs.existsSync(dotnetPath);
+	return fs.existsSync(path.join(cachePath, getDotnetBinaryName()));
 }
 
 async function isVersionInstalledInDirectory(
-	installDir: string,
+	installDirectory: string,
 	version: string,
 	type: DotnetType,
 ): Promise<boolean> {
-	const platform = getPlatform();
-	const dotnetBinary = platform === 'win' ? 'dotnet.exe' : 'dotnet';
-	const dotnetPath = path.join(installDir, dotnetBinary);
-
+	const dotnetPath = path.join(installDirectory, getDotnetBinaryName());
 	if (!fs.existsSync(dotnetPath)) {
 		return false;
 	}
 
-	try {
-		const installed = await getInstalledVersions(dotnetPath);
-		return isVersionInstalled(version, type, installed);
-	} catch (error) {
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		core.debug(
-			`Error checking installed versions in ${installDir}: ${errorMessage}`,
-		);
-		return false;
-	}
+	const installed = await getInstalledVersions(dotnetPath);
+	return isVersionInstalled(version, type, installed);
 }
 
-export async function installVersion(
-	options: VersionEntry,
-): Promise<InstallResult> {
-	const { version, type } = options;
-	const prefix = `[${type.toUpperCase()}]`;
-	const platform = getPlatform();
-	const installDir = getDotNetInstallDirectory();
+export async function installVersion({
+	version,
+	type,
+}: VersionEntry): Promise<InstallResult> {
+	const prefix = getLogPrefix(type);
+	const installDirectory = getDotnetInstallDirectory();
 	const cachePath = getVersionCachePath(version, type);
 
 	core.debug(`${prefix} Installing ${version}`);
 
-	if (await isVersionInstalledInDirectory(installDir, version, type)) {
-		core.debug(`${prefix} Already installed in: ${installDir}`);
+	if (await isVersionInstalledInDirectory(installDirectory, version, type)) {
+		core.debug(`${prefix} Already installed in: ${installDirectory}`);
 		return {
 			version,
 			type,
-			path: installDir,
+			path: installDirectory,
 			source: 'installation-directory',
 		};
 	}
 
 	if (isVersionInCache(version, type)) {
 		core.debug(`${prefix} Found in cache: ${cachePath}`);
-		validateExtractedBinary(cachePath, platform);
-
-		if (type === 'sdk') {
-			await copySdkToInstallDir(cachePath, installDir, prefix);
-		} else {
-			await copyRuntimeToInstallDir(cachePath, installDir, prefix);
-		}
-
+		await copyToInstallDirectory(cachePath, installDirectory, type);
 		return {
 			version,
 			type,
-			path: installDir,
+			path: installDirectory,
 			source: 'github-cache',
 		};
 	}
 
 	core.debug(`${prefix} Downloading ${version}`);
-	const { url, hash } = await getDotNetDownloadInfo(version, type);
+	const { url, hash } = await getDotnetDownloadInfo(version, type);
 	const downloadPath = await downloadDotnetArchive(url, hash, prefix);
 
 	await io.mkdirP(cachePath);
 	core.debug(`${prefix} Extracting to cache: ${cachePath}`);
 
 	const extractedPath =
-		platform === 'win'
+		getPlatform() === 'win'
 			? await toolCache.extractZip(downloadPath, cachePath)
 			: await toolCache.extractTar(downloadPath, cachePath);
 
-	validateExtractedBinary(extractedPath, platform);
-
-	if (type === 'sdk') {
-		await copySdkToInstallDir(extractedPath, installDir, prefix);
-	} else {
-		await copyRuntimeToInstallDir(extractedPath, installDir, prefix);
-	}
+	validateExtractedBinary(extractedPath);
+	await copyToInstallDirectory(extractedPath, installDirectory, type);
 
 	return {
 		version,
 		type,
-		path: installDir,
+		path: installDirectory,
 		source: 'download',
 	};
 }
 
-export async function getDotNetDownloadInfo(
+export async function getDotnetDownloadInfo(
 	version: string,
 	type: DotnetType,
 ): Promise<DownloadInfo> {
 	const platform = getPlatform();
-	const architecture = getArchitecture();
+	const runtimeIdentifier = `${platform}-${getArchitecture()}`;
 	const extension = platform === 'win' ? 'zip' : 'tar.gz';
 
-	const runtimeIdentifier = `${platform}-${architecture}`;
-
 	const manifest = await fetchReleaseManifest(version);
+	const component = manifest.releases
+		.map((release) => getReleaseComponent(release, version, type))
+		.find((candidate) => candidate?.version === version);
 
-	const release = manifest.releases.find((r) => {
-		if (type === 'sdk') {
-			return r.sdks?.some((s) => s.version === version);
-		}
-		if (type === 'aspnetcore') {
-			return r['aspnetcore-runtime']?.version === version;
-		}
-		return r.runtime?.version === version;
-	});
-
-	if (!release) {
+	if (!component) {
 		throw new Error(
 			`Version ${version} not found in releases manifest for ${type}`,
 		);
 	}
 
-	const section = getSectionFromRelease(release, version, type);
-
-	if (!section?.files) {
+	if (!component.files) {
 		throw new Error(`No files found for ${type} version ${version}`);
 	}
 
-	const filePattern = getExpectedFileName(type, runtimeIdentifier, extension);
-
-	const file = section.files.find(
-		(f) => f.name === filePattern && f.rid === runtimeIdentifier,
+	const fileName = `${ARCHIVE_NAME_PREFIXES[type]}-${runtimeIdentifier}.${extension}`;
+	const file = component.files.find(
+		(candidate) =>
+			candidate.name === fileName && candidate.rid === runtimeIdentifier,
 	);
 
 	if (!file) {
 		throw new Error(
-			`Download not found for ${type} ${version} on ${runtimeIdentifier}. Expected file: ${filePattern}`,
+			`Download not found for ${type} ${version} on ${runtimeIdentifier}. Expected file: ${fileName}`,
 		);
 	}
 
@@ -431,32 +425,18 @@ export async function getDotNetDownloadInfo(
 	return { url: file.url, hash: file.hash };
 }
 
-function getSectionFromRelease(
+function getReleaseComponent(
 	release: Release,
 	version: string,
 	type: DotnetType,
-): { version: string; files?: FileInfo[] } | undefined {
+): ReleaseComponent | undefined {
 	if (type === 'sdk') {
-		return release.sdks?.find((s) => s.version === version);
+		return release.sdks?.find((sdk) => sdk.version === version);
 	}
 	if (type === 'aspnetcore') {
 		return release['aspnetcore-runtime'];
 	}
 	return release.runtime;
-}
-
-function getExpectedFileName(
-	type: DotnetType,
-	runtimeIdentifier: string,
-	extension: string,
-): string {
-	if (type === 'aspnetcore') {
-		return `aspnetcore-runtime-${runtimeIdentifier}.${extension}`;
-	}
-	if (type === 'sdk') {
-		return `dotnet-sdk-${runtimeIdentifier}.${extension}`;
-	}
-	return `dotnet-runtime-${runtimeIdentifier}.${extension}`;
 }
 
 async function downloadWithRetry(
@@ -471,9 +451,9 @@ async function downloadWithRetry(
 		} catch (error) {
 			lastError = error instanceof Error ? error : new Error(String(error));
 			if (attempt < maxRetries) {
-				const waitTime = attempt * 5;
-				core.warning(`Download failed, retrying in ${waitTime}s...`);
-				await new Promise((resolve) => setTimeout(resolve, waitTime * 1000));
+				const waitSeconds = attempt * 5;
+				core.warning(`Download failed, retrying in ${waitSeconds}s...`);
+				await new Promise((resolve) => setTimeout(resolve, waitSeconds * 1000));
 			}
 		}
 	}

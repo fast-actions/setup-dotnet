@@ -17,17 +17,22 @@ export interface VersionInfo {
 	allowPrerelease: boolean;
 }
 
-export interface FileInfo {
+interface FileInfo {
 	name: string;
 	rid: string;
 	url: string;
 	hash: string;
 }
 
+export interface ReleaseComponent {
+	version: string;
+	files?: FileInfo[];
+}
+
 export interface Release {
-	sdks?: Array<{ version: string; files?: FileInfo[] }>;
-	runtime?: { version: string; files?: FileInfo[] };
-	'aspnetcore-runtime'?: { version: string; files?: FileInfo[] };
+	sdks?: ReleaseComponent[];
+	runtime?: ReleaseComponent;
+	'aspnetcore-runtime'?: ReleaseComponent;
 }
 
 export interface ReleaseManifest {
@@ -73,11 +78,6 @@ export interface ReleaseInfo {
 	'latest-runtime'?: string;
 	'release-type': 'sts' | 'lts';
 	'support-phase': string;
-}
-
-export interface ResolvedVersion {
-	value: string;
-	channel: string;
 }
 
 export interface SdkIncludedVersions {

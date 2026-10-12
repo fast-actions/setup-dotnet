@@ -15,8 +15,8 @@ export function getPlatform(): string {
 }
 
 export function getArchitecture(): string {
-	const arch = os.arch();
-	switch (arch) {
+	const architecture = os.arch();
+	switch (architecture) {
 		case 'x64':
 			return 'x64';
 		case 'arm64':
@@ -24,6 +24,10 @@ export function getArchitecture(): string {
 		case 'arm':
 			return 'arm';
 		default:
-			throw new Error(`Unsupported architecture: ${arch}`);
+			throw new Error(`Unsupported architecture: ${architecture}`);
 	}
+}
+
+export function getDotnetBinaryName(): string {
+	return getPlatform() === 'win' ? 'dotnet.exe' : 'dotnet';
 }

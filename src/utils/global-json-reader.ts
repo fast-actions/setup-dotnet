@@ -4,6 +4,9 @@ import * as path from 'node:path';
 import { parse as parseJson } from 'jsonc-parser';
 import type { GlobalJson, SdkInfo } from '../types';
 
+// major.minor.patch with optional prerelease, e.g. 9.0.100-preview.7.24407.12
+const SEMVER_PATTERN = /^\d+\.\d+\.\d+(-[a-zA-Z0-9.-]+)?$/;
+
 export async function readGlobalJson(
 	filePath: string,
 ): Promise<SdkInfo | null> {
@@ -12,17 +15,12 @@ export async function readGlobalJson(
 		const content = await fs.readFile(filePath, 'utf-8');
 		core.debug(`Successfully read global.json (${content.length} bytes)`);
 
-		let parsed: GlobalJson;
-		try {
-			parsed = parseJson(content) as GlobalJson;
-
-			// jsonc-parser returns undefined for invalid JSON instead of throwing
-			if (parsed === undefined) {
-				throw new Error('Unable to parse JSON content');
-			}
-		} catch (error) {
-			const errorMsg = error instanceof Error ? error.message : String(error);
-			throw new Error(`Invalid JSON in global.json: ${errorMsg}`);
+		// jsonc-parser returns undefined for invalid JSON instead of throwing
+		const parsed = parseJson(content) as GlobalJson | undefined;
+		if (parsed === undefined) {
+			throw new Error(
+				'Invalid JSON in global.json: Unable to parse JSON content',
+			);
 		}
 
 		if (!parsed.sdk) {
@@ -30,9 +28,8 @@ export async function readGlobalJson(
 			return null;
 		}
 
-		const version = parsed.sdk?.version;
-		const rollForward = parsed.sdk?.rollForward;
-		const allowPrerelease = parsed.sdk?.allowPrerelease ?? false;
+		const { version, rollForward } = parsed.sdk;
+		const allowPrerelease = parsed.sdk.allowPrerelease ?? false;
 
 		// If version was missing, return latest directly without validation
 		if (!version) {
@@ -40,7 +37,6 @@ export async function readGlobalJson(
 			return { version: 'latest', allowPrerelease };
 		}
 
-		// Validate version format - must be full version number (e.g., 10.0.100)
 		// Wildcards are not supported in global.json per official spec
 		if (version.includes('x') || version.includes('*')) {
 			throw new Error(
@@ -48,12 +44,7 @@ export async function readGlobalJson(
 			);
 		}
 
-		// Check if this is a preview version using semver prerelease pattern
-		// Pattern: major.minor.patch-prerelease (e.g., 9.0.100-preview.7.24407.12)
-		const semverPattern = /^(\d+\.\d+\.\d+)(-[a-zA-Z0-9.-]+)?$/;
-		const match = semverPattern.exec(version);
-
-		if (!match) {
+		if (!SEMVER_PATTERN.test(version)) {
 			throw new Error(
 				`Invalid version format in global.json: '${version}'. Expected format: major.minor.patch (e.g., 10.0.100) or major.minor.patch-prerelease (e.g., 9.0.100-preview.7)`,
 			);
@@ -81,54 +72,29 @@ export async function readGlobalJson(
 	}
 }
 
-// In official .NET SDK behavior, rollForward policies select from installed SDKs.
-// In our GitHub Action context, we're downloading SDKs, so we transform the version
-// into a wildcard pattern that our version-resolver can use to find the latest matching version.
-// This approach is semantically equivalent for CI/CD: instead of "pick from installed",
-// we "download the latest matching".
+// The .NET SDK applies rollForward to the SDKs installed on the machine. This
+// action downloads SDKs instead, so the policy becomes a wildcard pattern that
+// resolves to the latest matching release (e.g. 'patch': 8.0.100 -> 8.0.x).
+// The "latest*" variants behave the same as their base policy in this context.
 function applyRollForward(version: string, rollForward?: string): string {
-	// Default behavior (no rollForward specified) or explicit disable: use exact version
 	if (!rollForward || rollForward === 'disable') {
 		return version;
 	}
 
-	const parts = version.split('.');
+	const [major, minor] = version.split('.');
 
 	switch (rollForward) {
 		case 'patch':
-		// Official: Roll forward to latest patch within same feature band
-		// Our implementation: Download latest patch in same major.minor (8.0.100 -> 8.0.x)
-		// Note: patch and latestPatch behave similarly in download context
 		case 'latestPatch':
-			// Official: Use highest installed patch >= specified value
-			// Our implementation: Download latest patch in same major.minor (8.0.100 -> 8.0.x)
-			return `${parts[0]}.${parts[1]}.x`;
-
 		case 'feature':
-		// Official: Roll forward to next feature band within same major.minor if needed
-		// Our implementation: Download latest in same major.minor (8.0.100 -> 8.0.x)
-		// Note: In download context, this gets the latest feature band automatically
 		case 'latestFeature':
-			// Official: Use highest feature band >= specified value within same major.minor
-			// Our implementation: Download latest in same major.minor (8.0.100 -> 8.0.x)
-			return `${parts[0]}.${parts[1]}.x`;
-
+			return `${major}.${minor}.x`;
 		case 'minor':
-		// Official: Roll forward to next minor version if needed
-		// Our implementation: Download latest minor in same major (8.0.100 -> 8.x.x)
 		case 'latestMinor':
-			// Official: Use highest minor >= specified value within same major
-			// Our implementation: Download latest minor in same major (8.0.100 -> 8.x.x)
-			return `${parts[0]}.x.x`;
-
+			return `${major}.x.x`;
 		case 'major':
-		// Official: Roll forward to next major version if needed
-		// Our implementation: Download latest major (8.0.100 -> latest)
 		case 'latestMajor':
-			// Official: Use highest major >= specified value
-			// Our implementation: Download latest major (8.0.100 -> latest)
 			return 'latest';
-
 		default:
 			core.warning(
 				`Unknown rollForward policy '${rollForward}', using exact version`,
