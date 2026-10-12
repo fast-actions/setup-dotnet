@@ -17,7 +17,7 @@
 		"type": "git",
 		"url": "https://github.com/fast-actions/setup-dotnet"
 	},
-	"packageManager": "pnpm@11.5.1",
+	"packageManager": "pnpm@11.28.5",
 	"scripts": {
 		"build": "tsc && vite build",
 		"test": "vitest run",
@@ -30,7 +30,7 @@
 		"validate": "pnpm format && pnpm lint && pnpm knip && pnpm build && pnpm test"
 	},
 	"dependencies": {
-		"@actions/cache": "6.0.1",
+		"@actions/cache": "6.3.0",
 		"@actions/core": "3.0.1",
 		"@actions/exec": "3.0.0",
 		"@actions/io": "3.0.2",
@@ -38,12 +38,12 @@
 		"jsonc-parser": "3.3.1"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "2.4.16",
-		"@types/node": "25.9.1",
-		"knip": "6.15.0",
-		"prettier": "3.8.3",
-		"typescript": "6.0.3",
-		"vite": "8.0.16",
-		"vitest": "4.1.8"
+		"@biomejs/biome": "2.5.15",
+		"@types/node": "25.9.9",
+		"knip": "6.41.0",
+		"prettier": "3.9.10",
+		"typescript": "7.0.2",
+		"vite": "8.3.4",
+		"vitest": "5.0.3"
 	}
 }

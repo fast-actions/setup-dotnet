@@ -33,7 +33,7 @@
 		},
 		{
 			"matchDatasources": ["npm"],
-			"matchDepNames": ["@node/types"],
+			"matchDepNames": ["@types/node"],
 			"matchUpdateTypes": "major",
 			"enabled": false
 		}
